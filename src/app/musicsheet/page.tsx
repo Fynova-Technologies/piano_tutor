@@ -34,7 +34,6 @@ export default function SheetMusicPage() {
   const [timeSignature, setTimeSignature] = useState({ top: 4, bottom: 4 });
   const [sliderBeat, setSliderBeat] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [bpm, setBpm] = useState(60);
   const subdivisionsPerBeat = 4; // e.g., 4 for 16th notes in 4/4 time
   const [capturedNotes, setCapturedNotes] = useState<CapturedNoteGroup[]>([]);
@@ -46,7 +45,94 @@ export default function SheetMusicPage() {
   const [checking, setChecking] = useState(false);
   const [randomPositions, setRandomPositions] = useState<[string, [number, number]][]>([]);
   const [lowerrandomPositions, setLowerRandomPositions] = useState<[string, [number, number]][]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const nextNoteTimeRef = useRef(0);
+  const timerID = useRef<NodeJS.Timeout | null>(null);
+  const scheduleAheadTime = 0.1; // Schedule 100ms ahead
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isCountingIn, setIsCountingIn] = useState(false);
+  const currentBeatRef = useRef(0);
+  const [isMetronomeRunning, setIsMetronomeRunning] = useState(false);
 
+
+  
+
+
+  const initializeAudioContext = () => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || window.AudioContext)();
+      console.log("AudioContext initialized");
+    }
+    scheduler();
+  };
+
+  const playClick = (time = 0, isDownbeat = false) => {
+    if (!audioContextRef.current) {
+      return;
+    }
+    const osc = audioContextRef.current.createOscillator();
+    const gain = audioContextRef.current.createGain();
+  
+    osc.frequency.value = isDownbeat ? 1000 : 800;
+    gain.gain.setValueAtTime(0.5, time);
+    gain.gain.linearRampToValueAtTime(0, time + 0.1);
+
+  
+    osc.connect(gain);
+    gain.connect(audioContextRef.current.destination);
+  
+    osc.start(time);
+    osc.stop(time + 0.06);
+  };
+
+   
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const scheduleNote = (beatNumber: number, time: number | undefined) => {
+    playClick(time, beatNumber % 4 === 0); // Downbeat every 4 beats
+  };
+  
+  
+  const stopMetronome = () => {
+    clearInterval(timerID.current as NodeJS.Timeout | undefined);
+    timerID.current = null;
+  };
+
+
+  const scheduler = useCallback(() => {
+    while (
+      audioContextRef.current &&
+      nextNoteTimeRef.current < audioContextRef.current.currentTime + scheduleAheadTime
+    ) {
+      // Schedule the click sound
+      scheduleNote(currentBeatRef.current, nextNoteTimeRef.current);
+  
+      // Sync slider movement (in real-time) with audio schedule
+      const scheduledBeat = currentBeatRef.current;
+      const scheduledTime = nextNoteTimeRef.current;
+  
+      // This causes the slider to update at *exactly* the right time
+      setTimeout(() => {
+        setSliderBeat(scheduledBeat);
+      }, (scheduledTime - audioContextRef.current!.currentTime) * 1000);
+  
+      nextNoteTimeRef.current += 60.0 / bpm;
+      currentBeatRef.current++;
+    }
+  }, [scheduleNote, bpm]);
+
+ 
+
+
+ 
+  
+    // Clean up on component unmount
+    useEffect(() => {
+      return () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        if (audioContextRef.current) audioContextRef.current.close();
+      };
+    }, []);
 
   const beatsPerSystem = timeSignature.top * 4; // number of beats in each system
 
@@ -129,35 +215,7 @@ export default function SheetMusicPage() {
   
 
 
-  const playNote = useCallback((note: number, velocity: number) => {
-      if (!Number.isFinite(note)) {
-        console.warn("Invalid MIDI note received:", note);
-        return;
-      }
-    
-      const freq = midiNoteToFrequency(note);
-      if (!Number.isFinite(freq)) {
-        console.warn("Invalid frequency calculated:", freq);
-        return;
-      }
-    
-      const context = new AudioContext();
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-    
-      oscillator.frequency.value = freq;
-      gain.gain.value = velocity / 127;
-    
-      oscillator.connect(gain);
-      gain.connect(context.destination);
-      oscillator.start();
-      oscillator.stop(context.currentTime + 0.5);
-    }, []);
   
-  
-  const midiNoteToFrequency = (note: number): number => {
-    return 440 * Math.pow(2, (note - 69) / 12); // A440 reference
-  };
 
   function getStaffPositionsFromSemitones(semitoneDistance: number): number {
     return semitoneDistance / 1.85;
@@ -290,7 +348,6 @@ export default function SheetMusicPage() {
   const getMIDIMessage = React.useCallback((midiMessage: WebMidi.MIDIMessageEvent) => {
     
     const [status, note, velocity] = midiMessage.data;
-    playNote(note, velocity);
     const statusType = status & 0xF0;
   
     if (statusType === 0x80 || (statusType === 0x90 && velocity === 0)) {
@@ -340,11 +397,8 @@ export default function SheetMusicPage() {
       }
     }
     
-  }, [getNoteY, isPlaying, playNote, timeSignature]);  // Remove sliderBeat from dependencies
+  }, [getNoteY, isPlaying, timeSignature]);  // Remove sliderBeat from dependencies
   
-  useEffect(() => {
-    console.log("Updated keyspositions:", keyspositions);
-  }, [keyspositions]); 
 
 // Setup MIDI event listener with cleanup
 React.useEffect(() => {
@@ -439,6 +493,7 @@ React.useEffect(() => {
     console.log("captured notes", capturedNotes);
     return (
       <>
+        
         {notesInThisSystem.map((group, gi) =>
           group.notes.map((note, ni) => {
             const x = getSliderXForBeat(group.beat, timeSignature);
@@ -627,11 +682,26 @@ React.useEffect(() => {
   }
 
   useEffect(() => {
-    if (isPlaying) {
+    if (!isPlaying) {
       setCapturedNotes([]); // Clear previous notes
-      setSliderBeat(0);     // Start from beginning
+      setSliderBeat(0);
+      stopMetronome()     // Start from beginning
     }
   }, [isPlaying]);
+
+
+
+  useEffect(() => {
+    if (!isMetronomeRunning) {
+      return
+    };
+  
+    clearInterval(timerID.current as NodeJS.Timeout);
+    timerID.current = setInterval(scheduler, 25);
+  
+    return () => clearInterval(timerID.current as NodeJS.Timeout);
+  }, [isMetronomeRunning, scheduler]);
+
 
   useEffect(() => {
     const totalBeats     = beatsPerSystem * 2;  // two systems: upper + lower
@@ -711,7 +781,35 @@ React.useEffect(() => {
       <div className="flex gap-4 items-center">
         <button
           className="px-4 py-2 bg-blue-500 text-white rounded"
-          onClick={() => setIsPlaying(!isPlaying)}
+          onClick={() => {
+            if (isPlaying || isCountingIn) return;
+            
+          
+            initializeAudioContext();
+            setIsCountingIn(true);
+            setSliderBeat(0);
+            setIsMetronomeRunning(false);
+            currentBeatRef.current = 0;
+          
+            const interval = 60000 / bpm;
+            let count = 0;
+          
+            const countInInterval = setInterval(() => {
+              const now = audioContextRef.current!.currentTime;
+              playClick(now, count === 0); // downbeat on first beat
+              count++;
+          
+              if (count === 4) {
+                clearInterval(countInInterval);
+                setIsCountingIn(false);  
+                nextNoteTimeRef.current = audioContextRef.current!.currentTime;
+                currentBeatRef.current = 0;
+                setIsPlaying(true); 
+                setIsCountingIn(false);
+              }
+              
+            }, interval);
+          }}
         >
           {isPlaying ? "Pause" : "Play"}
         </button>
