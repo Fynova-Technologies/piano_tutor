@@ -53,7 +53,9 @@ export default function SheetMusicPage() {
   const [isCountingIn, setIsCountingIn] = useState(false);
   const currentBeatRef = useRef(0);
   const [isMetronomeRunning, setIsMetronomeRunning] = useState(false);
-  const countInBuffer = useRef<AudioBuffer | null>(null);
+  // const countInBuffer = useRef<AudioBuffer | null>(null);
+  const countInBuffers = useRef<(AudioBuffer | null)[]>([null, null, null, null]);
+
 
 
 
@@ -61,42 +63,56 @@ export default function SheetMusicPage() {
   
   const loadCountInSound = async () => {
     if (!audioContextRef.current) return;
-    const response = await fetch('/sound/One_Two_Three_Start.mp3');
-    const arrayBuffer = await response.arrayBuffer();
-    countInBuffer.current = await audioContextRef.current.decodeAudioData(arrayBuffer);
+  
+    const soundUrls = [
+      '/sound/one.mp3',
+      '/sound/two.mp3',
+      '/sound/three.mp3',
+      '/sound/start.mp3',
+    ];
+  
+    const promises = soundUrls.map(async (url, i) => {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = await audioContextRef.current!.decodeAudioData(arrayBuffer);
+      countInBuffers.current[i] = buffer;
+    });
+  
+    await Promise.all(promises);
   };
 
 
-  const initializeAudioContext = async() => {
+  const initializeAudioContext = async () => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || window.AudioContext)();
     }
-    await loadCountInSound();
-
-    scheduler();
+  
+    // Only load if any buffer is null
+    if (countInBuffers.current.some(buffer => !buffer)) {
+      await loadCountInSound();
+    }
   };
 
   
 
-  const playClick = (time = 0, isDownbeat = false,useCustomSound = false) => {
-    if (!audioContextRef.current) {
-      return;
-    }
-
-    if (useCustomSound && countInBuffer.current) {
+  const playClick = (time = 0, isDownbeat = false, countInIndex: number | null = null) => {
+    if (!audioContextRef.current) return;
+  
+    if (countInIndex !== null && countInBuffers.current[countInIndex]) {
       const source = audioContextRef.current.createBufferSource();
-      source.buffer = countInBuffer.current;
+      source.buffer = countInBuffers.current[countInIndex];
       source.connect(audioContextRef.current.destination);
       source.start(time);
       return;
     }
+  
+    // Regular metronome click
     const osc = audioContextRef.current.createOscillator();
     const gain = audioContextRef.current.createGain();
   
     osc.frequency.value = isDownbeat ? 1000 : 800;
     gain.gain.setValueAtTime(0.5, time);
     gain.gain.linearRampToValueAtTime(0, time + 0.1);
-
   
     osc.connect(gain);
     gain.connect(audioContextRef.current.destination);
@@ -108,8 +124,8 @@ export default function SheetMusicPage() {
    
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const scheduleNote = (beatNumber: number, time: number | undefined,useCustomSound = false) => {
-    playClick(time, beatNumber % 4 === 0,useCustomSound); // Downbeat every 4 beats
+  const scheduleNote = (beatNumber: number, time: number | undefined) => {
+    playClick(time, beatNumber % 4 === 0); // Downbeat every 4 beats
   };
   
   
@@ -128,8 +144,7 @@ export default function SheetMusicPage() {
       // Sync slider movement (in real-time) with audio schedule
       const scheduledBeat = currentBeatRef.current;
       const scheduledTime = nextNoteTimeRef.current;
-      const useCustomSound = scheduledBeat < 4;
-      scheduleNote(currentBeatRef.current, nextNoteTimeRef.current,useCustomSound);
+      scheduleNote(currentBeatRef.current, nextNoteTimeRef.current);
 
 
   
@@ -803,39 +818,47 @@ React.useEffect(() => {
       </div>
 
       <div className="flex gap-4 items-center">
-        <button
-          className="px-4 py-2 bg-blue-500 text-white rounded"
-          onClick={() => {
-            if (isPlaying || isCountingIn) {
-              setIsPlaying(false);
-              return;
-            }
-            initializeAudioContext();
-            setIsCountingIn(true);
-            setSliderBeat(0);
-            currentBeatRef.current = 0;
-            const now = audioContextRef.current!.currentTime;
-            const scheduleTime = now;
+      <button
+  className="px-4 py-2 bg-blue-500 text-white rounded"
+  onClick={async () => {
+    if (isPlaying || isCountingIn) {
+      setIsPlaying(false);
+      return;
+    }
 
-            for (let i = 0; i < 4; i++) {
-              const beatTime = scheduleTime + (i * 60) / bpm;
-              playClick(beatTime, i === 0);
-            }
+    await initializeAudioContext();
+    setIsCountingIn(true);
+    setSliderBeat(0);
+    currentBeatRef.current = 0;
 
-            nextNoteTimeRef.current = scheduleTime + (4 * 60) / bpm;
-            currentBeatRef.current = 0;
+    const now = audioContextRef.current!.currentTime;
+    const scheduleTime = now;
 
-            const startTime = scheduleTime + (4 * 60) / bpm - scheduleAheadTime;
-            timerID.current = setInterval(scheduler, 25);
-            setTimeout(() => {
-              setIsCountingIn(false);
-              setIsMetronomeRunning(true);
-              setIsPlaying(true);
-            },(startTime - now) * 1000);
-          }}
-        >
-          {isPlaying ? "Pause" : "Play"}
-        </button>
+    // 🔊 Play 4 count-in sounds
+    for (let i = 0; i < 4; i++) {
+      const beatTime = scheduleTime + (i * 60) / bpm;
+      playClick(beatTime, i === 0, i);
+    }
+
+    // Total delay: 4 beats + extra delay
+    const totalDelay = (4 * 60) / bpm + 0.5;
+
+    // 👇 Start metronome slightly later
+    nextNoteTimeRef.current = scheduleTime + totalDelay;
+    currentBeatRef.current = 0;
+
+    const startTime = nextNoteTimeRef.current - scheduleAheadTime;
+    timerID.current = setInterval(scheduler, 25);
+
+    setTimeout(() => {
+      setIsCountingIn(false);
+      setIsMetronomeRunning(true);
+      setIsPlaying(true);
+    }, (startTime - now) * 1000); // Convert to ms
+  }}
+>
+  {isPlaying ? "Pause" : "Play"}
+</button>
         <label>BPM:</label>
         <input
           type="range"
