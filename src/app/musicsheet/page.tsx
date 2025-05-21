@@ -48,26 +48,46 @@ export default function SheetMusicPage() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const nextNoteTimeRef = useRef(0);
   const timerID = useRef<NodeJS.Timeout | null>(null);
-  const scheduleAheadTime = 0.1; // Schedule 100ms ahead
+  const scheduleAheadTime = 0.2; // Schedule 100ms ahead
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isCountingIn, setIsCountingIn] = useState(false);
   const currentBeatRef = useRef(0);
   const [isMetronomeRunning, setIsMetronomeRunning] = useState(false);
+  const countInBuffer = useRef<AudioBuffer | null>(null);
+
+
 
 
   
+  const loadCountInSound = async () => {
+    if (!audioContextRef.current) return;
+    const response = await fetch('/sound/One_Two_Three_Start.mp3');
+    const arrayBuffer = await response.arrayBuffer();
+    countInBuffer.current = await audioContextRef.current.decodeAudioData(arrayBuffer);
+  };
 
 
-  const initializeAudioContext = () => {
+  const initializeAudioContext = async() => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || window.AudioContext)();
-      console.log("AudioContext initialized");
     }
+    await loadCountInSound();
+
     scheduler();
   };
 
-  const playClick = (time = 0, isDownbeat = false) => {
+  
+
+  const playClick = (time = 0, isDownbeat = false,useCustomSound = false) => {
     if (!audioContextRef.current) {
+      return;
+    }
+
+    if (useCustomSound && countInBuffer.current) {
+      const source = audioContextRef.current.createBufferSource();
+      source.buffer = countInBuffer.current;
+      source.connect(audioContextRef.current.destination);
+      source.start(time);
       return;
     }
     const osc = audioContextRef.current.createOscillator();
@@ -88,8 +108,8 @@ export default function SheetMusicPage() {
    
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const scheduleNote = (beatNumber: number, time: number | undefined) => {
-    playClick(time, beatNumber % 4 === 0); // Downbeat every 4 beats
+  const scheduleNote = (beatNumber: number, time: number | undefined,useCustomSound = false) => {
+    playClick(time, beatNumber % 4 === 0,useCustomSound); // Downbeat every 4 beats
   };
   
   
@@ -104,12 +124,14 @@ export default function SheetMusicPage() {
       audioContextRef.current &&
       nextNoteTimeRef.current < audioContextRef.current.currentTime + scheduleAheadTime
     ) {
-      // Schedule the click sound
-      scheduleNote(currentBeatRef.current, nextNoteTimeRef.current);
   
       // Sync slider movement (in real-time) with audio schedule
       const scheduledBeat = currentBeatRef.current;
       const scheduledTime = nextNoteTimeRef.current;
+      const useCustomSound = scheduledBeat < 4;
+      scheduleNote(currentBeatRef.current, nextNoteTimeRef.current,useCustomSound);
+
+
   
       // This causes the slider to update at *exactly* the right time
       setTimeout(() => {
@@ -695,12 +717,14 @@ React.useEffect(() => {
     if (!isMetronomeRunning) {
       return
     };
-  
-    clearInterval(timerID.current as NodeJS.Timeout);
-    timerID.current = setInterval(scheduler, 25);
-  
+    if(isPlaying || isCountingIn){
+      return()=> {
+      clearInterval(timerID.current as NodeJS.Timeout);
+      timerID.current = setInterval(scheduler, 25);
+    }
+    }
     return () => clearInterval(timerID.current as NodeJS.Timeout);
-  }, [isMetronomeRunning, scheduler]);
+  }, [isCountingIn, isMetronomeRunning, isPlaying, scheduler]);
 
 
   useEffect(() => {
@@ -782,33 +806,32 @@ React.useEffect(() => {
         <button
           className="px-4 py-2 bg-blue-500 text-white rounded"
           onClick={() => {
-            if (isPlaying || isCountingIn) return;
-            
-          
+            if (isPlaying || isCountingIn) {
+              setIsPlaying(false);
+              return;
+            }
             initializeAudioContext();
             setIsCountingIn(true);
             setSliderBeat(0);
-            setIsMetronomeRunning(false);
             currentBeatRef.current = 0;
-          
-            const interval = 60000 / bpm;
-            let count = 0;
-          
-            const countInInterval = setInterval(() => {
-              const now = audioContextRef.current!.currentTime;
-              playClick(now, count === 0); // downbeat on first beat
-              count++;
-          
-              if (count === 4) {
-                clearInterval(countInInterval);
-                setIsCountingIn(false);  
-                nextNoteTimeRef.current = audioContextRef.current!.currentTime;
-                currentBeatRef.current = 0;
-                setIsPlaying(true); 
-                setIsCountingIn(false);
-              }
-              
-            }, interval);
+            const now = audioContextRef.current!.currentTime;
+            const scheduleTime = now;
+
+            for (let i = 0; i < 4; i++) {
+              const beatTime = scheduleTime + (i * 60) / bpm;
+              playClick(beatTime, i === 0);
+            }
+
+            nextNoteTimeRef.current = scheduleTime + (4 * 60) / bpm;
+            currentBeatRef.current = 0;
+
+            const startTime = scheduleTime + (4 * 60) / bpm - scheduleAheadTime;
+            timerID.current = setInterval(scheduler, 25);
+            setTimeout(() => {
+              setIsCountingIn(false);
+              setIsMetronomeRunning(true);
+              setIsPlaying(true);
+            },(startTime - now) * 1000);
           }}
         >
           {isPlaying ? "Pause" : "Play"}
