@@ -395,7 +395,6 @@ export default function SheetMusicPage() {
     if (statusType === 0x90 && velocity > 0 && isPlaying) {
       if (!activeNotes.current.has(note)) {
         const currentSliderBeat = sliderBeatRef.current;
-    
         const x_absolute = getSliderXForBeat(currentSliderBeat, timeSignature);
         const systemIndex = currentSliderBeat < timeSignature.top * 4 ? 0 : 1;
         const isTreble = systemIndex === 0;
@@ -877,8 +876,8 @@ React.useEffect(() => {
         {drawSubdivisionLines(140)}
         
 
-        <text x={5} y={20 + 3 * STAFF_LINE_GAP} fontSize="28" stroke="white">𝄞</text>
-        <text x={5} y={140 + 3 * STAFF_LINE_GAP} fontSize="28" stroke="white">𝄢</text>
+        <text x={-5} y={30 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="white" className="">𝄞</text>
+        <text x={-5} y={140 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="white">𝄢</text>
 
         {drawMeasureLines(20)}
         {drawMeasureLines(140)}
@@ -941,8 +940,8 @@ React.useEffect(() => {
         fill="white"
       />
     ))}
-        <text x={5} y={100 + 3 * STAFF_LINE_GAP} fontSize="28" stroke="white">𝄞</text>
-        <text x={5} y={220 + 3 * STAFF_LINE_GAP} fontSize="28" stroke="white">𝄢</text>
+        <text x={-5} y={110 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="white">𝄞</text>
+        <text x={-5} y={220 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="white">𝄢</text>
 
         {drawMeasureLines(100)}
         {drawMeasureLines(220)}
