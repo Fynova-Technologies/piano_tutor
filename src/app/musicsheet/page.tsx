@@ -2,6 +2,10 @@
 
 import React, { useCallback } from "react";
 import { useState, useRef, useEffect, JSX } from "react";
+import Image from "next/image";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlay, faPause, faForward, faBackward } from '@fortawesome/free-solid-svg-icons';
+
 
 const STAFF_LINE_GAP = 20; // px 
 const STAFF_WIDTH = 800;
@@ -292,7 +296,7 @@ export default function SheetMusicPage() {
             y1={lineY}
             x2={x + 10}
             y2={lineY}
-            stroke="white"
+            stroke="black"
             strokeWidth="1"
           />
         );
@@ -309,7 +313,7 @@ export default function SheetMusicPage() {
             y1={lineY}
             x2={x + 10}
             y2={lineY}
-            stroke="white"
+            stroke="black"
             strokeWidth="1"
           />
         );
@@ -477,8 +481,8 @@ React.useEffect(() => {
         y1={yStart + i * STAFF_LINE_GAP}
         x2={STAFF_WIDTH}
         y2={yStart + i * STAFF_LINE_GAP}
-        stroke="white"
-        strokeWidth="1"
+        stroke="black"
+        strokeWidth="2"
     />    
     ));
   };
@@ -781,94 +785,35 @@ React.useEffect(() => {
           y1={yStart}
           x2={x}
           y2={yStart + 4 * STAFF_LINE_GAP}
-          stroke="white"
-          strokeWidth="1"
+          stroke="black"
+          strokeWidth="2"
         />
       );
     });
   }
 
   return (
-    <div className="flex flex-col items-center gap-4 p-8">
-      <h1 className="text-2xl font-bold">Dynamic Sheet Music Viewer</h1>
-      <div className="flex gap-2">
-        <label>Time Signature:</label>
-        <input
-          type="number"
-          min="1"
-          max="12"
-          value={timeSignature.top}
-          onChange={(e) =>
-            setTimeSignature((prev) => ({ ...prev, top: parseInt(e.target.value) }))
-          }
-          className="w-12 border px-1"
-        />
-        <span>/</span>
-        <input
-          type="number"
-          min="1"
-          max="16"
-          value={timeSignature.bottom}
-          onChange={(e) =>
-            setTimeSignature((prev) => ({ ...prev, bottom: parseInt(e.target.value) }))
-          }
-          className="w-12 border px-1"
-        />
+    <div className="flex flex-col items-center">
+      <div className="bg-zinc-600/60 w-full h-[20%] flex justify-between items-center ">
+        <div className="p-5 flex-2">
+          <span className="text-white font-serif text-xl">1. Course Title 1</span>
+        </div>
+        <div className="p-4 flex-1">
+          <div className="flex space-x-4">
+            <Image src="/SVGRepo_iconCarrier.svg" width={20} height={20} alt="icon"/>
+            <span className="text-lg">High Score</span>
+            <Image src="/SVGRepo_iconCarrier (1).svg" width={20} height={20} alt="icon"/>
+            <span className="text-lg">Last Score</span>
+            <Image src="/autoplay.svg" width={20} height={20} alt="icon"/>
+
+            <span className="text-lg">Play Count</span>
+          </div>
+        </div>
       </div>
-
-      <div className="flex gap-4 items-center">
-      <button
-  className="px-4 py-2 bg-blue-500 text-white rounded"
-  onClick={async () => {
-    if (isPlaying || isCountingIn) {
-      setIsPlaying(false);
-      return;
-    }
-
-    await initializeAudioContext();
-    setIsCountingIn(true);
-    setSliderBeat(0);
-    currentBeatRef.current = 0;
-
-    const now = audioContextRef.current!.currentTime;
-    const scheduleTime = now;
-
-    // 🔊 Play 4 count-in sounds
-    for (let i = 0; i < 4; i++) {
-      const beatTime = scheduleTime + (i * 60) / bpm;
-      playClick(beatTime, i === 0, i);
-    }
-
-    // Total delay: 4 beats + extra delay
-    const totalDelay = (4 * 60) / bpm + 0.5;
-
-    // 👇 Start metronome slightly later
-    nextNoteTimeRef.current = scheduleTime + totalDelay;
-    currentBeatRef.current = 0;
-
-    const startTime = nextNoteTimeRef.current - scheduleAheadTime;
-    timerID.current = setInterval(scheduler, 25);
-
-    setTimeout(() => {
-      setIsCountingIn(false);
-      setIsMetronomeRunning(true);
-      setIsPlaying(true);
-    }, (startTime - now) * 1000); // Convert to ms
-  }}
->
-  {isPlaying ? "Pause" : "Play"}
-</button>
-        <label>BPM:</label>
-        <input
-          type="range"
-          min="30"
-          max="200"
-          value={bpm}
-          onChange={(e) => setBpm(parseInt(e.target.value))}
-        />
-        <span>{bpm}</span>
-      </div>
-
+      <div className="flex items-center justify-center w-full h-full inset-0 bg-[url('/pianobg.jpg')] bg-cover bg-center opacity-40 bg-[#00000080] bg-blend-color-dodge">
+      <div className="flex flex-col items-center justify-center">
+        
+      <div className="w-full border-4 border-white my-10 bg-radial-[at_90%_0%] from-white to-zinc-300 to-80% opacity-60 p-20 rounded-2xl">
       <svg width={STAFF_WIDTH} height={250}>
         {drawStaffLines(20)}
         {drawStaffLines(140)}
@@ -876,8 +821,8 @@ React.useEffect(() => {
         {drawSubdivisionLines(140)}
         
 
-        <text x={-5} y={30 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="white" className="">𝄞</text>
-        <text x={-5} y={140 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="white">𝄢</text>
+        <text x={-5} y={30 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black" className="">𝄞</text>
+        <text x={-5} y={140 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
 
         {drawMeasureLines(20)}
         {drawMeasureLines(140)}
@@ -889,20 +834,20 @@ React.useEffect(() => {
             95 -28 200 -28 108 0 129 3 205 30 198 69 341 222 379 402 8 37 11 480 11
             1492 l0 1440 -90 0 -90 0 0 -1225z"
         transform={`translate(${x - 10}, ${y - 10}) scale(0.01)`}
-        fill="white"
+        fill="black"
       />
     ))}
-        <text x={CLEF_WIDTH - 10} y={20 + 1 * STAFF_LINE_GAP} fontSize="16" stroke="white">
+        <text x={CLEF_WIDTH - 10} y={20 + 1 * STAFF_LINE_GAP} fontSize="16" stroke="black">
           {timeSignature.top}
         </text>
-        <text x={CLEF_WIDTH - 10} y={20 + 3 * STAFF_LINE_GAP} fontSize="16" stroke="white">
+        <text x={CLEF_WIDTH - 10} y={20 + 3 * STAFF_LINE_GAP} fontSize="16" stroke="black">
           {timeSignature.bottom}
         </text>
 
-        <text x={CLEF_WIDTH - 10} y={140 + 1 * STAFF_LINE_GAP} fontSize="16" stroke="white">
+        <text x={CLEF_WIDTH - 10} y={140 + 1 * STAFF_LINE_GAP} fontSize="16" stroke="black">
           {timeSignature.top}
         </text>
-        <text x={CLEF_WIDTH - 10} y={140 + 3 * STAFF_LINE_GAP} fontSize="16" stroke="white">
+        <text x={CLEF_WIDTH - 10} y={140 + 3 * STAFF_LINE_GAP} fontSize="16" stroke="black">
           {timeSignature.bottom}
         </text>
 
@@ -937,26 +882,26 @@ React.useEffect(() => {
             95 -28 200 -28 108 0 129 3 205 30 198 69 341 222 379 402 8 37 11 480 11
             1492 l0 1440 -90 0 -90 0 0 -1225z"
         transform={`translate(${x - 10}, ${y - 10}) scale(0.01)`}
-        fill="white"
+        fill="black"
       />
     ))}
-        <text x={-5} y={110 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="white">𝄞</text>
-        <text x={-5} y={220 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="white">𝄢</text>
+        <text x={-5} y={110 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black">𝄞</text>
+        <text x={-5} y={220 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
 
         {drawMeasureLines(100)}
         {drawMeasureLines(220)}
 
-        <text x={CLEF_WIDTH - 10} y={100 + 1 * STAFF_LINE_GAP} fontSize="16" stroke="white">
+        <text x={CLEF_WIDTH - 10} y={100 + 1 * STAFF_LINE_GAP} fontSize="16" stroke="black">
           {timeSignature.top}
         </text>
-        <text  x={CLEF_WIDTH - 10} y={100 + 3 * STAFF_LINE_GAP} fontSize="16" stroke="white">
+        <text  x={CLEF_WIDTH - 10} y={100 + 3 * STAFF_LINE_GAP} fontSize="16" stroke="black">
           {timeSignature.bottom}
         </text>
 
-        <text x={CLEF_WIDTH - 10} y={220 + 1 * STAFF_LINE_GAP} fontSize="16" stroke="white">
+        <text x={CLEF_WIDTH - 10} y={220 + 1 * STAFF_LINE_GAP} fontSize="16" stroke="black">
           {timeSignature.top}
         </text>
-        <text x={CLEF_WIDTH - 10} y={220 + 3 * STAFF_LINE_GAP} fontSize="16" stroke="white">
+        <text x={CLEF_WIDTH - 10} y={220 + 3 * STAFF_LINE_GAP} fontSize="16" stroke="black">
           {timeSignature.bottom}
         </text>
 
@@ -984,7 +929,146 @@ React.useEffect(() => {
         </button>
 
       </div>
+    </div>
+            
+    </div>
+    </div>
+    <div className=" flex fixed bottom-0 items-end justify-end bg-[#2E2E2E] w-full gap-2 p-4">
+      <div className="flex justify-between w-full gap-2">
+        <div className="flex items-center gap-2">
+        <label className="text-lg">Time Signature:</label>
+        <input
+          type="number"
+          min="1"
+          max="12"
+          value={timeSignature.top}
+          onChange={(e) =>
+            setTimeSignature((prev) => ({ ...prev, top: parseInt(e.target.value) }))
+          }
+          className="w-12 border-2 px-1"
+        />
+        <span className="text-lg">/</span>
+        <input
+          type="number"
+          min="1"
+          max="16"
+          value={timeSignature.bottom}
+          onChange={(e) =>
+            setTimeSignature((prev) => ({ ...prev, bottom: parseInt(e.target.value) }))
+          }
+          className="w-12 border-2 px-1"
+        />
+      </div>
+    <div className="flex items-center gap-4">
+    <button
+      className="px-2 py-1 text-4xl text-white cursor-pointer"
+      onClick={() => setBpm((prev) => Math.max(30, prev - 1))}
+    >
+      -
+    </button>
+    <div className="flex flex-col items-center gap-2">
+      <label className="font-medium">BPM:</label>
 
+      <span className="ml-2 font-bold">{bpm}</span>
+      <input
+        type="range"
+        min="30"
+        max="200"
+        value={bpm}
+        onChange={(e) => setBpm(parseInt(e.target.value))}
+        className="w-40"
+      />
+    </div>
+
+  <button
+    className="px-2 py-1 text-4xl text-white cursor-pointer"
+    onClick={() => setBpm((prev) => Math.min(200, prev + 1))}
+  >
+    +
+  </button>
+  </div>
+      <div className="flex gap-4 items-center">
+        <div className="flex items-center gap-4">
+  {/* Backward Skip Button (Design Only) */}
+  <button className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+    <FontAwesomeIcon icon={faBackward} className="text-lg" />
+  </button>
+
+  {/* Play/Pause Button */}
+  <button
+    className=" p-4 bg-white text-white rounded-full hover:bg-blue-600"
+    onClick={async () => {
+      if (isPlaying || isCountingIn) {
+        setIsPlaying(false);
+        return;
+      }
+      await initializeAudioContext();
+      setIsCountingIn(true);
+      setSliderBeat(0);
+      currentBeatRef.current = 0;
+
+      const now = audioContextRef.current!.currentTime;
+      const scheduleTime = now;
+
+      for (let i = 0; i < 4; i++) {
+        const beatTime = scheduleTime + (i * 60) / bpm;
+        playClick(beatTime, i === 0, i);
+      }
+
+      const totalDelay = (4 * 60) / bpm + 0.5;
+      nextNoteTimeRef.current = scheduleTime + totalDelay;
+      currentBeatRef.current = 0;
+
+      const startTime = nextNoteTimeRef.current - scheduleAheadTime;
+      timerID.current = setInterval(scheduler, 25);
+
+      setTimeout(() => {
+        setIsCountingIn(false);
+        setIsMetronomeRunning(true);
+        setIsPlaying(true);
+      }, (startTime - now) * 1000);
+    }}
+  >
+    <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} className="text-xl" />
+  </button>
+
+  {/* Forward Skip Button (Design Only) */}
+  <button className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+    <FontAwesomeIcon icon={faForward} className="text-lg" />
+  </button>
+</div>
+      
+    </div>
+  <div className="flex items-center gap-4">
+    <button
+      className="px-2 py-1 text-4xl text-white cursor-pointer"
+      onClick={() => setBpm((prev) => Math.max(30, prev - 1))}
+    >
+      -
+    </button>
+    <div className="flex flex-col items-center gap-2">
+      <label className="font-medium">BPM:</label>
+
+      <span className="ml-2 font-bold">{bpm}</span>
+      <input
+        type="range"
+        min="30"
+        max="200"
+        value={bpm}
+        onChange={(e) => setBpm(parseInt(e.target.value))}
+        className="w-40"
+      />
+    </div>
+
+  <button
+    className="px-2 py-1 text-4xl text-white cursor-pointer"
+    onClick={() => setBpm((prev) => Math.min(200, prev + 1))}
+  >
+    +
+  </button>
+  </div>
+    </div>
+    </div>
   </div>
   );
 }
