@@ -794,26 +794,52 @@ React.useEffect(() => {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="bg-zinc-600/60 w-full h-[20%] flex justify-between items-center ">
+      <div className="bg-[#FEFEFE] w-full h-[20%] flex justify-between items-center ">
         <div className="p-5 flex-2">
-          <span className="text-white font-serif text-xl">1. Course Title 1</span>
+          <span className="text-[#0A0A0B] font-serif text-xl">1. Course Title 1</span>
         </div>
         <div className="p-4 flex-1">
           <div className="flex space-x-4">
-            <Image src="/SVGRepo_iconCarrier.svg" width={20} height={20} alt="icon"/>
-            <span className="text-lg">High Score</span>
+            <Image src="/Frame.svg" width={20} height={20} alt="icon"/>
+            <span className="text-lg text-[#0A0A0B]">High Score</span>
             <Image src="/SVGRepo_iconCarrier (1).svg" width={20} height={20} alt="icon"/>
-            <span className="text-lg">Last Score</span>
-            <Image src="/autoplay.svg" width={20} height={20} alt="icon"/>
+            <span className="text-lg text-[#0A0A0B]">Last Score</span>
+            <Image src="/autoplay (1).svg" width={20} height={20} alt="icon"/>
 
-            <span className="text-lg">Play Count</span>
+            <span className="text-lg text-[#0A0A0B]">Play Count</span>
           </div>
         </div>
       </div>
-      <div className="flex items-center justify-center w-full h-full inset-0 bg-[url('/pianobg.jpg')] bg-cover bg-center opacity-40 bg-[#00000080] bg-blend-color-dodge">
+      <div className="flex items-center justify-center w-full h-full inset-0 bg-[#F8F6F1]">
+        
       <div className="flex flex-col items-center justify-center">
         
-      <div className="w-full border-4 border-white my-10 bg-radial-[at_90%_0%] from-white to-zinc-300 to-80% opacity-60 p-20 rounded-2xl">
+        
+      <div className="w-full border-4 border-white my-10 bg-white p-12 flex flex-col items-center">
+        <div className="flex items-center gap-2">
+        <label className="text-lg text-[#0A0A0B]">Time Signature:</label>
+        <input
+          type="number"
+          min="1"
+          max="12"
+          value={timeSignature.top}
+          onChange={(e) =>
+            setTimeSignature((prev) => ({ ...prev, top: parseInt(e.target.value) }))
+          }
+          className="w-12 border-2 border-[#0A0A0B] px-1 text-[#0A0A0B]"
+        />
+        <span className="text-lg text-[#0A0A0B]">/</span>
+        <input
+          type="number"
+          min="1"
+          max="16"
+          value={timeSignature.bottom}
+          onChange={(e) =>
+            setTimeSignature((prev) => ({ ...prev, bottom: parseInt(e.target.value) }))
+          }
+          className="w-12 border-2 px-1 text-[#0A0A0B] border-[#0A0A0B]"
+        />
+      </div>
       <svg width={STAFF_WIDTH} height={250}>
         {drawStaffLines(20)}
         {drawStaffLines(140)}
@@ -923,42 +949,22 @@ React.useEffect(() => {
           systemIndex={1}
         />
     </svg>
+    <div className="flex justify-between items-center mt-4">
       <div className="space-x-10">
         <button onClick={() => { regenerateRandomNotes(); regenerateRandomLowerNotes(); }} className="px-2 py-1 bg-green-500 text-white rounded">
           Shuffle Notes
         </button>
 
       </div>
+      
+      </div>
     </div>
             
     </div>
     </div>
-    <div className=" flex fixed bottom-0 items-end justify-end bg-[#2E2E2E] w-full gap-2 p-4">
-      <div className="flex justify-between w-full gap-2">
-        <div className="flex items-center gap-2">
-        <label className="text-lg">Time Signature:</label>
-        <input
-          type="number"
-          min="1"
-          max="12"
-          value={timeSignature.top}
-          onChange={(e) =>
-            setTimeSignature((prev) => ({ ...prev, top: parseInt(e.target.value) }))
-          }
-          className="w-12 border-2 px-1"
-        />
-        <span className="text-lg">/</span>
-        <input
-          type="number"
-          min="1"
-          max="16"
-          value={timeSignature.bottom}
-          onChange={(e) =>
-            setTimeSignature((prev) => ({ ...prev, bottom: parseInt(e.target.value) }))
-          }
-          className="w-12 border-2 px-1"
-        />
-      </div>
+    <div className={` flex fixed bottom-0 items-end justify-end bg-[#151517] w-full gap-2 p-4 ${isPlaying ? 'hidden' : ' '}`}>
+      <div className="flex items-center justify-between w-full gap-2">
+        
     <div className="flex items-center gap-4">
     <button
       className="px-2 py-1 text-4xl text-white cursor-pointer"
@@ -967,9 +973,11 @@ React.useEffect(() => {
       -
     </button>
     <div className="flex flex-col items-center gap-2">
-      <label className="font-medium">BPM:</label>
+      <div className="border-2 border-gray-300 bg-white text-[#0A0A0B] rounded p-2 flex flex-col-reverse items-center">
+        <label className="font-medium">BPM:</label>
 
-      <span className="ml-2 font-bold">{bpm}</span>
+        <span className="font-bold">{bpm}</span>
+      </div>
       <input
         type="range"
         min="30"
@@ -990,13 +998,13 @@ React.useEffect(() => {
       <div className="flex gap-4 items-center">
         <div className="flex items-center gap-4">
   {/* Backward Skip Button (Design Only) */}
-  <button className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+  <button className="px-4 py-2 text-white">
     <FontAwesomeIcon icon={faBackward} className="text-lg" />
   </button>
 
   {/* Play/Pause Button */}
   <button
-    className=" p-4 bg-white text-white rounded-full hover:bg-blue-600"
+    className=" px-5 py-4 bg-white text-white rounded-full hover:bg-zinc-300 cursor-pointer"
     onClick={async () => {
       if (isPlaying || isCountingIn) {
         setIsPlaying(false);
@@ -1029,44 +1037,22 @@ React.useEffect(() => {
       }, (startTime - now) * 1000);
     }}
   >
-    <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} className="text-xl" />
+    <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} size="lg" color="#0A0A0B" />
   </button>
 
   {/* Forward Skip Button (Design Only) */}
-  <button className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+  <button className="px-4 py-2  text-white rounded">
     <FontAwesomeIcon icon={faForward} className="text-lg" />
   </button>
 </div>
+    
       
     </div>
-  <div className="flex items-center gap-4">
-    <button
-      className="px-2 py-1 text-4xl text-white cursor-pointer"
-      onClick={() => setBpm((prev) => Math.max(30, prev - 1))}
-    >
-      -
-    </button>
-    <div className="flex flex-col items-center gap-2">
-      <label className="font-medium">BPM:</label>
+    <div className="Settings flex gap-4">
+      <button className="text-lg bg-[#D4AF37] py-[6px] px-[16px] rounded-2xl flex gap-2 text-[#0A0A0B]"><Image src="/icon.svg" width={15} height={10} alt="icon"/>Learn</button>
+      <Image src="/settings.svg" width={40} height={40} alt="icon"/>
 
-      <span className="ml-2 font-bold">{bpm}</span>
-      <input
-        type="range"
-        min="30"
-        max="200"
-        value={bpm}
-        onChange={(e) => setBpm(parseInt(e.target.value))}
-        className="w-40"
-      />
     </div>
-
-  <button
-    className="px-2 py-1 text-4xl text-white cursor-pointer"
-    onClick={() => setBpm((prev) => Math.min(200, prev + 1))}
-  >
-    +
-  </button>
-  </div>
     </div>
     </div>
   </div>
