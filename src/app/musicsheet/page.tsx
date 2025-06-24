@@ -816,7 +816,8 @@ React.useEffect(() => {
         
         
       <div className="w-full border-4 border-white my-10 bg-white p-12 flex flex-col items-center">
-        <div className="flex items-center gap-2">
+        <div className={`flex flex-col items-center gap-2 ${isPlaying ? 'hidden' : ''}`}>
+          <div className="flex items-center gap-2">
         <label className="text-lg text-[#0A0A0B]">Time Signature:</label>
         <input
           type="number"
@@ -839,6 +840,13 @@ React.useEffect(() => {
           }
           className="w-12 border-2 px-1 text-[#0A0A0B] border-[#0A0A0B]"
         />
+        </div>
+        <div className="space-x-10">
+        <button onClick={() => { regenerateRandomNotes(); regenerateRandomLowerNotes(); }} className="px-2 py-1 bg-green-500 text-white rounded">
+          Shuffle Notes
+        </button>
+
+      </div>
       </div>
       <svg width={STAFF_WIDTH} height={250}>
         {drawStaffLines(20)}
@@ -892,9 +900,7 @@ React.useEffect(() => {
         }} isPlaying={isPlaying} systemIndex={0}/>
       </svg>
 
-      <svg width={STAFF_WIDTH} height={300
-
-      }>
+      <svg width={STAFF_WIDTH} height={300}>
         {drawStaffLines(100)}
         {drawStaffLines(220)}
         {drawSubdivisionLines(100)}
@@ -950,12 +956,6 @@ React.useEffect(() => {
         />
     </svg>
     <div className="flex justify-between items-center mt-4">
-      <div className="space-x-10">
-        <button onClick={() => { regenerateRandomNotes(); regenerateRandomLowerNotes(); }} className="px-2 py-1 bg-green-500 text-white rounded">
-          Shuffle Notes
-        </button>
-
-      </div>
       
       </div>
     </div>
