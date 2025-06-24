@@ -793,6 +793,7 @@ React.useEffect(() => {
   }
 
   return (
+    //start of the main component
     <div className="flex flex-col items-center">
       <div className="bg-[#FEFEFE] w-full h-[20%] flex justify-between items-center ">
         <div className="p-5 flex-2">
@@ -812,7 +813,7 @@ React.useEffect(() => {
       </div>
       <div className="flex items-center justify-center w-full h-full inset-0 bg-[#F8F6F1]">
         
-      <div className="flex flex-col items-center justify-center">
+      <div className="flex flex-col items-center justify-center pb-32">
         
         
       <div className="w-full border-4 border-white my-10 bg-white p-12 flex flex-col items-center">
@@ -962,6 +963,7 @@ React.useEffect(() => {
             
     </div>
     </div>
+    {/* footer part */}
     <div className={` flex fixed bottom-0 items-end justify-end bg-[#151517] w-full gap-2 p-4 ${isPlaying ? 'hidden' : ' '}`}>
       <div className="flex items-center justify-between w-full gap-2">
         
