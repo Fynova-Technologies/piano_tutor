@@ -59,7 +59,7 @@ export default function Favorite(){
                     <div className="song-card grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 p-4">
                             {songs.map((song,index)=>(
                                 <div key={index} className="w-[80%] h-[100px]"  >
-                                    <div className={`flex flex-col w-full ${openDialogue?"hidden":""}`}>
+                                    <div className={`flex flex-col w-full ${openDialogue?"":"hidden"}`}>
                                         <div className='flex'>
                                             <h1 className='text-[#151517] text-2xl font-bold'>Music Title</h1>
                                             <div className='flex mx-auto'>
