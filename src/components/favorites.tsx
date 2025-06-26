@@ -2,20 +2,15 @@ import { useState } from 'react';
 import Image from "next/image"
 
 export default function Favorite(){
-    const [switched, setSwitched] = useState(false);
     const [animate, setAnimate] = useState(false);
-    const handleClick = () => {
+    const [liked, setLiked] = useState<{ [id: string]: boolean }>({});
+
+    const handleClick = (id:number) => {
     setAnimate(true);
-
-    // Switch image halfway through the animation
-    setTimeout(() => {
-      setSwitched((prev) => !prev);
-    }, 1000); // halfway point of 2s animation
-
-    // Remove animation class after it's done
-    setTimeout(() => {
-      setAnimate(false);
-    }, 2000);
+     setLiked((prev) => ({
+    ...prev,
+    [id]: !prev[id],
+  })); 
   };
     const songs = [
         {
@@ -70,9 +65,11 @@ export default function Favorite(){
                                             className="object-cover w-full h-[300px] rounded-t-2xl transition-transform duration-300 hover:scale-105"
                                         />
                                         <div>
-                                            <div className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-md " onClick={handleClick}>
+                                            <div className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-md "       onClick={() => handleClick(song.id)}
+>
                                                 <Image
-                                                    src={switched?"/HeartStart.png":"/HeartStart.png"}
+                                                    key={index}
+                                                    src={liked[song.id]?"/hearfilled.png":"/HeartStart.png"}
                                                     alt="Favorite Icon"
                                                     width={20}
                                                     height={20}
