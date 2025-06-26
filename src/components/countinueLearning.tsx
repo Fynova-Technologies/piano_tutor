@@ -1,4 +1,3 @@
-
 import Image from "next/image"; 
 
 export default function ContinueLearning() {
@@ -40,7 +39,7 @@ export default function ContinueLearning() {
 ];
 
     return(
-        <div className="min-h-screen flex justify-center bg-[#F8F6F1] px-1 py-16">
+        <div className=" min-h-[500px] flex justify-center bg-[#F8F6F1] px-1 py-16">
             <div className="max-w-[90%] w-full">
                 <h1 className="text-black text-2xl font-bold ">Continue Learning</h1>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 p-4">
@@ -56,7 +55,7 @@ export default function ContinueLearning() {
               alt={course.title}
               width={400}
               height={400}
-              className="object-cover w-full h-[300px] transition-transform duration-300 group-hover:scale-105"
+              className="object-cover w-full h-[300px] transition-transform duration-300"
             />
 
             {/* Overlay */}
