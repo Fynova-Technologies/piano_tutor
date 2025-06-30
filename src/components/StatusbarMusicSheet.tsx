@@ -8,8 +8,8 @@ export default function StatusbarMusicSheet() {
         <div className="p-4 flex-1">
           <div className="flex space-x-4">
             <Image src="/Frame.svg" width={28} height={20} alt="icon"/>
-            <span className="text-[#0A0A0B] font-semibold text-[24px]"> 10 </span>
-            <span className="text-lg text-[#0A0A0B]">  High Score</span>
+            <span className="font-semibold text-[24px] text-primary-dark font-inter"> 10 </span>
+            <span className="text-lg text-primary-dark font-inter">  High Score</span>
             <Image src="/SVGRepo_iconCarrier (1).svg" width={20} height={20} alt="icon"/>
             <span className="text-lg text-[#0A0A0B]">Last Score</span>
             <Image src="/autoplay (1).svg" width={20} height={20} alt="icon"/>
