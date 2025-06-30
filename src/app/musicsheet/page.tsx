@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, JSX } from "react";
 import Image from "next/image";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause, faForward, faBackward } from '@fortawesome/free-solid-svg-icons';
-
+import StatusbarMusicSheet from "@/components/StatusbarMusicSheet";
 
 const STAFF_LINE_GAP = 20; // px 
 const STAFF_WIDTH = 800;
@@ -795,26 +795,9 @@ React.useEffect(() => {
   return (
     //start of the main component
     <div className="flex flex-col items-center">
-      <div className="bg-[#FEFEFE] w-full h-[20%] flex justify-between items-center ">
-        <div className="p-5 flex-2">
-          <span className="text-[#0A0A0B] font-serif text-xl">1. Course Title 1</span>
-        </div>
-        <div className="p-4 flex-1">
-          <div className="flex space-x-4">
-            <Image src="/Frame.svg" width={20} height={20} alt="icon"/>
-            <span className="text-lg text-[#0A0A0B]">High Score</span>
-            <Image src="/SVGRepo_iconCarrier (1).svg" width={20} height={20} alt="icon"/>
-            <span className="text-lg text-[#0A0A0B]">Last Score</span>
-            <Image src="/autoplay (1).svg" width={20} height={20} alt="icon"/>
-
-            <span className="text-lg text-[#0A0A0B]">Play Count</span>
-          </div>
-        </div>
-      </div>
-      <div className="flex items-center justify-center w-full h-full inset-0 bg-[#F8F6F1]">
-        
+      <StatusbarMusicSheet/>
+      <div className="flex items-center justify-center w-full h-full inset-0 bg-[#F8F6F1]"> 
       <div className="flex flex-col items-center justify-center pb-32">
-        
         
       <div className="w-full border-4 border-white my-10 bg-white p-12 flex flex-col items-center">
         <div className={`flex flex-col items-center gap-2 ${isPlaying ? 'hidden' : ''}`}>
