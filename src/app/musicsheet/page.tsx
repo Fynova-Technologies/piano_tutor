@@ -939,8 +939,6 @@ React.useEffect(() => {
           {timeSignature.bottom}
         </text>
 
-      
-      
         {drawSlider(1)}
 
         
