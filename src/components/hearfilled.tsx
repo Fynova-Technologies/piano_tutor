@@ -12,11 +12,11 @@ export default function HeartIcon({ isLiked }: HeartIconProps) {
     if (isLiked) {
       controls.start({
         rotate: [0, 360, 360, 360], // Rotate first, then hold
-      scale: [1, 1, 0.2, 1], // Hold scale, then scale down, then back to original
-      transition: {
-        duration: 1, // Total duration
-        times: [0, 0.33, 0.66, 1], // Keyframes: 0 (start), 0.33 (end of rotation), 0.66 (scale down), 1 (scale back)
-        ease: ["easeInOut", "easeIn", "easeOut"], // Smooth rotation, sharp scale down, smooth scale up
+        scale: [1, 1, 0.2, 1], // Hold scale, then scale down, then back to original
+        transition: {
+          duration: 1, // Total duration
+          times: [0, 0.33, 0.66, 1], // Keyframes: 0 (start), 0.33 (end of rotation), 0.66 (scale down), 1 (scale back)
+          ease: ["easeInOut", "easeIn", "easeOut"], // Smooth rotation, sharp scale down, smooth scale up
         },
       });
     } else {

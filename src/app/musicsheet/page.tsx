@@ -2,13 +2,10 @@
 
 import React, { useCallback } from "react";
 import { useState, useRef, useEffect, JSX } from "react";
-import Image from "next/image";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faPause, faForward, faBackward } from '@fortawesome/free-solid-svg-icons';
-
-
+import StatusbarMusicSheet from "@/components/musicSheet/StatusbarMusicSheet";
+import FooterMusicsheet from "@/components/musicSheet/FooterMusicsheet";
 const STAFF_LINE_GAP = 20; // px 
-const STAFF_WIDTH = 800;
+const STAFF_WIDTH = 1300;
 const CLEF_WIDTH = 40;
 
 type CapturedNoteGroup = {
@@ -39,7 +36,7 @@ export default function SheetMusicPage() {
   const [sliderBeat, setSliderBeat] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [bpm, setBpm] = useState(60);
-  const subdivisionsPerBeat = 4; // e.g., 4 for 16th notes in 4/4 time
+  // const subdivisionsPerBeat = 4; // e.g., 4 for 16th notes in 4/4 time
   const [capturedNotes, setCapturedNotes] = useState<CapturedNoteGroup[]>([]);
   const [correctNotes,setCorrectNotes] = useState<correctNotes[]>([]);
   const [IncorrectNotes,setInCorrectNotes] = useState<correctNotes[]>([]);
@@ -477,46 +474,46 @@ React.useEffect(() => {
     return new Array(5).fill(0).map((_, i) => (
       <line
         key={i}
-        x1={0}
+        x1={40}
         y1={yStart + i * STAFF_LINE_GAP}
         x2={STAFF_WIDTH}
         y2={yStart + i * STAFF_LINE_GAP}
         stroke="black"
-        strokeWidth="2"
+        strokeWidth="1"
     />    
     ));
   };
 
 
 
-  const drawSubdivisionLines = (yStart: number) => {
-    const measureCount = 4;
-    const totalBeats = timeSignature.top * measureCount;
-    const beatWidth = (STAFF_WIDTH - CLEF_WIDTH) / totalBeats;
-    const subWidth = beatWidth / subdivisionsPerBeat;
+  // const drawSubdivisionLines = (yStart: number) => {
+  //   const measureCount = 4;
+  //   const totalBeats = timeSignature.top * measureCount;
+  //   const beatWidth = (STAFF_WIDTH - CLEF_WIDTH) / totalBeats;
+  //   const subWidth = beatWidth / subdivisionsPerBeat;
   
-    const lines = [];
+  //   const lines = [];
   
-    for (let i = 0; i < totalBeats * subdivisionsPerBeat; i++) {
-      // Skip if it's a main beat line (already drawn)
-      if (i % subdivisionsPerBeat === 0) continue;
+  //   for (let i = 0; i < totalBeats * subdivisionsPerBeat; i++) {
+  //     // Skip if it's a main beat line (already drawn)
+  //     if (i % subdivisionsPerBeat === 0) continue;
   
-      const x = CLEF_WIDTH + i * subWidth;
-      lines.push(
-        <line
-          key={`sub-${i}-${yStart}`}
-          x1={x}
-          y1={yStart}
-          x2={x}
-          y2={yStart + 4 * STAFF_LINE_GAP}
-          stroke="gray"
-          strokeWidth="0.5"
-          strokeDasharray="2,2"
-        />
-      );
-    }
-    return lines;
-  };
+  //     const x = CLEF_WIDTH + i * subWidth;
+  //     lines.push(
+  //       <line
+  //         key={`sub-${i}-${yStart}`}
+  //         x1={x}
+  //         y1={yStart}
+  //         x2={x}
+  //         y2={yStart + 4 * STAFF_LINE_GAP}
+  //         stroke="gray"
+  //         strokeWidth="0.5"
+  //         strokeDasharray="2,2"
+  //       />
+  //     );
+  //   }
+  //   return lines;
+  // };
 
   const NoteRenderer: React.FC<NoteRendererProps> = ({
     capturedNotes,
@@ -692,7 +689,7 @@ React.useEffect(() => {
     // y‑ranges for each svg:
     if(isUpper){
     const y1 =  20 ;
-    const y2 =  120 + 4 * STAFF_LINE_GAP + STAFF_LINE_GAP;
+    const y2 =  200 + 4 * STAFF_LINE_GAP + STAFF_LINE_GAP;
     return (
       <line
         x1={x}
@@ -706,7 +703,7 @@ React.useEffect(() => {
     }
     else{
       const y1 =  100 ;
-      const y2 =  220 + 4 * STAFF_LINE_GAP + STAFF_LINE_GAP;
+      const y2 =  280 + 4 * STAFF_LINE_GAP + STAFF_LINE_GAP;
       return (
         <line
           x1={x}
@@ -784,9 +781,30 @@ React.useEffect(() => {
           x1={x}
           y1={yStart}
           x2={x}
-          y2={yStart + 4 * STAFF_LINE_GAP}
+          y2={300}
           stroke="black"
-          strokeWidth="2"
+          strokeWidth="1"
+        />
+      );
+    });
+  }
+
+  function drawMeasureLines2(yStart: number): JSX.Element[] {
+    const measureCount = 4;
+    const totalBeats = timeSignature.top * measureCount;
+    const beatWidth = (STAFF_WIDTH - CLEF_WIDTH) / totalBeats;
+  
+    return new Array(measureCount + 1).fill(0).map((_, i) => {
+      const x = CLEF_WIDTH + i * timeSignature.top * beatWidth;
+      return (
+        <line
+          key={`measure-${i}-${yStart}`}
+          x1={x}
+          y1={yStart}
+          x2={x}
+          y2={380}
+          stroke="black"
+          strokeWidth="1"
         />
       );
     });
@@ -795,73 +813,56 @@ React.useEffect(() => {
   return (
     //start of the main component
     <div className="flex flex-col items-center">
-      <div className="bg-[#FEFEFE] w-full h-[20%] flex justify-between items-center ">
-        <div className="p-5 flex-2">
-          <span className="text-[#0A0A0B] font-serif text-xl">1. Course Title 1</span>
-        </div>
-        <div className="p-4 flex-1">
-          <div className="flex space-x-4">
-            <Image src="/Frame.svg" width={20} height={20} alt="icon"/>
-            <span className="text-lg text-[#0A0A0B]">High Score</span>
-            <Image src="/SVGRepo_iconCarrier (1).svg" width={20} height={20} alt="icon"/>
-            <span className="text-lg text-[#0A0A0B]">Last Score</span>
-            <Image src="/autoplay (1).svg" width={20} height={20} alt="icon"/>
-
-            <span className="text-lg text-[#0A0A0B]">Play Count</span>
-          </div>
-        </div>
-      </div>
-      <div className="flex items-center justify-center w-full h-full inset-0 bg-[#F8F6F1]">
-        
+      <StatusbarMusicSheet isPlaying={isPlaying}/>
+      <div className="flex items-center justify-center w-full h-full inset-0 bg-[#F8F6F1]"> 
       <div className="flex flex-col items-center justify-center pb-32">
         
-        
-      <div className="w-full border-4 border-white my-10 bg-white p-12 flex flex-col items-center">
-        <div className={`flex flex-col items-center gap-2 ${isPlaying ? 'hidden' : ''}`}>
+      <div className="w-[1440px] border-4 border-white my-10 bg-white p-12 flex flex-col items-center">
+        <div className={`flex flex-col items-center gap-2 ${isPlaying ? '' : 'hidden'}`}>
           <div className="flex items-center gap-2">
-        <label className="text-lg text-[#0A0A0B]">Time Signature:</label>
-        <input
-          type="number"
-          min="1"
-          max="12"
-          value={timeSignature.top}
-          onChange={(e) =>
-            setTimeSignature((prev) => ({ ...prev, top: parseInt(e.target.value) }))
-          }
-          className="w-12 border-2 border-[#0A0A0B] px-1 text-[#0A0A0B]"
-        />
-        <span className="text-lg text-[#0A0A0B]">/</span>
-        <input
-          type="number"
-          min="1"
-          max="16"
-          value={timeSignature.bottom}
-          onChange={(e) =>
-            setTimeSignature((prev) => ({ ...prev, bottom: parseInt(e.target.value) }))
-          }
-          className="w-12 border-2 px-1 text-[#0A0A0B] border-[#0A0A0B]"
-        />
+            <label className="text-lg text-[#0A0A0B]">Time Signature:</label>
+            <input
+              type="number"
+              min="1"
+              max="12"
+              value={timeSignature.top}
+              onChange={(e) =>
+                setTimeSignature((prev) => ({ ...prev, top: parseInt(e.target.value) }))
+              }
+              className="w-12 border-2 border-primary-dark px-1 text-[#0A0A0B]"
+            />
+            <span className="text-lg text-primary-dark">/</span>
+            <input
+              type="number"
+              min="1"
+              max="16"
+              value={timeSignature.bottom}
+              onChange={(e) =>
+                setTimeSignature((prev) => ({ ...prev, bottom: parseInt(e.target.value) }))
+              }
+              className="w-12 border-2 px-1 text-[#0A0A0B] border-primary-dark"
+            />
+          </div>
+          <div className="space-x-10">
+            <button onClick={() => { regenerateRandomNotes(); regenerateRandomLowerNotes(); }} className="px-2 py-1 bg-green-500 text-white rounded">
+              Shuffle Notes
+            </button>
+          </div>
         </div>
-        <div className="space-x-10">
-        <button onClick={() => { regenerateRandomNotes(); regenerateRandomLowerNotes(); }} className="px-2 py-1 bg-green-500 text-white rounded">
-          Shuffle Notes
-        </button>
-
-      </div>
-      </div>
-      <svg width={STAFF_WIDTH} height={250}>
+      
+      <svg width={STAFF_WIDTH} height={350}>
         {drawStaffLines(20)}
-        {drawStaffLines(140)}
-        {drawSubdivisionLines(20)}
-        {drawSubdivisionLines(140)}
+        {drawStaffLines(220)}
+        {/* {drawSubdivisionLines(20)}
+        {drawSubdivisionLines(140)} */}
         
 
-        <text x={-5} y={30 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black" className="">𝄞</text>
-        <text x={-5} y={140 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
+        <text x={50} y={32 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black" className="">𝄞</text>
+        <text x={50} y={225 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
 
         {drawMeasureLines(20)}
-        {drawMeasureLines(140)}
-        {randomPositions.map(([note, [x, y]]) => (
+        {/* {drawMeasureLines(220)} */}
+        {/* {randomPositions.map(([note, [x, y]]) => (
       <path
         key={note}
         d="M1140 2415 l0 -1225 -49 35 c-187 135 -441 152 -658 45 -269 -133
@@ -871,18 +872,18 @@ React.useEffect(() => {
         transform={`translate(${x - 10}, ${y - 10}) scale(0.01)`}
         fill="black"
       />
-    ))}
-        <text x={CLEF_WIDTH - 10} y={20 + 1 * STAFF_LINE_GAP} fontSize="16" stroke="black">
+    ))} */}
+        <text x={CLEF_WIDTH + 100} y={20 + 1 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.top}
         </text>
-        <text x={CLEF_WIDTH - 10} y={20 + 3 * STAFF_LINE_GAP} fontSize="16" stroke="black">
+        <text x={CLEF_WIDTH + 100 } y={20 + 3 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.bottom}
         </text>
 
-        <text x={CLEF_WIDTH - 10} y={140 + 1 * STAFF_LINE_GAP} fontSize="16" stroke="black">
+        <text x={CLEF_WIDTH + 100 } y={220 + 1 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.top}
         </text>
-        <text x={CLEF_WIDTH - 10} y={140 + 3 * STAFF_LINE_GAP} fontSize="16" stroke="black">
+        <text x={CLEF_WIDTH + 100 } y={220 + 3 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.bottom}
         </text>
 
@@ -901,13 +902,13 @@ React.useEffect(() => {
         }} isPlaying={isPlaying} systemIndex={0}/>
       </svg>
 
-      <svg width={STAFF_WIDTH} height={300}>
+      <svg width={STAFF_WIDTH} height={450}>
         {drawStaffLines(100)}
-        {drawStaffLines(220)}
-        {drawSubdivisionLines(100)}
-        {drawSubdivisionLines(220)}
+        {drawStaffLines(300)}
+        {/* {drawSubdivisionLines(100)}
+        {drawSubdivisionLines(220)} */}
         
-        {lowerrandomPositions.map(([note, [x, y]]) => (
+        {/* {lowerrandomPositions.map(([note, [x, y]]) => (
       <path
         key={note}
         d="M1140 2415 l0 -1225 -49 35 c-187 135 -441 152 -658 45 -269 -133
@@ -917,24 +918,24 @@ React.useEffect(() => {
         transform={`translate(${x - 10}, ${y - 10}) scale(0.01)`}
         fill="black"
       />
-    ))}
-        <text x={-5} y={110 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black">𝄞</text>
-        <text x={-5} y={220 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
+    ))} */}
+        <text x={50} y={110 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black">𝄞</text>
+        <text x={50} y={305 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
 
-        {drawMeasureLines(100)}
-        {drawMeasureLines(220)}
+        {drawMeasureLines2(100)}
+        {/* {drawMeasureLines(220)} */}
 
-        <text x={CLEF_WIDTH - 10} y={100 + 1 * STAFF_LINE_GAP} fontSize="16" stroke="black">
+        <text x={CLEF_WIDTH + 100} y={100 + 1 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.top}
         </text>
-        <text  x={CLEF_WIDTH - 10} y={100 + 3 * STAFF_LINE_GAP} fontSize="16" stroke="black">
+        <text  x={CLEF_WIDTH + 100} y={100 + 3 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.bottom}
         </text>
 
-        <text x={CLEF_WIDTH - 10} y={220 + 1 * STAFF_LINE_GAP} fontSize="16" stroke="black">
+        <text x={CLEF_WIDTH + 100} y={300 + 1 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.top}
         </text>
-        <text x={CLEF_WIDTH - 10} y={220 + 3 * STAFF_LINE_GAP} fontSize="16" stroke="black">
+        <text x={CLEF_WIDTH + 100} y={300 + 3 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.bottom}
         </text>
 
@@ -963,100 +964,9 @@ React.useEffect(() => {
             
     </div>
     </div>
-    {/* footer part */}
-    <div className={` flex fixed bottom-0 items-end justify-end bg-[#151517] w-full gap-2 p-4 ${isPlaying ? 'hidden' : ' '}`}>
-      <div className="flex items-center justify-between w-full gap-2">
-        
-    <div className="flex items-center gap-4">
-    <button
-      className="px-2 py-1 text-4xl text-white cursor-pointer"
-      onClick={() => setBpm((prev) => Math.max(30, prev - 1))}
-    >
-      -
-    </button>
-    <div className="flex flex-col items-center gap-2">
-      <div className="border-2 border-gray-300 bg-white text-[#0A0A0B] rounded p-2 flex flex-col-reverse items-center">
-        <label className="font-medium">BPM:</label>
-
-        <span className="font-bold">{bpm}</span>
-      </div>
-      <input
-        type="range"
-        min="30"
-        max="200"
-        value={bpm}
-        onChange={(e) => setBpm(parseInt(e.target.value))}
-        className="w-40"
-      />
-    </div>
-
-  <button
-    className="px-2 py-1 text-4xl text-white cursor-pointer"
-    onClick={() => setBpm((prev) => Math.min(200, prev + 1))}
-  >
-    +
-  </button>
-  </div>
-      <div className="flex gap-4 items-center">
-        <div className="flex items-center gap-4">
-  {/* Backward Skip Button (Design Only) */}
-  <button className="px-4 py-2 text-white">
-    <FontAwesomeIcon icon={faBackward} className="text-lg" />
-  </button>
-
-  {/* Play/Pause Button */}
-  <button
-    className=" px-5 py-4 bg-white text-white rounded-full hover:bg-zinc-300 cursor-pointer"
-    onClick={async () => {
-      if (isPlaying || isCountingIn) {
-        setIsPlaying(false);
-        return;
-      }
-      await initializeAudioContext();
-      setIsCountingIn(true);
-      setSliderBeat(0);
-      currentBeatRef.current = 0;
-
-      const now = audioContextRef.current!.currentTime;
-      const scheduleTime = now;
-
-      for (let i = 0; i < 4; i++) {
-        const beatTime = scheduleTime + (i * 60) / bpm;
-        playClick(beatTime, i === 0, i);
-      }
-
-      const totalDelay = (4 * 60) / bpm + 0.5;
-      nextNoteTimeRef.current = scheduleTime + totalDelay;
-      currentBeatRef.current = 0;
-
-      const startTime = nextNoteTimeRef.current - scheduleAheadTime;
-      timerID.current = setInterval(scheduler, 25);
-
-      setTimeout(() => {
-        setIsCountingIn(false);
-        setIsMetronomeRunning(true);
-        setIsPlaying(true);
-      }, (startTime - now) * 1000);
-    }}
-  >
-    <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} size="lg" color="#0A0A0B" />
-  </button>
-
-  {/* Forward Skip Button (Design Only) */}
-  <button className="px-4 py-2  text-white rounded">
-    <FontAwesomeIcon icon={faForward} className="text-lg" />
-  </button>
-</div>
     
-      
-    </div>
-    <div className="Settings flex gap-4">
-      <button className="text-lg bg-[#D4AF37] py-[6px] px-[16px] rounded-2xl flex gap-2 text-[#0A0A0B]"><Image src="/icon.svg" width={15} height={10} alt="icon"/>Learn</button>
-      <Image src="/settings.svg" width={40} height={40} alt="icon"/>
-
-    </div>
-    </div>
-    </div>
+    <FooterMusicsheet nextNoteTimeRef={nextNoteTimeRef} scheduleAheadTime={scheduleAheadTime} playClick={playClick} audioContextRef={audioContextRef} currentBeatRef={currentBeatRef} setSliderBeat={setSliderBeat} setIsPlaying={setIsPlaying} scheduler={scheduler} timerID={timerID} isCountingIn={isCountingIn} isMetronomeRunning={isMetronomeRunning} isPlaying={isPlaying} initializeAudioContext={initializeAudioContext} bpm={bpm} setBpm={setBpm} setIsCountingIn={setIsCountingIn} setIsMetronomeRunning={setIsMetronomeRunning}/>
+    
   </div>
   );
 }
