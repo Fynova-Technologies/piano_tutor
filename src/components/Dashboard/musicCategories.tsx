@@ -12,7 +12,7 @@ export default function MusicCategories() {
       const strokeDashoffset = circumference - (progress / 100) * circumference;
     return(
         <div>
-            <div className="flex justify-center space-x-8 items-stretch">
+            <div className="flex justify-center space-x-8">
                   <div
                         onClick={() => router.push("/musiclibrary")}
                         className="bg-[#FEFEFE] rounded-2xl w-[90%] shadow-md hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-2xl  transition duration-300  cursor-pointer group hover:scale-[1.03]"
@@ -20,18 +20,18 @@ export default function MusicCategories() {
                         <div className="relative flex ">
         
         
-                          <div className="relative flex items-center justify-between space-x-4 overflow-hidden w-full z-10 rounded-3xl">
-                            <div className="absolute group-hover:translate-x-6 transition-transform duration-1000 ease-in-out">
-                                <Image src="/gifs/vinyl.gif" alt="Vinyl GIF" width={300} height={200} />
-                            </div>
-                              <div className="bg-[#FEFEFE] group-hover:bg-[#f2e6c1] transition duration-300 flex items-center justify-center z-10 h-full px-2">
-                                <h3 className="text-xl font-semibold text-yellow-800 mb-2">Music Library</h3>
+                          <div className="relative flex items-center overflow-hidden w-full z-10 rounded-3xl">
+                              <div className="bg-[#FEFEFE] group-hover:bg-[#f2e6c1] transition duration-300 flex flex-col items-start justify-center  z-10 h-full w-[200px] ml-16">
+                                <h3 className="text-primary-background text-[36px] font-bold">Music</h3>
+                                <h3 className="text-xl text-[36px] font-bold bg-gradient-to-r from-[#5f4f19] to-[#aa8c2c] bg-clip-text text-transparent">Library</h3>
                               </div> 
+                              <div className="absolute left-[100px] group-hover:translate-x-6 transition-transform duration-1000 ease-in-out">
+                                <Image src="/gifs/vinyl.gif" alt="Vinyl GIF" width={300} height={200} />
+                              </div>
                           </div>
         
                           <div className="flex flex-col items-center ml-auto space-y-4 p-6 group-hover:-translate-x-6 transition-transform duration-1000 ease-in-out">
-        
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-center gap-2">
                               <Image src="/gifs/piano.png" alt="Vercel Logo" width={100} height={100} className="w-10 h-14 rounded-2xl object-cover" />
                               <Image src="/gifs/manpiano.jpg" alt="Vercel Logo" width={100} height={100} className="w-10 h-14 rounded-2xl object-cover" />
                             </div>  
@@ -46,13 +46,14 @@ export default function MusicCategories() {
                         <div className="relative flex ">
         
         
-                          <div className="relative flex items-center justify-between space-x-4 overflow-hidden w-[65%] z-10 rounded-3xl">
-                            <div className="absolute left-[100px] group-hover:translate-x-6 transition-transform duration-1000 ease-in-out">
-                                <Image src="/gifs/Vector.png" alt="Vinyl GIF" width={130} height={50} />
-                            </div>
-                              <div className="bg-[#FEFEFE] group-hover:bg-[#f2e6c1] transition duration-300 flex items-center justify-center z-10 h-full px-2">
-                                <h3 className="text-xl font-semibold text-yellow-800 mb-2">Sight Reading</h3>
+                          <div className="relative flex items-center overflow-hidden w-full z-10 rounded-3xl">
+                              <div className="bg-[#FEFEFE] group-hover:bg-[#f2e6c1] transition duration-300 flex flex-col items-start justify-center  z-10 h-full w-[200px] ml-16">
+                                <h3 className="text-primary-background text-[36px] font-bold">Sight</h3>
+                                <h3 className="text-xl text-[36px] font-bold bg-gradient-to-r from-[#5f4f19] to-[#aa8c2c] bg-clip-text text-transparent">Reading</h3>
                               </div> 
+                              <div className="absolute left-[230px] group-hover:translate-x-6 transition-transform duration-1000 ease-in-out">
+                                <Image src="/gifs/Vector.png" alt="Vinyl GIF" width={130} height={50} />
+                              </div>
                           </div>
         
                           <div className="flex flex-col items-center p-6 rounded-2xl shadow-[inset_0px_0px_10px_#D4AF37] bg-[#FEFEFE]">
@@ -68,6 +69,7 @@ export default function MusicCategories() {
                           </div>
                         </div>
                       </div>
+                      
                     </div>
                     <div className="flex justify-center space-x-8 items-stretch mt-4">
                                   <div
@@ -78,11 +80,12 @@ export default function MusicCategories() {
                     
                     
                                       <div className="relative flex items-center justify-between space-x-4 overflow-hidden w-full z-10 rounded-3xl">
-                                        <div className="absolute group-hover:translate-x-24 transition-transform duration-1000 ease-in-out">
+                                        <div className="absolute left-[150px] group-hover:translate-x-24 transition-transform duration-1000 ease-in-out">
                                             <Image src="/assets/bro.svg" alt="Vinyl GIF" width={300} height={200} className="hover:opacity-100" />
                                         </div>
-                                          <div className="bg-[#FEFEFE] group-hover:bg-[#f2e6c1] transition duration-300 flex items-center justify-center z-10 h-full px-2">
-                                            <h3 className="text-xl font-semibold text-yellow-800 mb-2">Method Lessons</h3>
+                                          <div className="bg-[#FEFEFE] group-hover:bg-[#f2e6c1] transition duration-300 flex flex-col items-start justify-center z-10 h-full ml-16 w-[200px]">
+                                            <h3 className="text-4xl font-bold text-primary-background">Method</h3>
+                                            <h3 className="text-4xl font-bold bg-gradient-to-r from-[#5f4f19] to-[#aa8c2c] bg-clip-text text-transparent mb-2">Lessons</h3>
                                           </div> 
                                       </div>
                     
@@ -137,12 +140,9 @@ export default function MusicCategories() {
                     
                     
                                       <div className="relative flex items-center justify-between space-x-4 overflow-hidden w-full z-10 rounded-3xl">
-                                        {/* <div className="absolute group-hover:translate-x-24 transition-transform duration-1000 ease-in-out">
-                                            <Image src="/assets/bro.svg" alt="Vinyl GIF" width={300} height={200} className="hover:opacity-100" />
-                                        </div> */}
-                                          <div className="bg-[#FEFEFE] group-hover:bg-[#f2e6c1] transition duration-300 flex items-center justify-center z-10 h-full px-2">
-                                            <h3 className="text-xl font-semibold text-yellow-800 mb-2">Technique Lessons</h3>
-                                          </div> 
+                                          <div className="bg-[#FEFEFE] group-hover:bg-[#f2e6c1] transition duration-300 flex flex-col items-start justify-center z-10 h-full ml-16">
+                                            <h3 className="text-[36px] font-bold text-primary-background">Technique</h3>
+                                            <h3 className="text-xl font-bold bg-gradient-to-r from-[#5f4f19] to-[#aa8c2c] bg-clip-text text-[36px] text-transparent mb-2">Lessons</h3>                                          </div> 
                                       </div>
                     
                                       <div className="flex flex-col items-center ml-auto space-y-4 p-6 transition-transform duration-1000 ease-in-out">

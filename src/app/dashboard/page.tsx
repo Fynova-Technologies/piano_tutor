@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
-import ContinueLearning from "@/components/countinueLearning";
-import Favorite from "@/components/favorites";
+import ContinueLearning from "@/components/Dashboard/countinueLearning";
+import Favorite from "@/components/Dashboard/favorites";
 import MusicCategories from "@/components/Dashboard/musicCategories";
 
 export default function ComingSoon() {
