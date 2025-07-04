@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Image from "next/image"
-import HeartIcon from "./hearfilled";
+import HeartIcon from "../hearfilled";
 
 
 export default function Favorite(){

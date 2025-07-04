@@ -3,15 +3,19 @@
 import { useState } from 'react';
 import { Bell, Menu, X } from 'lucide-react';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
+
 
 const navItems = [
-  { name: 'Home', href: '/home' },
-  { name: 'Dashboard', href: '/musiclibrary' },
+  { name: 'Methods', href: '/method' },
+  { name: 'Dashboard', href: '/dashboard' },
   { name: 'Projects', href: '/musicsheet' }
 ];
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
+
 
   return (
     <nav className="bg-[#0A0A0B] border-b shadow-sm px-4 py-3 sm:px-6">
@@ -19,21 +23,26 @@ export default function Navbar() {
         {/* Logo */}
         <div className="flex items-center">
           <Image src="/logo.jpg" alt="Logo" width={80} height={80} className='rounded-full' />
-          <span className="ml-2 text-xl font-bold text-white">Piano Genius</span>
+          <span className="ml-2 text-xl font-bold text-white">Logo</span>
         </div>
 
         {/* Desktop Nav */}
         <div className="hidden md:flex space-x-6">
-          {navItems.map((item) => (
-            <a
-              key={item.name}
-              href={item.href}
-              className="text-white hover:text-blue-600 font-medium"
-            >
-              {item.name}
-            </a>
-          ))}
-        </div>
+  {navItems.map((item) => {
+        const isActive = pathname === item.href;
+    return(
+    <a
+            key={item.name}
+            href={item.href}
+            className={`font-medium px-6 py-4 rounded-full transition-all duration-200
+              ${isActive ? 'bg-[#D4AF37] text-primary-background' : 'text-white'}
+            `}
+          >
+            {item.name}
+          </a>
+  )})}
+</div>
+
 
         {/* Right Side */}
         <div className="flex items-center space-x-4">

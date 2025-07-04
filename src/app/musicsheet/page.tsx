@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, JSX } from "react";
 import StatusbarMusicSheet from "@/components/musicSheet/StatusbarMusicSheet";
 import FooterMusicsheet from "@/components/musicSheet/FooterMusicsheet";
 const STAFF_LINE_GAP = 20; // px 
-const STAFF_WIDTH = 1300;
+const STAFF_WIDTH = 1500;
 const CLEF_WIDTH = 40;
 
 type CapturedNoteGroup = {
@@ -817,7 +817,7 @@ React.useEffect(() => {
       <div className="flex items-center justify-center w-full h-full inset-0 bg-[#F8F6F1]"> 
       <div className="flex flex-col items-center justify-center pb-32">
         
-      <div className="w-[1440px] border-4 border-white my-10 bg-white p-12 flex flex-col items-center">
+      <div className="w-[1700px] border-4 border-white my-10 bg-white p-12 flex flex-col items-center">
         <div className={`flex flex-col items-center gap-2 ${isPlaying ? '' : 'hidden'}`}>
           <div className="flex items-center gap-2">
             <label className="text-lg text-[#0A0A0B]">Time Signature:</label>
@@ -939,8 +939,6 @@ React.useEffect(() => {
           {timeSignature.bottom}
         </text>
 
-      
-      
         {drawSlider(1)}
 
         

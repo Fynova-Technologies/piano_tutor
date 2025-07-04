@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, useAnimation } from "framer-motion";
 
 type HeartIconProps = {
@@ -7,26 +7,42 @@ type HeartIconProps = {
 
 export default function HeartIcon({ isLiked }: HeartIconProps) {
   const controls = useAnimation();
+  const [displayFilledHeart, setDisplayFilledHeart] = useState(isLiked);
 
   useEffect(() => {
+    let timeout: NodeJS.Timeout;
+
     if (isLiked) {
+      // Reset to unfilled first if needed
+      setDisplayFilledHeart(false);
+
       controls.start({
-        rotate: [0, 360, 360, 360], // Rotate first, then hold
-        scale: [1, 1, 0.2, 1], // Hold scale, then scale down, then back to original
+        rotate: [0, 360, 360, 360],
+        scale: [1, 1, 0.2, 1],
         transition: {
-          duration: 1, // Total duration
-          times: [0, 0.33, 0.66, 1], // Keyframes: 0 (start), 0.33 (end of rotation), 0.66 (scale down), 1 (scale back)
-          ease: ["easeInOut", "easeIn", "easeOut"], // Smooth rotation, sharp scale down, smooth scale up
+          duration: 1,
+          times: [0, 0.33, 0.66, 1],
+          ease: ["easeInOut", "easeIn", "easeOut"],
         },
       });
+
+      // Change image during the scale down phase (e.g., at 350ms)
+      timeout = setTimeout(() => {
+        setDisplayFilledHeart(true);
+      }, 700);
     } else {
       controls.set({ rotate: 0, scale: 1, y: 0 });
+      setDisplayFilledHeart(false);
     }
+
+    return () => {
+      clearTimeout(timeout); // Clear timeout if component unmounts or re-renders
+    };
   }, [controls, isLiked]);
 
   return (
     <motion.img
-      src={isLiked ? "/hearfilled.png" : "/HeartStart.png"}
+      src={displayFilledHeart ? "/hearfilled.png" : "/HeartStart.png"}
       alt="Heart Icon"
       className="w-5 h-5 cursor-pointer"
       initial={{ rotate: 0, scale: 1, y: 0 }}
