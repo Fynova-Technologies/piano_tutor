@@ -26,7 +26,15 @@ export default function MusicCategories() {
                                 <h3 className="text-xl text-[36px] font-bold bg-gradient-to-r from-[#5f4f19] to-[#aa8c2c] bg-clip-text text-transparent">Library</h3>
                               </div> 
                               <div className="absolute left-[100px] group-hover:translate-x-6 transition-transform duration-1000 ease-in-out">
-                                <Image src="/gifs/vinyl.gif" alt="Vinyl GIF" width={300} height={200} />
+                                <div className="relative w-[300px] h-[200px]">
+                                  <Image
+                                    src="/gifs/vinyl.gif"
+                                    alt="Vinyl GIF"
+                                    fill
+                                    className="object-cover"
+                                  />
+                                  <div className="absolute inset-0 bg-white opacity-30 pointer-events-none"></div>
+                                </div>
                               </div>
                           </div>
         
@@ -52,7 +60,10 @@ export default function MusicCategories() {
                                 <h3 className="text-xl text-[36px] font-bold bg-gradient-to-r from-[#5f4f19] to-[#aa8c2c] bg-clip-text text-transparent">Reading</h3>
                               </div> 
                               <div className="absolute left-[230px] group-hover:translate-x-6 transition-transform duration-1000 ease-in-out">
-                                <Image src="/gifs/Vector.png" alt="Vinyl GIF" width={130} height={50} />
+                                <div className="relative w-[300px] h-[130px]">
+                                  <Image src="/gifs/Vector.png" alt="Vinyl GIF" width={130} height={50} />
+                                  <div className="absolute inset-0 bg-white opacity-30 pointer-events-none"></div>
+                                </div>
                               </div>
                           </div>
         

@@ -102,11 +102,11 @@ export default function PianoLesson() {
                   setActiveLesson(lesson.id);
                   router.push(lesson.link);
                 }}               
-                className={`group cursor-pointer flex px-4 py-2 items-center hover:rounded-2xl hover:bg-[#D4AF37] ${
+                className={`group cursor-pointer flex px-4 py-1 items-center hover:rounded-2xl hover:bg-[#D4AF37] ${
                 isActive ? 'bg-[#D4AF37] mb-1 border-b-0 rounded-2xl' : ''
                 }`}>
                 <Image src="/Layer_1.png" width={56} height={56} alt="icon" className={`mr-4 ${isActive ? 'visible' : 'invisible'} group-hover:visible group-active:visible`}/>
-                <div className={`flex items-center justify-between w-full hover:border-0 border-primary-background py-2 ${isActive ? 'border-0' : 'border-b-1'} `}>
+                <div className={`flex items-center justify-between w-full hover:border-0 border-primary-background py-1 ${isActive ? 'border-0' : 'border-b-1'} `}>
                   <span className="text-[16px] text-primary-background">{lesson.id}. {lesson.lessontitle}</span>
                   <button className="bg-primary-background rounded-2xl py-2 px-6"><span className="text-[#FEFEFE]">Incomplete</span></button>
                 </div>
@@ -127,11 +127,11 @@ export default function PianoLesson() {
             
             <div className="flex flex-col border-2 bg-[#FEFEFE] p-6 rounded-2xl w-full border-primary-background ">
               <div>
-                <h1 className="text-[24px] font-extrabold text-center mb-4 drop-shadow-md bg-gradient-to-r from-[#FFD700] to-[#B8860B] bg-clip-text text-transparent">
-                  Piano Lessons
+                <h1 className="text-[24px] font-extrabold text-center mb-4 drop-shadow-md bg-gradient-to-r from-[#D4AF37] from-48% to-[#978448] to-60% bg-clip-text text-transparent">
+                  Piano Methods
                 </h1>
               </div>
-              <div className="mt-[20px] max-h-[710px] mx-16 border-t-5 border-x-5 border-primary-background rounded-x-2xl rounded-t-2xl py-10 overflow-auto scrollbar-hide">
+              <div className="mt-[20px] max-h-[710px] mx-16 border-t-5 border-x-5  border-primary-background rounded-x-2xl rounded-t-2xl py-10 overflow-auto scrollbar-hide">
                 {topLessons.map((lesson, index) => {
                   whiteKeyInOctave++;
 
@@ -159,16 +159,16 @@ export default function PianoLesson() {
                           handleClick(lesson.id);
                           setMethodName(lesson.title);
                         }}
-                        className=" relative cursor-pointer w-full flex flex-row-reverse rounded-r-2xl p-4
+                        className=" relative cursor-pointer w-full flex flex-row-reverse p-4
                           transition-color duration-300 ease-out transform bg-[#FEFEFE]
-                          hover:rounded-r-2xl border-b border-t border-primary-background shadow-primary-background"
+                          hover:rounded-r-2xl  shadow-[inset_0px_-2px_5px_#b9b9b9] "
                       >
                         {showBlackKey && (
                         <div
                           className={`absolute left-0 bottom-0 translate-y-1/2 z-10 w-[180px] h-[36px] bg-black rounded-r-lg `}
                         ></div>
                       )}
-                        <span className="ml-auto bg-gray-300 text-gray-800 font-semibold rounded px-2 py-1 text-sm">
+                        <span className="ml-auto bg-[#e9e9ea] shadow-[inset_0px_0px_4px_#0A254059] text-primary-background font-bold rounded w-[49px] h-[36px] text-center flex text-[20px] justify-center items-center text-sm">
                           {lesson.title}
                         </span>
                       </motion.div>
