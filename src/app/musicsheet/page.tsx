@@ -36,7 +36,7 @@ export default function SheetMusicPage() {
   const [timeSignature, setTimeSignature] = useState({ top: 4, bottom: 4 });
   const [sliderBeat, setSliderBeat] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [bpm, setBpm] = useState(120);
+  const [bpm, setBpm] = useState(60);
   // const subdivisionsPerBeat = 4; // e.g., 4 for 16th notes in 4/4 time
   const [capturedNotes, setCapturedNotes] = useState<CapturedNoteGroup[]>([]);
   const [correctNotes,setCorrectNotes] = useState<correctNotes[]>([]);

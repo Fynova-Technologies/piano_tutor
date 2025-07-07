@@ -1,9 +1,12 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ProgressCircle from "@/components/progressCircle";
+import {useMediaQuery} from "../MediaQuery/useMediaQueryHook";
+
  // Assuming you have a ProgressCircle component
 export default function MusicCategories() {
     const router = useRouter();
+    const isMobile = useMediaQuery("(max-width: 768px)");
     const radius = 50;
       const stroke = 10;
       const normalizedRadius = radius - stroke / 2;
@@ -12,7 +15,11 @@ export default function MusicCategories() {
       const strokeDashoffset = circumference - (progress / 100) * circumference;
     return(
         <div>
-            <div className="flex justify-center space-x-8">
+          {isMobile?
+            <div className="text-primary-background">Mobile View</div>:<div className="text-primary-background">Desktop View</div>
+          }
+          
+            <div className={`${isMobile? "flex flex-col justify-center items-center space-y-5": "flex justify-center space-x-8"} `}>
                   <div
                         onClick={() => router.push("/musiclibrary")}
                         className="bg-[#FEFEFE] rounded-2xl w-[90%] shadow-md hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-2xl  transition duration-300  cursor-pointer group hover:scale-[1.03]"
@@ -82,19 +89,17 @@ export default function MusicCategories() {
                       </div>
                       
                     </div>
-                    <div className="flex justify-center space-x-8 items-stretch mt-4">
+                    <div className={`${isMobile?"flex flex-col justify-center items-center mt-10 space-y-10":"flex justify-center space-x-8 items-stretch mt-4"  }`}>
                                   <div
                                     onClick={() => router.push("/musiclibrary")}
-                                    className="bg-[#FEFEFE] rounded-2xl w-full shadow-md hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-2xl  transition duration-300  cursor-pointer group hover:scale-[1.03]"
+                                    className="bg-[#FEFEFE] rounded-2xl w-[90%] shadow-md hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-2xl  transition duration-300  cursor-pointer group hover:scale-[1.03]"
                                   >
-                                    <div className="relative flex ">
-                    
-                    
+                                    <div className="relative flex">
                                       <div className="relative flex items-center justify-between space-x-4 overflow-hidden w-full z-10 rounded-3xl">
                                         <div className="absolute left-[150px] group-hover:translate-x-24 transition-transform duration-1000 ease-in-out">
                                             <Image src="/assets/bro.svg" alt="Vinyl GIF" width={300} height={200} className="hover:opacity-100" />
                                         </div>
-                                          <div className="bg-[#FEFEFE] group-hover:bg-[#f2e6c1] transition duration-300 flex flex-col items-start justify-center z-10 h-full ml-16 w-[200px]">
+                                          <div className={`${isMobile?" w-[80%] h-full flex flex-col justify-center items-center ml-0":"bg-[#FEFEFE] group-hover:bg-[#f2e6c1] transition duration-300 flex flex-col items-start justify-center z-10 h-full ml-16 w-[200px]"}`}>
                                             <h3 className="text-4xl font-bold text-primary-background">Method</h3>
                                             <h3 className="text-4xl font-bold bg-gradient-to-r from-[#5f4f19] to-[#aa8c2c] bg-clip-text text-transparent mb-2">Lessons</h3>
                                           </div> 
@@ -145,7 +150,7 @@ export default function MusicCategories() {
                                   
                                   <div
                                     onClick={() => router.push("/musiclibrary")}
-                                    className="bg-[#FEFEFE] rounded-2xl w-[70%] shadow-md hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-2xl  transition duration-300  cursor-pointer group hover:scale-[1.03]"
+                                    className="bg-[#FEFEFE] rounded-2xl lg:w-[60%] w-[90%] shadow-md hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-2xl  transition duration-300  cursor-pointer group hover:scale-[1.03]"
                                   >
                                     <div className="relative flex ">
                     

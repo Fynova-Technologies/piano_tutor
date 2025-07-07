@@ -35,7 +35,6 @@ const unitLessonsData = [
   },
 ];
 
-let whiteKeyInOctave = 0;
 
 // Main component
 export default function PianoLesson() {
@@ -133,9 +132,10 @@ export default function PianoLesson() {
               </div>
               <div className="mt-[20px] max-h-[710px] mx-16 border-t-5 border-x-5  border-primary-background rounded-x-2xl rounded-t-2xl py-10 overflow-auto scrollbar-hide">
                 {topLessons.map((lesson, index) => {
-                  whiteKeyInOctave++;
+                  let whiteKeyInOctave = index % 7;
 
-                  const showBlackKey = !(whiteKeyInOctave === 3 || whiteKeyInOctave === 7);
+
+                  const showBlackKey = !(whiteKeyInOctave === 2 || whiteKeyInOctave === 6);
 
                   if (whiteKeyInOctave === 7) {
                     whiteKeyInOctave = 0;
