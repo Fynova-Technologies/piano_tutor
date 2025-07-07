@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, JSX } from "react";
 import StatusbarMusicSheet from "@/components/musicSheet/StatusbarMusicSheet";
 import FooterMusicsheet from "@/components/musicSheet/FooterMusicsheet";
 const STAFF_LINE_GAP = 20; // px 
-const STAFF_WIDTH = 1500;
+const STAFF_WIDTH = 1620;
 const CLEF_WIDTH = 40;
 
 type CapturedNoteGroup = {
@@ -21,6 +21,7 @@ interface NoteRendererProps {
   isPlaying: boolean;
   systemIndex: 0 | 1; // Add systemIndex property
 }
+
 type correctNotes={
   systemIndex: number;
   x_pos : number,
@@ -35,7 +36,7 @@ export default function SheetMusicPage() {
   const [timeSignature, setTimeSignature] = useState({ top: 4, bottom: 4 });
   const [sliderBeat, setSliderBeat] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [bpm, setBpm] = useState(60);
+  const [bpm, setBpm] = useState(120);
   // const subdivisionsPerBeat = 4; // e.g., 4 for 16th notes in 4/4 time
   const [capturedNotes, setCapturedNotes] = useState<CapturedNoteGroup[]>([]);
   const [correctNotes,setCorrectNotes] = useState<correctNotes[]>([]);
@@ -175,41 +176,41 @@ export default function SheetMusicPage() {
   const beatsPerSystem = timeSignature.top * 4; // number of beats in each system
 
   const positions: { [key: string]: [number, number] } = {
-    "1": [63.75, 120],
-    "2": [111.25, 120],
-    "3": [158.75, 120],
-    "4": [206.25, 120],
-    "5": [253.75, 120],
-    "6": [301.25, 120],
-    "7": [348.75, 120],
-    "8": [396.25, 120],
-    "9": [443.75, 120],
-    "10": [491.25, 120],
-    "11": [538.75, 120],
-    "12": [586.25, 120],
-    "13": [633.75, 120],
-    "14": [681.25, 120],
-    "15": [728.75, 120],
-    "16": [776.25, 120],
+    "1": [104.375, 120], 
+    "2": [203.125, 120],
+    "3": [301.875, 120],
+    "4": [400.625, 120],
+    "5": [499.375, 120],
+    "6": [598.125, 120],
+    "7": [696.875, 120],
+    "8": [795.625, 120],
+    "9": [894.375, 120],
+    "10": [993.125, 120],
+    "11": [1091.875, 120],
+    "12": [1190.625, 120],
+    "13": [1289.375, 120],
+    "14": [1388.125, 120],
+    "15": [1486.875, 120],
+    "16": [1585.625, 120],
   };
 
   const positionslower : {[key: string]: [number , number]}={
-    "17": [63.75, 202],
-    "18": [111.25, 202],
-    "19": [158.75, 202],
-    "20": [206.25, 202],
-    "21": [253.75, 202],
-    "22": [301.25, 202],
-    "23": [348.75, 202],
-    "24": [396.25, 202],
-    "25": [443.75, 202],
-    "26": [491.25, 202],
-    "27": [538.75, 202],
-    "28": [586.25, 202],
-    "29": [633.75, 202],
-    "30": [681.25, 202],
-    "31": [728.75, 202],
-    "32": [776.25, 202],
+    "17": [104.375, 202],
+    "18": [203.125, 202],
+    "19": [301.875, 202],
+    "20": [400.625, 202],
+    "21": [499.375, 202],
+    "22": [598.125, 202],
+    "23": [696.875, 202],
+    "24": [795.625, 202],
+    "25": [894.375, 202],
+    "26": [993.125, 202],
+    "27": [1091.875, 202],
+    "28": [1190.625, 202],
+    "29": [1289.375, 202],
+    "30": [1388.125, 202],
+    "31": [1486.875, 202],
+    "32": [1585.625, 202],
   }
 
   const regenerateRandomLowerNotes = () => {
@@ -397,6 +398,7 @@ export default function SheetMusicPage() {
       if (!activeNotes.current.has(note)) {
         const currentSliderBeat = sliderBeatRef.current;
         const x_absolute = getSliderXForBeat(currentSliderBeat, timeSignature);
+        console.log('x_absolute',x_absolute)
         const systemIndex = currentSliderBeat < timeSignature.top * 4 ? 0 : 1;
         const isTreble = systemIndex === 0;
         const clef = getClefForNote(note);
@@ -474,9 +476,9 @@ React.useEffect(() => {
     return new Array(5).fill(0).map((_, i) => (
       <line
         key={i}
-        x1={40}
+        x1={10}
         y1={yStart + i * STAFF_LINE_GAP}
-        x2={STAFF_WIDTH}
+        x2={STAFF_WIDTH +100}
         y2={yStart + i * STAFF_LINE_GAP}
         stroke="black"
         strokeWidth="1"
@@ -527,7 +529,6 @@ React.useEffect(() => {
         ? group.beat < beatsPerSystem
         : group.beat >= beatsPerSystem
     );
-    console.log("captured notes", capturedNotes);
     return (
       <>
         
@@ -666,7 +667,7 @@ React.useEffect(() => {
        // where in its own system this beat falls
        const beatInSystem   = beat % beatsPerSystem;
        const beatWidth      = (STAFF_WIDTH - CLEF_WIDTH) / beatsPerSystem;
-       return CLEF_WIDTH + beatInSystem * beatWidth + beatWidth / 2;
+       return CLEF_WIDTH + 15 + beatInSystem * beatWidth + beatWidth / 2;
   }
 
   function drawSlider(systemIndex: 0 | 1): JSX.Element | null {
@@ -684,7 +685,7 @@ React.useEffect(() => {
       : sliderBeat - beatsPerSystem;
   
     const beatWidth = (STAFF_WIDTH - CLEF_WIDTH) / beatsPerSystem;
-    const x = CLEF_WIDTH + beatInSystem * beatWidth + beatWidth / 2;
+    const x = CLEF_WIDTH + 15 + beatInSystem * beatWidth + beatWidth / 2;
   
     // y‑ranges for each svg:
     if(isUpper){
@@ -771,10 +772,10 @@ React.useEffect(() => {
   function drawMeasureLines(yStart: number): JSX.Element[] {
     const measureCount = 4;
     const totalBeats = timeSignature.top * measureCount;
-    const beatWidth = (STAFF_WIDTH - CLEF_WIDTH) / totalBeats;
+    const beatWidth = (STAFF_WIDTH + 29 - CLEF_WIDTH) / totalBeats;
   
     return new Array(measureCount + 1).fill(0).map((_, i) => {
-      const x = CLEF_WIDTH + i * timeSignature.top * beatWidth;
+      const x = CLEF_WIDTH - 30 + i * timeSignature.top * beatWidth;
       return (
         <line
           key={`measure-${i}-${yStart}`}
@@ -792,10 +793,10 @@ React.useEffect(() => {
   function drawMeasureLines2(yStart: number): JSX.Element[] {
     const measureCount = 4;
     const totalBeats = timeSignature.top * measureCount;
-    const beatWidth = (STAFF_WIDTH - CLEF_WIDTH) / totalBeats;
+    const beatWidth = (STAFF_WIDTH + 29 - CLEF_WIDTH) / totalBeats;
   
     return new Array(measureCount + 1).fill(0).map((_, i) => {
-      const x = CLEF_WIDTH + i * timeSignature.top * beatWidth;
+      const x = CLEF_WIDTH -30 + i * timeSignature.top * beatWidth;
       return (
         <line
           key={`measure-${i}-${yStart}`}
@@ -857,12 +858,12 @@ React.useEffect(() => {
         {drawSubdivisionLines(140)} */}
         
 
-        <text x={50} y={32 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black" className="">𝄞</text>
-        <text x={50} y={225 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
+        <text x={5} y={32 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black" className="">𝄞</text>
+        <text x={5} y={225 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
 
         {drawMeasureLines(20)}
         {/* {drawMeasureLines(220)} */}
-        {/* {randomPositions.map(([note, [x, y]]) => (
+        {randomPositions.map(([note, [x, y]]) => (
       <path
         key={note}
         d="M1140 2415 l0 -1225 -49 35 c-187 135 -441 152 -658 45 -269 -133
@@ -872,18 +873,18 @@ React.useEffect(() => {
         transform={`translate(${x - 10}, ${y - 10}) scale(0.01)`}
         fill="black"
       />
-    ))} */}
-        <text x={CLEF_WIDTH + 100} y={20 + 1 * STAFF_LINE_GAP} className="text-[24px]">
+    ))}
+        <text x={CLEF_WIDTH + 35} y={20 + 1 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.top}
         </text>
-        <text x={CLEF_WIDTH + 100 } y={20 + 3 * STAFF_LINE_GAP} className="text-[24px]">
+        <text x={CLEF_WIDTH + 35 } y={20 + 3 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.bottom}
         </text>
 
-        <text x={CLEF_WIDTH + 100 } y={220 + 1 * STAFF_LINE_GAP} className="text-[24px]">
+        <text x={CLEF_WIDTH + 35 } y={220 + 1 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.top}
         </text>
-        <text x={CLEF_WIDTH + 100 } y={220 + 3 * STAFF_LINE_GAP} className="text-[24px]">
+        <text x={CLEF_WIDTH + 35 } y={220 + 3 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.bottom}
         </text>
 
@@ -908,7 +909,7 @@ React.useEffect(() => {
         {/* {drawSubdivisionLines(100)}
         {drawSubdivisionLines(220)} */}
         
-        {/* {lowerrandomPositions.map(([note, [x, y]]) => (
+        {lowerrandomPositions.map(([note, [x, y]]) => (
       <path
         key={note}
         d="M1140 2415 l0 -1225 -49 35 c-187 135 -441 152 -658 45 -269 -133
@@ -918,24 +919,24 @@ React.useEffect(() => {
         transform={`translate(${x - 10}, ${y - 10}) scale(0.01)`}
         fill="black"
       />
-    ))} */}
-        <text x={50} y={110 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black">𝄞</text>
-        <text x={50} y={305 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
+    ))}
+        <text x={5} y={110 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black">𝄞</text>
+        <text x={5} y={305 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
 
         {drawMeasureLines2(100)}
         {/* {drawMeasureLines(220)} */}
 
-        <text x={CLEF_WIDTH + 100} y={100 + 1 * STAFF_LINE_GAP} className="text-[24px]">
+        <text x={CLEF_WIDTH + 35} y={100 + 1 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.top}
         </text>
-        <text  x={CLEF_WIDTH + 100} y={100 + 3 * STAFF_LINE_GAP} className="text-[24px]">
+        <text  x={CLEF_WIDTH + 35} y={100 + 3 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.bottom}
         </text>
 
-        <text x={CLEF_WIDTH + 100} y={300 + 1 * STAFF_LINE_GAP} className="text-[24px]">
+        <text x={CLEF_WIDTH + 35} y={300 + 1 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.top}
         </text>
-        <text x={CLEF_WIDTH + 100} y={300 + 3 * STAFF_LINE_GAP} className="text-[24px]">
+        <text x={CLEF_WIDTH + 35} y={300 + 3 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.bottom}
         </text>
 
