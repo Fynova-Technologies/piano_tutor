@@ -538,13 +538,16 @@ React.useEffect(() => {
   
             const showAccidental = isAccidental(note);
             const accidentalSymbol = getAccidentalSymbol(note);
+            // offset for simultaneously pressed key notes
+            const xOffset = ni * 8; // 8px spacing
+
   
             return (
               <g key={`${systemIndex}-${gi}-${ni}`} className="note-group">
-                {renderLedgerLines(x, y, systemIndex === 0, note)}
+                {renderLedgerLines(x+xOffset, y, systemIndex === 0, note)}
                 {showAccidental && (
                   <text
-                    x={x - 12}
+                    x={x + xOffset - 12}
                     y={y + 5}
                     fontSize="16"
                     fill="#64B5F6"
@@ -552,9 +555,10 @@ React.useEffect(() => {
                   >
                     {accidentalSymbol}
                   </text>
+                  
                 )}
                 <circle
-                  cx={x}
+                  cx={x + xOffset}
                   cy={y}
                   r={4}
                   fill="#64B5F6"
