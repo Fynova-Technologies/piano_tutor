@@ -37,7 +37,6 @@ export default function SheetMusicPage() {
   const [sliderBeat, setSliderBeat] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [bpm, setBpm] = useState(120);
-  // const subdivisionsPerBeat = 4; // e.g., 4 for 16th notes in 4/4 time
   const [capturedNotes, setCapturedNotes] = useState<CapturedNoteGroup[]>([]);
   const [correctNotes,setCorrectNotes] = useState<correctNotes[]>([]);
   const [IncorrectNotes,setInCorrectNotes] = useState<correctNotes[]>([]);
@@ -363,14 +362,13 @@ export default function SheetMusicPage() {
       return referenceY + staffPositions * ((STAFF_LINE_GAP / 2)-5);}
     else{
       const referenceNote =
-      clef === 'treble' ? 71.5 :
+      clef === 'treble' ? 71.9 :
       clef === 'bass' ? 50 :
       60; // Middle C
   
     const referenceY = middleStaffLine;
     const semitoneDistance = referenceNote - note;
     const staffPositions = getStaffPositionsFromSemitones(semitoneDistance);
-  
     return referenceY + staffPositions * (STAFF_LINE_GAP / 2);
     }
   }, []);
