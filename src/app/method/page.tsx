@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import {motion} from "framer-motion";
+import { useMediaQuery } from "@/components/MediaQuery/useMediaQueryHook";
 
 
 const unitLessonsData = [
@@ -35,13 +36,13 @@ const unitLessonsData = [
   },
 ];
 
-let whiteKeyInOctave = 0;
 
 // Main component
 export default function PianoLesson() {
   const [classId, setClassId] = useState("1");
   const router = useRouter();
   const [methodName, setMethodName] = useState("1A");
+  const isMobile = useMediaQuery("(max-width: 768px)"); // Adjust the breakpoint as needed
 
   
 
@@ -86,16 +87,15 @@ export default function PianoLesson() {
     if (!unit) return null;
 
     return (
-      <div className="  top-0 items-start justify-start w-full">
-        <div className="bg-[#FEFEFE] p-4 rounded-2xl shadow-md min-h-[100px] flex justify-center items-center">
-          <h3 className="text-xl text-[40px] text-center text-primary-background w-full bg-[#FEFEFE]">Methods<span className="font-bold"> - {methodName} </span></h3>
+      <div>
+        <div className={`${isMobile?"bg-[#FEFEFE] p-4 rounded-2xl shadow-md mt-8":"bg-[#FEFEFE] p-4 rounded-2xl shadow-md"}`}>
+          <h3 className={`${isMobile?"text-xl text-[40px] text-center text-primary-background w-full bg-[#FEFEFE]":"text-xl text-[40px] text-center text-primary-background w-full bg-[#FEFEFE]"}`}>Methods<span className="font-bold"> - {methodName} </span></h3>
         </div>
         <div className="bg-[#FEFEFE] p-4 rounded-2xl shadow-md mt-4">
           <ul className="mt-5">
             {unit.unitlessons.map((lesson) => {
               const isActive = activeLesson === lesson.id;
               return(
-
               <li
                 key={lesson.id}
                 onClick={() => {
@@ -120,22 +120,23 @@ export default function PianoLesson() {
 
   return (
     <div className="min-h-screen bg-[#F8F6F1] py-16 px-6 md:px-12 lg:px-24">
-      <div className="flex justify-center ">
-        <div className="flex-1">
+      <div className={`${isMobile?"":"flex justify-center "}`}>
+        <div className={`${isMobile?"":"flex-1"}`}>
           
           <div className="w-full">
             
-            <div className="flex flex-col border-2 bg-[#FEFEFE] p-6 rounded-2xl w-full border-primary-background ">
+            <div className=" flex-col border-2 bg-[#FEFEFE] p-6 rounded-2xl w-full border-primary-background ">
               <div>
                 <h1 className="text-[24px] font-extrabold text-center mb-4 drop-shadow-md bg-gradient-to-r from-[#D4AF37] from-48% to-[#978448] to-60% bg-clip-text text-transparent">
                   Piano Methods
                 </h1>
               </div>
-              <div className="mt-[20px] max-h-[710px] mx-16 border-t-5 border-x-5  border-primary-background rounded-x-2xl rounded-t-2xl py-10 overflow-auto scrollbar-hide">
+              <div className={`${isMobile?"flex w-full bg-black overflow-x-auto scrollbar-hide":"mt-[20px] max-h-[710px] mx-16 border-t-5 border-x-5  border-primary-background rounded-x-2xl rounded-t-2xl py-10 overflow-auto scrollbar-hide"}`}>
                 {topLessons.map((lesson, index) => {
-                  whiteKeyInOctave++;
+                  let whiteKeyInOctave = index % 7;
 
-                  const showBlackKey = !(whiteKeyInOctave === 3 || whiteKeyInOctave === 7);
+
+                  const showBlackKey = !(whiteKeyInOctave === 2 || whiteKeyInOctave === 6);
 
                   if (whiteKeyInOctave === 7) {
                     whiteKeyInOctave = 0;
@@ -159,16 +160,15 @@ export default function PianoLesson() {
                           handleClick(lesson.id);
                           setMethodName(lesson.title);
                         }}
-                        className=" relative cursor-pointer w-full flex flex-row-reverse p-4
-                          transition-color duration-300 ease-out transform bg-[#FEFEFE]
-                          hover:rounded-r-2xl  shadow-[inset_0px_-2px_5px_#b9b9b9] "
+                        className={`${isMobile?"relative p-4 flex items-center justify-between cursor-pointer transition-colors duration-300 ease-out w-full h-[250px] bg-[#FEFEFE] shadow-[inset_0px_-2px_5px_#b9b9b9] hover:rounded-r-2xl" :
+                          " relative cursor-pointer w-full flex flex-row-reverse p-4 transition-color duration-300 ease-out transform bg-[#FEFEFE] hover:rounded-r-2xl  shadow-[inset_0px_-2px_5px_#b9b9b9] "}`}
                       >
                         {showBlackKey && (
                         <div
-                          className={`absolute left-0 bottom-0 translate-y-1/2 z-10 w-[180px] h-[36px] bg-black rounded-r-lg `}
+                          className={`${isMobile?"absolute left-0 top-0 translate-x- z-10 w-[40px] h-[150px] bg-black rounded-b-lg":"absolute left-0 bottom-0 translate-y-1/2 z-10 w-[180px] h-[36px] bg-black rounded-r-lg"}`}
                         ></div>
                       )}
-                        <span className="ml-auto bg-[#e9e9ea] shadow-[inset_0px_0px_4px_#0A254059] text-primary-background font-bold rounded w-[49px] h-[36px] text-center flex text-[20px] justify-center items-center text-sm">
+                        <span className="mt-auto bg-[#e9e9ea] shadow-[inset_0px_0px_4px_#0A254059] text-primary-background font-bold rounded w-[49px] h-[36px] text-center flex text-[20px] justify-center items-center text-sm">
                           {lesson.title}
                         </span>
                       </motion.div>

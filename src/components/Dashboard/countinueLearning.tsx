@@ -1,6 +1,8 @@
 import Image from "next/image"; 
+import { useMediaQuery } from "../MediaQuery/useMediaQueryHook";
 
 export default function ContinueLearning() {
+  const isMobile = useMediaQuery("(max-width: 768px)", { defaultValue: true, initializeWithValue: true });
     const courses = [
   {
     title: "Piano Mastery Level 1",
@@ -39,12 +41,12 @@ export default function ContinueLearning() {
 ];
 
     return(
-        <div className=" min-h-[500px] flex justify-center bg-[#F8F6F1] px-1 py-16">
-            <div className="max-w-[90%] w-full">
+        <div className=" justify-center bg-[#F8F6F1] px-1 py-16 overflow-y-visible">
+            <div className="w-[90%] ml-24">
                 <h1 className="text-black text-2xl font-bold ">Continue Learning</h1>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 p-4">
-      {courses.map((course, index) => (
-        <div key={index} className="w-[80%] h-[100px] mx-auto">
+                <div className={`${isMobile?"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 p-6 justify-center":"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 p-4"}`}>
+                  {courses.map((course, index) => (
+                    <div key={index} className={`${isMobile?"w-[90%] h-[20%] my-4":"w-[80%] mx-auto"}`}>
           
 
           {/* Card */}
