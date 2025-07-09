@@ -42,7 +42,7 @@ export default function PianoLesson() {
   const [classId, setClassId] = useState("1");
   const router = useRouter();
   const [methodName, setMethodName] = useState("1A");
-  const isMobile = useMediaQuery("(max-width: 768px)"); // Adjust the breakpoint as needed
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   
 
@@ -102,13 +102,15 @@ export default function PianoLesson() {
                   setActiveLesson(lesson.id);
                   router.push(lesson.link);
                 }}               
-                className={`group cursor-pointer flex px-4 py-1 items-center hover:rounded-2xl hover:bg-[#D4AF37] ${
+                className={`group cursor-pointer flex  px-4 py-1 items-center hover:rounded-2xl hover:bg-[#D4AF37] ${
                 isActive ? 'bg-[#D4AF37] mb-1 border-b-0 rounded-2xl' : ''
                 }`}>
-                <Image src="/Layer_1.png" width={56} height={56} alt="icon" className={`mr-4 ${isActive ? 'visible' : 'invisible'} group-hover:visible group-active:visible`}/>
-                <div className={`flex items-center justify-between w-full hover:border-0 border-primary-background py-1 ${isActive ? 'border-0' : 'border-b-1'} `}>
+                <div>
+                  <Image src="/Layer_1.png" width={56} height={56} alt="icon" className={`${isActive ? 'visible' : 'invisible'} group-hover:visible group-active:visible`}/>
+                </div>
+                <div className={`${isMobile?`flex flex-col w-full hover:border-0 border-primary-background py-1 ${isActive ? 'border-0' : 'border-b-1'} `:`flex items-center justify-between w-full hover:border-0 border-primary-background py-1 ${isActive ? 'border-0' : 'border-b-1'} `}`}>
                   <span className="text-[16px] text-primary-background">{lesson.id}. {lesson.lessontitle}</span>
-                  <button className="bg-primary-background rounded-2xl py-2 px-6"><span className="text-[#FEFEFE]">Incomplete</span></button>
+                  <button className={`${isMobile?"bg-primary-background rounded-2xl py-1":"bg-primary-background rounded-2xl py-2 px-6"}`}><span className="text-[#FEFEFE]">Incomplete</span></button>
                 </div>
               </li>
             )})}
@@ -121,10 +123,8 @@ export default function PianoLesson() {
   return (
     <div className="min-h-screen bg-[#F8F6F1] py-16 px-6 md:px-12 lg:px-24">
       <div className={`${isMobile?"":"flex justify-center "}`}>
-        <div className={`${isMobile?"":"flex-1"}`}>
-          
+        <div className={`${isMobile?"":"flex-1"}`}>    
           <div className="w-full">
-            
             <div className=" flex-col border-2 bg-[#FEFEFE] p-6 rounded-2xl w-full border-primary-background ">
               <div>
                 <h1 className="text-[24px] font-extrabold text-center mb-4 drop-shadow-md bg-gradient-to-r from-[#D4AF37] from-48% to-[#978448] to-60% bg-clip-text text-transparent">
@@ -134,18 +134,12 @@ export default function PianoLesson() {
               <div className={`${isMobile?"flex w-full bg-black overflow-x-auto scrollbar-hide":"mt-[20px] max-h-[710px] mx-16 border-t-5 border-x-5  border-primary-background rounded-x-2xl rounded-t-2xl py-10 overflow-auto scrollbar-hide"}`}>
                 {topLessons.map((lesson, index) => {
                   let whiteKeyInOctave = index % 7;
-
-
                   const showBlackKey = !(whiteKeyInOctave === 2 || whiteKeyInOctave === 6);
-
                   if (whiteKeyInOctave === 7) {
                     whiteKeyInOctave = 0;
                   }
-
                   return (
-                    <div key={index} className="relative">
-                      
-
+                    <div key={index} className="relative">   
                       <motion.div
                         initial={{ backgroundColor: "#fefefe" }}
                         whileHover={{
@@ -175,7 +169,6 @@ export default function PianoLesson() {
                     </div>
                   );
                 })}
-
               </div>
             </div>
           </div>
@@ -186,14 +179,8 @@ export default function PianoLesson() {
               <UnitLesson classId={classId} methodName={methodName} />
             </div>
           </div>
-          
         </div>
-
-      
-      </div>
-
-
-      
+    </div>
     </div>
   );
 }

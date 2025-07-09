@@ -558,7 +558,7 @@ React.useEffect(() => {
                   
                 )}
                 <circle
-                  cx={x + xOffset}
+                  cx={x }
                   cy={y}
                   r={4}
                   fill="#64B5F6"
