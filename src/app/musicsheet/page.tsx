@@ -4,6 +4,8 @@ import React, { useCallback } from "react";
 import { useState, useRef, useEffect, JSX } from "react";
 import StatusbarMusicSheet from "@/components/musicSheet/StatusbarMusicSheet";
 import FooterMusicsheet from "@/components/musicSheet/FooterMusicsheet";
+import { useSearchParams } from 'next/navigation';
+
 const STAFF_LINE_GAP = 20; // px 
 const STAFF_WIDTH = 1620;
 const CLEF_WIDTH = 40;
@@ -28,7 +30,28 @@ type correctNotes={
   y_pos : number
 }
 
+
+type PatternItem = {
+  whole?: [number, number];
+  rest?: [number, number];
+  imageSrc: string;
+};
+
+
+type PatternData = {
+  [key: string]: {
+    upper: PatternItem[];
+    lower: PatternItem[];
+  };
+};
+
+
 type Note = { x_pos: number; y_pos: number; systemIndex: number };
+type NoteEvent = { note: number; time: number };
+let currentChord: NoteEvent[] = [];
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+let lastNoteTime = 0;
+const CHORD_WINDOW_MS = 30;
 
 const THRESHOLD = 1;
 
@@ -57,22 +80,60 @@ export default function SheetMusicPage() {
   const [isMetronomeRunning, setIsMetronomeRunning] = useState(false);
   // const countInBuffer = useRef<AudioBuffer | null>(null);
   const countInBuffers = useRef<(AudioBuffer | null)[]>([null, null, null, null]);
+  const searchParams = useSearchParams();
+  // const imageSrc = searchParams?.get('imageSrc') || '';
+  // const restImageSrc = searchParams?.get('restImageSrc') || ""
+  const pattern = searchParams?.get('pattern')||""
+  const patternkey = searchParams?.get('patternkey')||""
+  const [wholeNotes, setWholeNotes] = useState<PatternItem[]>([]);
+  const [restNotes, setRestNotes] = useState<PatternItem[]>([]);
+  const [lowerwholeNotes, setLowerWholeNotes] = useState<PatternItem[]>([]);  
+  const [lowerrestNotes, setLowerRestNotes] = useState<PatternItem[]>([]);
+  console.log("patterns",pattern)
+
+  useEffect(() => {
+    console.log("patterns",pattern)
+    fetch(pattern)
+      .then((res) => res.json())
+      .then((data: PatternData) => {
+        console.log("data upper", data[patternkey].upper)
+        const upperPattern = data[patternkey].upper;
+        const whole: PatternItem[] = [];
+        const rest: PatternItem[] = [];
+
+        upperPattern.forEach((item) => {
+          if (item.whole) whole.push(item);
+          if (item.rest) rest.push(item);
+        });
 
 
+        const lowerPattern = data[patternkey].lower;
+        const lowerwhole: PatternItem[] = [];
+        const lowerrest: PatternItem[] = [];
 
+        lowerPattern.forEach((item) => {
+          if (item.whole) lowerwhole.push(item);
+          if (item.rest) lowerrest.push(item);
+        });
 
+        setWholeNotes(whole);
+        setRestNotes(rest);
+        setLowerWholeNotes(lowerwhole);
+        setLowerRestNotes(lowerrest);
+      })
+      .catch((err) => console.error("Error loading patterns:", err));
+  }, [pattern, patternkey]);
 
-  
+ 
   const loadCountInSound = async () => {
     if (!audioContextRef.current) return;
-  
     const soundUrls = [
       '/sound/one.mp3',
       '/sound/two.mp3',
       '/sound/three.mp3',
       '/sound/start.mp3',
     ];
-  
+
     const promises = soundUrls.map(async (url, i) => {
       const response = await fetch(url);
       const arrayBuffer = await response.arrayBuffer();
@@ -94,8 +155,6 @@ export default function SheetMusicPage() {
       await loadCountInSound();
     }
   };
-
-  
 
   const playClick = (time = 0, isDownbeat = false, countInIndex: number | null = null) => {
     if (!audioContextRef.current) return;
@@ -194,6 +253,7 @@ export default function SheetMusicPage() {
     "16": [1585.625, 120],
   };
 
+  
   const positionslower : {[key: string]: [number , number]}={
     "17": [104.375, 202],
     "18": [203.125, 202],
@@ -349,8 +409,8 @@ export default function SheetMusicPage() {
     const semitoneDistance = referenceNote - note;
     const staffPositions = getStaffPositionsFromSemitones(semitoneDistance);
   
-    return referenceY + staffPositions * ((STAFF_LINE_GAP / 2)-1);}
-    else if(note>72){
+    return referenceY + staffPositions * ((STAFF_LINE_GAP / 2));}
+    else if(note>=72){
       const referenceNote =
         clef === 'treble' ? 69 :
         clef === 'bass' ? 50 :
@@ -360,10 +420,10 @@ export default function SheetMusicPage() {
       const semitoneDistance = referenceNote - note;
       const staffPositions = getStaffPositionsFromSemitones(semitoneDistance);
     
-      return referenceY + staffPositions * ((STAFF_LINE_GAP / 2)-5);}
+      return referenceY + staffPositions * ((STAFF_LINE_GAP / 2)-2);}
     else{
       const referenceNote =
-      clef === 'treble' ? 71.9 :
+      clef === 'treble' ? 72 :
       clef === 'bass' ? 50 :
       60; // Middle C
   
@@ -380,63 +440,81 @@ export default function SheetMusicPage() {
     return 'middle'; // C4
   }
 
- 
-  
+  let chordTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const captureChordGroup = React.useCallback((group: NoteEvent[]) => {
+  if (group.length === 0) return;
+
+    const currentSliderBeat = sliderBeatRef.current;
+    const x_absolute = getSliderXForBeat(currentSliderBeat, timeSignature);
+    const systemIndex = currentSliderBeat < timeSignature.top * 4 ? 0 : 1;
+    const newNotes = group.map((ev, i) => {
+    const clef = getClefForNote(ev.note);
+    const y = getNoteY(ev.note, clef, systemIndex);
+    const isTreble = systemIndex === 0;
+
+    setKeysPositions((prevPos) => {
+      const currentPositions = prevPos[ev.note] || [];
+      const newPosition: [number, number, number] = [x_absolute, y, isTreble ? 0 : 1];
+
+      const alreadyExists = currentPositions.some(
+        (pos) => pos[0] === newPosition[0] && pos[1] === newPosition[1] && pos[2] === newPosition[2]
+      );
+
+      if (alreadyExists) return prevPos;
+
+      return {
+        ...prevPos,
+        [ev.note]: [...currentPositions, newPosition],
+      };
+    });
+
+    activeNotes.current.set(ev.note, currentSliderBeat);
+    console.log("i",i)
+    return {
+      beat: currentSliderBeat,
+      notes: [ev.note],
+      x_position: x_absolute,
+      y_position: y,
+      systemIndex: isTreble ? 0 : 1 as 0 | 1,
+    };
+  });
+
+  setCapturedNotes((prev) => [...prev, ...newNotes]);
+}, [timeSignature, getNoteY]);
 
   const getMIDIMessage = React.useCallback((midiMessage: WebMidi.MIDIMessageEvent) => {
-    
-    const [status, note, velocity] = midiMessage.data;
-    const statusType = status & 0xF0;
-  
-    if (statusType === 0x80 || (statusType === 0x90 && velocity === 0)) {
-      activeNotes.current.delete(note);
-      return;
+  const [status, note, velocity] = midiMessage.data;
+  const statusType = status & 0xF0;
+
+  if (statusType === 0x80 || (statusType === 0x90 && velocity === 0)) {
+    activeNotes.current.delete(note);
+    return;
+  }
+
+  if (statusType === 0x90 && velocity > 0 && isPlaying) {
+    if (!activeNotes.current.has(note)) {
+      const now = performance.now();
+
+      currentChord.push({ note, time: now });
+      lastNoteTime = now;
+
+      // Clear any previous pending finalization
+      if (chordTimeout) clearTimeout(chordTimeout);
+
+      // Set timeout to finalize current chord
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      chordTimeout = setTimeout(() => {
+        if (currentChord.length > 0) {
+          console.log("Finalizing chord:", currentChord);
+          captureChordGroup(currentChord);
+          currentChord = [];
+        }
+      }, CHORD_WINDOW_MS);
     }
-  
-    if (statusType === 0x90 && velocity > 0 && isPlaying) {
-      if (!activeNotes.current.has(note)) {
-        const currentSliderBeat = sliderBeatRef.current;
-        const x_absolute = getSliderXForBeat(currentSliderBeat, timeSignature);
-        console.log('x_absolute',x_absolute)
-        const systemIndex = currentSliderBeat < timeSignature.top * 4 ? 0 : 1;
-        const isTreble = systemIndex === 0;
-        const clef = getClefForNote(note);
-        const y = getNoteY(note, clef, systemIndex);
-        console.log('y',y)
-        setKeysPositions((prevPos) => {
-          const currentPositions = prevPos[note] || [];
-          const newPosition: [number, number,number] = [x_absolute, y,isTreble? 0:1];
-    
-          const alreadyExists = currentPositions.some(
-            (pos) => pos[0] === newPosition[0] && pos[1] === newPosition[1] && pos[2] === newPosition[2]
-          );
-    
-          if (alreadyExists) return prevPos;
-    
-          return {
-            ...prevPos,
-            [note]: [...currentPositions, newPosition],
-          };
-        });
-    
-        activeNotes.current.set(note, currentSliderBeat);
-    
-        // Capture with y
-        setCapturedNotes((prev) => [
-          ...prev,
-          {
-            beat: currentSliderBeat,
-            notes: [note],
-            x_position: x_absolute,
-            y_position: y, // <-- add this
-            systemIndex: isTreble ? 0 : 1, // Add systemIndex
-          },
-        ]);
-      }
-    }
-    
-  }, [getNoteY, isPlaying, timeSignature]);  // Remove sliderBeat from dependencies
-  
+  }
+}, [captureChordGroup, isPlaying]);
+
 
 // Setup MIDI event listener with cleanup
 React.useEffect(() => {
@@ -859,6 +937,35 @@ React.useEffect(() => {
         {drawStaffLines(220)}
         {/* {drawSubdivisionLines(20)}
         {drawSubdivisionLines(140)} */}
+         {wholeNotes.map((item, idx) => {
+        const [x, y] = item.whole!;
+        return (
+          <image
+            key={`whole-${idx}`}
+            href={item.imageSrc}
+            transform={`translate(${x-15}, ${y-10}) scale(0.5)`}
+            width={60}
+            height={60}
+            className="transition duration-500 ease-in-out"
+          />
+        );
+      })}
+
+          {/* Rest notes with different transition */}
+          {restNotes.map((item, idx) => {
+        const [x, y] = item.rest!;
+        return (
+          <image
+            key={`rest-${idx}`}
+            href={item.imageSrc}
+            transform={`translate(${x}, ${y}) scale(0.5)`}
+            width={30}
+            height={30}
+            className="transition duration-300 ease-in"
+          />
+        );
+      })}
+
         
 
         <text x={5} y={32 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black" className="">𝄞</text>
@@ -866,17 +973,16 @@ React.useEffect(() => {
 
         {drawMeasureLines(20)}
         {/* {drawMeasureLines(220)} */}
-        {randomPositions.map(([note, [x, y]]) => (
-      <path
-        key={note}
-        d="M1140 2415 l0 -1225 -49 35 c-187 135 -441 152 -658 45 -269 -133
-            -379 -445 -245 -694 37 -69 133 -169 201 -210 31 -19 92 -47 136 -62 70 -24
-            95 -28 200 -28 108 0 129 3 205 30 198 69 341 222 379 402 8 37 11 480 11
-            1492 l0 1440 -90 0 -90 0 0 -1225z"
-        transform={`translate(${x - 10}, ${y - 10}) scale(0.01)`}
-        fill="black"
-      />
-    ))}
+        {/* {randomPositions.map(([note, [x, y]]) => (
+          <g key={note}>
+          <image
+            href={imageSrc}
+            transform={`translate(${x-15}, ${y-25}) scale(0.5)`}
+            width={60}
+            height={60}
+          />      
+      </g>
+    ))} */}
         <text x={CLEF_WIDTH + 35} y={20 + 1 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.top}
         </text>
@@ -911,18 +1017,47 @@ React.useEffect(() => {
         {drawStaffLines(300)}
         {/* {drawSubdivisionLines(100)}
         {drawSubdivisionLines(220)} */}
+         {lowerwholeNotes.map((item, idx) => {
+        const [x, y] = item.whole!;
+        return (
+          <image
+            key={`whole-${idx}`}
+            href={item.imageSrc}
+            transform={`translate(${x-15}, ${y-15}) scale(0.5)`}
+            width={60}
+            height={60}
+            className="transition duration-500 ease-in-out"
+          />
+        );
+      })}
+
+          {/* Rest notes with different transition */}
+          {lowerrestNotes.map((item, idx) => {
+        const [x, y] = item.rest!;
+        return (
+          <image
+            key={`rest-${idx}`}
+            href={item.imageSrc}
+            transform={`translate(${x}, ${y}) scale(0.5)`}
+            width={30}
+            height={30}
+            className="transition duration-300 ease-in"
+          />
+        );
+      })}
         
-        {lowerrandomPositions.map(([note, [x, y]]) => (
-      <path
-        key={note}
-        d="M1140 2415 l0 -1225 -49 35 c-187 135 -441 152 -658 45 -269 -133
-            -379 -445 -245 -694 37 -69 133 -169 201 -210 31 -19 92 -47 136 -62 70 -24
-            95 -28 200 -28 108 0 129 3 205 30 198 69 341 222 379 402 8 37 11 480 11
-            1492 l0 1440 -90 0 -90 0 0 -1225z"
-        transform={`translate(${x - 10}, ${y - 10}) scale(0.01)`}
-        fill="black"
-      />
-    ))}
+        
+        {/* {lowerrandomPositions.map(([note, [x, y]]) => (
+      <g key={note}>
+            <image
+                  href={imageSrc}
+                  transform={`translate(${x-15}, ${y-15}) scale(0.5)`}
+                  width={60}
+                  height={60}
+                />
+            
+    </g>
+    ))} */}
         <text x={5} y={110 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black">𝄞</text>
         <text x={5} y={305 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
 

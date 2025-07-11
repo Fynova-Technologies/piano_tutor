@@ -1,0 +1,135 @@
+{
+  "patterns": {
+    "upper": [
+      { "whole": [104.375, 120],"imageSrc" :"/assets/pngegg.png"},
+      { "rest":  [600, 55], "imageSrc":"/assets/rectangle-svgrepo-com.svg"  },
+      { "whole": [894.375, 120],"imageSrc" :"/assets/pngegg.png" },
+      { "rest":  [1400, 55], "imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [200, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [600, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1000, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1400, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
+    ],
+    "lower": [
+      { "whole": [499.375, 202],"imageSrc" :"/assets/pngegg.png" },
+      { "whole": [1289.375, 202],"imageSrc" :"/assets/pngegg.png" },
+      { "rest":  [200,135],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1000, 135],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1400, 135],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [200, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [600, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1000, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1400, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
+    ]
+  },
+  "patterns2": {
+    "upper": [
+      { "whole": [104.375, 120],"imageSrc":"/assets/half-note-svgrepo-com.svg" },
+      { "rest":  [696, 50],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "whole": [894.375, 120],"imageSrc":"/assets/half-note-svgrepo-com.svg" },
+      { "rest":  [1486, 50],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "whole": [499.375, 120],"imageSrc":"/assets/half-note-svgrepo-com.svg"},
+      {"rest":   [295,50],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      { "whole": [1289.375, 120],"imageSrc":"/assets/half-note-svgrepo-com.svg"},
+      {"rest":   [1091,50],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      { "rest":  [295, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1091, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [696, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1486, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
+    ],
+    "lower": [
+      { "whole": [104.375, 202],"imageSrc":"/assets/half-note-svgrepo-com.svg" },
+      { "rest":  [696, 130],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "whole": [894.375, 202],"imageSrc":"/assets/half-note-svgrepo-com.svg" },
+      { "rest":  [1486, 130],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "whole": [499.375, 202],"imageSrc":"/assets/half-note-svgrepo-com.svg"},
+      {"rest":   [295,130],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      { "whole": [1289.375, 202],"imageSrc":"/assets/half-note-svgrepo-com.svg"},
+      {"rest":   [1091,130],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      { "rest":  [295, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1091, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [696, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1486, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
+    ]
+  },
+  "patterns3":{
+    "upper":[
+      {"whole": [104.375, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"}, 
+      {"whole": [203.125, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [301.875, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [400.625, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [499.375, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [598.125, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [696.875, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [795.625, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [894.375, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [993.125, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [1091.875, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [1190.625, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [1289.375, 120],"imageSrc":"/assets/pngegg.png"},
+      { "rest":  [200, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [600, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1000, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1400, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
+    ]
+    ,
+    "lower":[
+      {"whole": [104.375, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"}, 
+      {"whole": [203.125, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [301.875, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [400.625, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [499.375, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [598.125, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [696.875, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [795.625, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [894.375, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [993.125, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [1091.875, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [1190.625, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [1289.375, 202],"imageSrc":"/assets/pngegg.png"},
+      { "rest":  [200, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [600, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1000, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1400, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
+    ]
+
+  },
+  "patterns4":{
+    "upper":[
+      {"whole": [104.375, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"}, 
+      {"whole": [203.125, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [301.875, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [400.625, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [499.375, 120],"imageSrc":"/assets/half-note-svgrepo-com.svg"},
+      {"whole": [696.875, 120],"imageSrc":"/assets/half-note-svgrepo-com.svg"},
+      {"whole": [894.375, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [993.125, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [1091.875, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [1190.625, 120],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [1289.375, 120],"imageSrc":"/assets/pngegg.png"},
+      { "rest":  [200, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [600, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1000, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1400, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
+    ]
+    ,
+    "lower":[
+      {"whole": [104.375, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"}, 
+      {"whole": [203.125, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [301.875, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [400.625, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [499.375, 202],"imageSrc":"/assets/half-note-svgrepo-com.svg"},
+      {"whole": [696.875, 202],"imageSrc":"/assets/half-note-svgrepo-com.svg"},
+      {"whole": [894.375, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [993.125, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [1091.875, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [1190.625, 202],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
+      {"whole": [1289.375, 202],"imageSrc":"/assets/pngegg.png"},
+      { "rest":  [200, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [600, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1000, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1400, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
+    ]
+
+  }
+}

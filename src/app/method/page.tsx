@@ -10,28 +10,28 @@ const unitLessonsData = [
   {
     fkid: "1",
     unitlessons: [
-      { id: "1", lessontitle: "Introduction to C", link: "/musicsheet" },
-      { id: "2", lessontitle: "Try C Music", link: "/musicsheet" },
-      { id: "3", lessontitle: "Introduction To D Key", link: "/musicsheet" },
-      { id: "4", lessontitle: "Introduction To D Key", link: "/musicsheet" },
+      { id: "1", lessontitle: "Whole Notes & Whole Rests / Semiberves ", link: "/musicsheet" , imageSrc :"/assets/pngegg.png", restImageSrc:"/assets/rectangle-svgrepo-com.svg",pattern:"/pattern.json",patternkey:"patterns" },
+      { id: "2", lessontitle: "Half Notes & Half Rests / Minims", link: "/musicsheet", imageSrc:"/assets/half-note-svgrepo-com.svg", restImageSrc:"/assets/rectangle-svgrepo-com.svg", pattern:"/pattern.json",patternkey:"patterns2"  },
+      { id: "3", lessontitle: "Quarter Notes / Crotchets", link: "/musicsheet", imageSrc:"/assets/quarter-note-svgrepo-com.svg",pattern:"/pattern.json",patternkey:"patterns3" },
+      { id: "4", lessontitle: "C song", link: "/musicsheet",imageSrc:"/assets/quarter-note-svgrepo-com.svg",pattern:"/pattern.json",patternkey:"patterns4"   },
     ],
   },
   {
     fkid: "2",
     unitlessons: [
-      { id: "1", lessontitle: "Introduction to C 2", link: "/musicsheet" },
-      { id: "2", lessontitle: "Try C Music 2", link: "/musicsheet" },
-      { id: "3", lessontitle: "Introduction To D Key 2", link: "/musicsheet" },
-      { id: "4", lessontitle: "Introduction To D Key 2", link: "/musicsheet" },
+      { id: "1", lessontitle: "Introduction to C 2", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
+      { id: "2", lessontitle: "Try C Music 2", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
+      { id: "3", lessontitle: "Introduction To D Key 2", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
+      { id: "4", lessontitle: "Introduction To D Key 2", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
     ],
   },
   {
     fkid: "3",
     unitlessons: [
-      { id: "1", lessontitle: "Introduction to C 3", link: "/musicsheet" },
-      { id: "2", lessontitle: "Try C Music 3", link: "/musicsheet" },
-      { id: "3", lessontitle: "Introduction To D Key 3", link: "/musicsheet" },
-      { id: "4", lessontitle: "Introduction To D Key 3", link: "/musicsheet" },
+      { id: "1", lessontitle: "Introduction to C 3", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
+      { id: "2", lessontitle: "Try C Music 3", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
+      { id: "3", lessontitle: "Introduction To D Key 3", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
+      { id: "4", lessontitle: "Introduction To D Key 3", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
     ],
   },
 ];
@@ -100,8 +100,17 @@ export default function PianoLesson() {
                 key={lesson.id}
                 onClick={() => {
                   setActiveLesson(lesson.id);
-                  router.push(lesson.link);
-                }}               
+                  const params = new URLSearchParams({
+                    id: lesson.id,
+                    title: lesson.lessontitle,
+                    imageSrc: lesson.imageSrc ?? '',
+                    restImageSrc: lesson.restImageSrc??"",
+                    pattern: lesson.pattern??"",
+                    patternkey: lesson.patternkey??""
+                  });
+                  router.push(`${lesson.link}?${params.toString()}`);
+                }}
+                            
                 className={`group cursor-pointer flex  px-4 py-1 items-center hover:rounded-2xl hover:bg-[#D4AF37] ${
                 isActive ? 'bg-[#D4AF37] mb-1 border-b-0 rounded-2xl' : ''
                 }`}>
