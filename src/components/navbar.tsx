@@ -8,8 +8,10 @@ import { usePathname } from 'next/navigation';
 
 const navItems = [
   { name: 'Methods', href: '/method' },
+  {name: 'Library',href:"/library"},
   { name: 'Dashboard', href: '/dashboard' },
-  { name: 'Projects', href: '/musicsheet' }
+  { name: 'Projects', href: '/musicsheet' },
+  
 ];
 
 export default function Navbar() {

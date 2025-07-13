@@ -1,0 +1,115 @@
+{
+    "reccomended":
+    [
+        
+        {
+            "id": 1,
+            "title": "Song One",
+            "artist": "Artist A",
+            "ratings":4,
+            "imageUrl": "/songs/s1.jpg" 
+        },
+        {
+            "id": 2,
+            "title": "Song Two",
+            "artist": "Artist B",
+            "ratings": 5,
+            "imageUrl": "/songs/s2.jpg"
+        },
+        {
+            "id": 3,
+            "title": "Song Three",
+            "artist": "Artist C",
+            "ratings": 3,
+            "imageUrl": "/songs/s3.jpg"
+        },
+        {
+            "id": 4,
+            "title": "Song Four",
+            "artist": "Artist D",
+            "ratings": 4,
+            "imageUrl": "/songs/s4.jpg"
+        },
+        {   
+            "id":5,
+            "title": "Song Five",
+            "artist": "Artist E",
+            "ratings": 2,
+            "imageUrl": "/songs/s5.jpg"
+        }
+    ],
+    "Popular":[
+     {
+            "id": 1,
+            "title": "Song One",
+            "artist": "Artist A",
+            "ratings":4,
+            "imageUrl": "/songs/s1.jpg" 
+        },
+        {
+            "id": 2,
+            "title": "Song Two",
+            "artist": "Artist B",
+            "ratings": 5,
+            "imageUrl": "/songs/s2.jpg"
+        },
+        {
+            "id": 3,
+            "title": "Song Three",
+            "artist": "Artist C",
+            "ratings": 3,
+            "imageUrl": "/songs/s3.jpg"
+        },
+        {
+            "id": 4,
+            "title": "Song Four",
+            "artist": "Artist D",
+            "ratings": 4,
+            "imageUrl": "/songs/s4.jpg"
+        },
+        {   
+            "id":5,
+            "title": "Song Five",
+            "artist": "Artist E",
+            "ratings": 2,
+            "imageUrl": "/songs/s5.jpg"
+        }   
+    ],
+    "Favorites":[
+        {
+            "id": 1,
+            "title": "Song One",
+            "artist": "Artist A",
+            "ratings":4,
+            "imageUrl": "/songs/s1.jpg" 
+        },
+        {
+            "id": 2,
+            "title": "Song Two",
+            "artist": "Artist B",
+            "ratings": 5,
+            "imageUrl": "/songs/s2.jpg"
+        },
+        {
+            "id": 3,
+            "title": "Song Three",
+            "artist": "Artist C",
+            "ratings": 3,
+            "imageUrl": "/songs/s3.jpg"
+        },
+        {
+            "id": 4,
+            "title": "Song Four",
+            "artist": "Artist D",
+            "ratings": 4,
+            "imageUrl": "/songs/s4.jpg"
+        },
+        {   
+            "id": 5,
+            "title": "Song Five",
+            "artist": "Artist E",
+            "ratings": 2,
+            "imageUrl": "/songs/s5.jpg"
+        }
+    ]
+}

@@ -5,6 +5,7 @@
   --foreground: #171717;
   --font-inter: 'Inter';
   --primary-background:#151517;
+  --font-poppins: 'Poppins'
 
 }
 
@@ -14,6 +15,7 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-inter: var(--font-inter);
+  --font-poppins: var(--font-poppins)
   --color-primary-dark: var(--primary-dark);
   --color-primary-background: var(--primary-background);
 }
@@ -39,4 +41,8 @@ body {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;             
+}
+
+.font-poppins {
+  font-family: var(--font-poppins);
 }
