@@ -43,3 +43,7 @@ body {
 .font-poppins {
   font-family: var(--font-poppins);
 }
+
+.primary-color-text{
+  color: var(--primary-dark);
+}

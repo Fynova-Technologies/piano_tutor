@@ -58,7 +58,7 @@ export default function FooterMusicsheet({
       }, [isCountingIn, isMetronomeRunning, isPlaying, scheduler, timerID]);
     
     return(
-    <div className={` flex fixed bottom-0 items-end justify-end bg-primary-background w-full gap-2 p-4 ${isPlaying ? 'hidden' : ' '}`}>
+    <div className={` flex fixed bottom-0 items-end justify-end bg-[#0a0a0a] w-full gap-2 p-4 ${isPlaying ? 'hidden' : ' '}`}>
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center gap-4 ">
           <button
@@ -91,7 +91,7 @@ export default function FooterMusicsheet({
       <FooterPlayButton bpm={bpm} timerID={timerID}   scheduler={scheduler}   audioContextRef={audioContextRef}  currentBeatRef={currentBeatRef} scheduleAheadTime={scheduleAheadTime}   nextNoteTimeRef={ nextNoteTimeRef} isCountingIn={isCountingIn} isPlaying={isPlaying} setIsPlaying={setIsPlaying} initializeAudioContext={initializeAudioContext} setIsCountingIn={setIsCountingIn} setSliderBeat={setSliderBeat} playClick={playClick} setIsMetronomeRunning={setIsMetronomeRunning} />
       
       <div className="Settings flex gap-4">
-        <button className="bg-[#D4AF37] py-[6px] w-[101px] h-[48px] px-[16px] rounded-2xl flex gap-2 text-primary-background items-center text-[16px]"><Image src="/icon.svg" width={15} height={10} alt="icon"/>Learn</button>
+        <button className="bg-[#D4AF37] py-[6px] w-[101px] h-[48px] px-[16px] rounded-2xl flex gap-2 primary-color-text items-center text-[16px]"><Image src="/icon.svg" width={15} height={10} alt="icon"/>Learn</button>
         <Image src="/settings.svg" width={50} height={40} alt="icon"/>
 
       </div>

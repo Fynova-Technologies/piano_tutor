@@ -15,18 +15,18 @@ export default function StatusbarMusicSheet({isPlaying}: StatusbarMusicSheetProp
               <div className="flex space-x-8 items-center">
                 <div className="flex items-center space-x-3">
                     <Image src="/Frame.svg" width={28} height={20} alt="icon"/>
-                    <span className="font-semibold text-[24px] text-primary-dark font-inter"> 10 </span>
-                    <span className=" font-medium text-primary-dark text-[16px]">  High Score</span>
+                    <span className="font-semibold text-[24px] primary-color-text font-inter"> 10 </span>
+                    <span className=" font-medium primary-color-text text-[16px]">  High Score</span>
                 </div>
                 <div className="flex items-center space-x-3">
                     <Image src="/SVGRepo_iconCarrier (1).svg" width={25} height={20} alt="icon"/>
-                    <span className="font-semibold text-[24px] text-primary-dark font-inter"> 10 </span>
-                    <span className="font-medium text-primary-dark  text-[16px]">Last Score</span>
+                    <span className="font-semibold text-[24px] primary-color-text font-inter"> 10 </span>
+                    <span className="font-medium primary-color-text  text-[16px]">Last Score</span>
                 </div>
                 <div className="flex items-center space-x-3">
                     <Image src="/autoplay (1).svg" width={28} height={20} alt="icon"/>
-                    <span className="font-semibold text-[24px] text-primary-dark font-inter"> 10 </span>
-                    <span className="font-medium text-primary-dark  text-[16px]">Play Count</span>
+                    <span className="font-semibold text-[24px] primary-color-text font-inter"> 10 </span>
+                    <span className="font-medium primary-color-text  text-[16px]">Play Count</span>
                 </div>          
               </div>
             </div>

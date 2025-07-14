@@ -89,7 +89,7 @@ export default function PianoLesson() {
     return (
       <div>
         <div className={`${isMobile?"bg-[#FEFEFE] p-4 rounded-2xl shadow-md mt-8":"bg-[#FEFEFE] p-4 rounded-2xl shadow-md"}`}>
-          <h3 className={`${isMobile?"text-xl text-[40px] text-center text-primary-background w-full bg-[#FEFEFE]":"text-xl text-[40px] text-center text-primary-background w-full bg-[#FEFEFE]"}`}>Methods<span className="font-bold"> - {methodName} </span></h3>
+          <h3 className={`${isMobile?"text-xl text-[40px] text-center primary-color-text w-full bg-[#FEFEFE]":"text-xl text-[40px] text-center w-full bg-[#FEFEFE] primary-color-text"}`}>Methods<span className="font-bold primary-color-text"> - {methodName} </span></h3>
         </div>
         <div className="bg-[#FEFEFE] p-4 rounded-2xl shadow-md mt-4">
           <ul className="mt-5">
@@ -117,9 +117,9 @@ export default function PianoLesson() {
                 <div>
                   <Image src="/Layer_1.png" width={56} height={56} alt="icon" className={`${isActive ? 'visible' : 'invisible'} group-hover:visible group-active:visible`}/>
                 </div>
-                <div className={`${isMobile?`flex flex-col w-full hover:border-0 border-primary-background py-1 ${isActive ? 'border-0' : 'border-b-1'} `:`flex items-center justify-between w-full hover:border-0 border-primary-background py-1 ${isActive ? 'border-0' : 'border-b-1'} `}`}>
-                  <span className="text-[16px] text-primary-background">{lesson.id}. {lesson.lessontitle}</span>
-                  <button className={`${isMobile?"bg-primary-background rounded-2xl py-1":"bg-primary-background rounded-2xl py-2 px-6"}`}><span className="text-[#FEFEFE]">Incomplete</span></button>
+                <div className={`${isMobile?`flex flex-col w-full hover:border-0 border-[#0a0a0a] py-1 ${isActive ? 'border-0' : 'border-b-1'} `:`flex items-center justify-between w-full hover:border-0 border-[#0a0a0a] py-1 ${isActive ? 'border-0' : 'border-b-1'} `}`}>
+                  <span className="text-[16px] primary-color-text">{lesson.id}. {lesson.lessontitle}</span>
+                  <button className={`${isMobile?"bg-[#0a0a0a] rounded-2xl py-1":"bg-[#0a0a0a] rounded-2xl py-2 px-6"}`}><span className="text-[#FEFEFE]">Incomplete</span></button>
                 </div>
               </li>
             )})}
@@ -134,13 +134,13 @@ export default function PianoLesson() {
       <div className={`${isMobile?"":"flex justify-center "}`}>
         <div className={`${isMobile?"":"flex-1"}`}>    
           <div className="w-full">
-            <div className=" flex-col border-2 bg-[#FEFEFE] p-6 rounded-2xl w-full border-primary-background ">
+            <div className=" flex-col border-2 bg-[#FEFEFE] p-6 rounded-2xl w-full ">
               <div>
                 <h1 className="text-[24px] font-extrabold text-center mb-4 drop-shadow-md bg-gradient-to-r from-[#D4AF37] from-48% to-[#978448] to-60% bg-clip-text text-transparent">
                   Piano Methods
                 </h1>
               </div>
-              <div className={`${isMobile?"flex w-full bg-black overflow-x-auto scrollbar-hide":"mt-[20px] max-h-[710px] mx-16 border-t-5 border-x-5  border-primary-background rounded-x-2xl rounded-t-2xl py-10 overflow-auto scrollbar-hide"}`}>
+              <div className={`${isMobile?"flex w-full bg-black overflow-x-auto scrollbar-hide":"mt-[20px] max-h-[710px] mx-16 border-t-5 border-x-5  border-[#0a0a0a] rounded-x-2xl rounded-t-2xl py-10 overflow-auto scrollbar-hide"}`}>
                 {topLessons.map((lesson, index) => {
                   let whiteKeyInOctave = index % 7;
                   const showBlackKey = !(whiteKeyInOctave === 2 || whiteKeyInOctave === 6);
@@ -171,7 +171,7 @@ export default function PianoLesson() {
                           className={`${isMobile?"absolute left-0 top-0 translate-x- z-10 w-[40px] h-[150px] bg-black rounded-b-lg":"absolute left-0 bottom-0 translate-y-1/2 z-10 w-[180px] h-[36px] bg-black rounded-r-lg"}`}
                         ></div>
                       )}
-                        <span className="mt-auto bg-[#e9e9ea] shadow-[inset_0px_0px_4px_#0A254059] text-primary-background font-bold rounded w-[49px] h-[36px] text-center flex text-[20px] justify-center items-center text-sm">
+                        <span className="mt-auto bg-[#e9e9ea] shadow-[inset_0px_0px_4px_#0A254059] primary-color-text font-bold rounded w-[49px] h-[36px] text-center flex text-[20px] justify-center items-center text-sm">
                           {lesson.title}
                         </span>
                       </motion.div>
