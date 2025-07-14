@@ -2,23 +2,23 @@ import { useState, useEffect } from 'react';
 import Image from "next/image"
 import HeartIcon from "../hearfilled";
 
-type SongInformation ={
-    id:number,
-    title:string,
-    artist:string,
-    ratings:number,
-    imageUrl:string
-}
+type SongInformation = {
+  id: number;
+  title: string;
+  artist: string;
+  ratings: number;
+  imageUrl: string;
+};
 
-type SongData = {
-    [category:string]: SongInformation[]
+// type SongData = {
+//     [category:string]: SongInformation[]
 
-}
+// }
 
 export default function Favorite(){
     const [liked, setLiked] = useState<{ [id: string]: boolean }>({});
     const [openDialogue, setOpenDialogue] = useState(false);
-    const [favorites,setFavorites]= useState<SongData | null>(null)
+    const [favorites,setFavorites]= useState<SongInformation[] | null>(null)
     
     const handleClick = (id:number) => {
      setLiked((prev) => ({
@@ -27,15 +27,23 @@ export default function Favorite(){
     })); 
     };
 
-    useEffect(()=>{
-        const fetchFavorites = async () => {
-        const res = await fetch("/Songs.json"); // from /public
-        const data = await res.json();
-        setFavorites(data.Favorites); // ✅ Only extract Favorites
-        console.log(favorites)
-    };
-    fetchFavorites();
-    })
+    useEffect(() => {
+  let isMounted = true;
+
+  const fetchFavorites = async () => {
+    const res = await fetch("/Songs.json");
+    const data = await res.json();
+    if (isMounted) {
+      setFavorites(data.Favorites);
+    }
+  };
+
+  fetchFavorites();
+
+  return () => {
+    isMounted = false;
+  };
+}, []);
     
     
 
@@ -86,9 +94,8 @@ export default function Favorite(){
                 <div className="max-w-[90%] w-full">
                     <h1 className="text-2xl font-bold mb-4 text-[#151517]">Favorites</h1>
                     <div className="song-card grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 p-4">
-                            {Object.entries(favorites).map(([category, songs]) =>
-                                songs.map((song) => (
-                                    <div key={`${category}-${song.id}`} className="w-[80%]"  >
+                            {favorites?.map(( song,index) =>
+                                    <div key={index} className="w-[80%]"  >
                                     <div className={`flex flex-col w-full ${openDialogue?"":"hidden"}`}>
                                         <div className='flex'>
                                             <h1 className='text-[#151517] text-2xl font-bold'>Music Title</h1>
@@ -164,7 +171,7 @@ export default function Favorite(){
                                         <span>{song.artist}</span>
                                     </div>
                                 </div>
-                                ))
+                                
                             )}
                             
                         </div>
