@@ -4,18 +4,15 @@
   --background: #ffffff;
   --foreground: #171717;
   --font-inter: 'Inter';
-  --primary-background:#151517;
   --font-poppins: 'Poppins';
+  --primary-background: #151517;
+  --primary-dark: #0A0A0B;
 
-}
-
-@theme inline {
+  /* Optional custom tailwind-like variables */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-inter: var(--font-inter);
-  --font-poppins: var(--font-poppins)
+  --font-sans: var(--font-inter);
+  --font-mono: monospace;
   --color-primary-dark: var(--primary-dark);
   --color-primary-background: var(--primary-background);
 }
@@ -35,12 +32,12 @@ body {
 }
 
 .scrollbar-hide {
-  -ms-overflow-style:auto;
-  scrollbar-width: none;     
+  -ms-overflow-style: none;  /* IE/Edge */
+  scrollbar-width: none;     /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-  display: none;             
+  display: none;             /* Safari & Chrome */
 }
 
 .font-poppins {
