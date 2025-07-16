@@ -61,7 +61,7 @@ export default function MusicSheetClient() {
   const [timeSignature, setTimeSignature] = useState({ top: 4, bottom: 4 });
   const [sliderBeat, setSliderBeat] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [bpm, setBpm] = useState(60);
+  const [bpm, setBpm] = useState(100);
   // const subdivisionsPerBeat = 4; // e.g., 4 for 16th notes in 4/4 time
   const [capturedNotes, setCapturedNotes] = useState<CapturedNoteGroup[]>([]);
   const [correctNotes,setCorrectNotes] = useState<correctNotes[]>([]);
@@ -70,8 +70,8 @@ export default function MusicSheetClient() {
   const sliderBeatRef = useRef(sliderBeat);
   const [keyspositions, setKeysPositions] = useState<{ [key: string]: [number, number,number][] }>({});
   const [checking, setChecking] = useState(false);
-  const [randomPositions, setRandomPositions] = useState<[string, [number, number]][]>([]);
-  const [lowerrandomPositions, setLowerRandomPositions] = useState<[string, [number, number]][]>([]);
+  // const [randomPositions, setRandomPositions] = useState<[string, [number, number]][]>([]);
+  // const [lowerrandomPositions, setLowerRandomPositions] = useState<[string, [number, number]][]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const nextNoteTimeRef = useRef(0);
   const timerID = useRef<NodeJS.Timeout | null>(null);
@@ -87,44 +87,64 @@ export default function MusicSheetClient() {
   // const restImageSrc = searchParams?.get('restImageSrc') || ""
   const pattern = searchParams?.get('pattern')||""
   const patternkey = searchParams?.get('patternkey')||""
+  const coursetitle = searchParams?.get('lessontitle')||""
   const [wholeNotes, setWholeNotes] = useState<PatternItem[]>([]);
   const [restNotes, setRestNotes] = useState<PatternItem[]>([]);
   const [lowerwholeNotes, setLowerWholeNotes] = useState<PatternItem[]>([]);  
   const [lowerrestNotes, setLowerRestNotes] = useState<PatternItem[]>([]);
+  const [UpperStaffpositions, setUpperStaffpositions]= useState<PatternItem[]>([]);
+  const [LowerStaffpositions, setLowerStaffpositions]= useState<PatternItem[]>([]);
+  const [playCount, setPlayCount] = useState(0);
+  const [totalNotes, setTotalNotes] = useState<[number, number][]>([]);
+  const [courseTitle,setCourseTitle] = useState("")
+
+
   console.log("patterns",pattern)
 
   useEffect(() => {
-    console.log("patterns",pattern)
-    fetch(pattern)
-      .then((res) => res.json())
-      .then((data: PatternData) => {
-        console.log("data upper", data[patternkey].upper)
-        const upperPattern = data[patternkey].upper;
-        const whole: PatternItem[] = [];
-        const rest: PatternItem[] = [];
+  console.log("patterns", pattern);
 
-        upperPattern.forEach((item) => {
-          if (item.whole) whole.push(item);
-          if (item.rest) rest.push(item);
-        });
+  fetch(pattern)
+    .then((res) => res.json())
+    .then((data: PatternData) => {
+      const upperPattern = data[patternkey].upper;
+      const lowerPattern = data[patternkey].lower;
 
+      const whole: PatternItem[] = [];
+      const rest: PatternItem[] = [];
+      const lowerwhole: PatternItem[] = [];
+      const lowerrest: PatternItem[] = [];
 
-        const lowerPattern = data[patternkey].lower;
-        const lowerwhole: PatternItem[] = [];
-        const lowerrest: PatternItem[] = [];
+      upperPattern.forEach((item) => {
+        if (item.whole) whole.push(item);
+        if (item.rest) rest.push(item);
+      });
 
-        lowerPattern.forEach((item) => {
-          if (item.whole) lowerwhole.push(item);
-          if (item.rest) lowerrest.push(item);
-        });
+      lowerPattern.forEach((item) => {
+        if (item.whole) lowerwhole.push(item);
+        if (item.rest) lowerrest.push(item);
+      });
 
-        setWholeNotes(whole);
-        setRestNotes(rest);
-        setLowerWholeNotes(lowerwhole);
-        setLowerRestNotes(lowerrest);
-      })
-      .catch((err) => console.error("Error loading patterns:", err));
-  }, [pattern, patternkey]);
+      // 👇 Combine all whole note positions [x, y]
+      const totalNotePositions = [
+        ...whole,
+        ...lowerwhole
+      ]
+        .map(item => item.whole) // extract [x, y]
+        .filter((pos): pos is [number, number] => !!pos); // filter out undefined
+
+      setWholeNotes(whole);
+      setRestNotes(rest);
+      setLowerWholeNotes(lowerwhole);
+      setLowerRestNotes(lowerrest);
+      setUpperStaffpositions(upperPattern);
+      setLowerStaffpositions(lowerPattern);
+      setTotalNotes(totalNotePositions); // 👈 set it here
+      setCourseTitle(coursetitle)
+    })
+    .catch((err) => console.error("Error loading patterns:", err));
+
+}, [pattern, patternkey,coursetitle]);
 
  
   const loadCountInSound = async () => {
@@ -171,17 +191,15 @@ export default function MusicSheetClient() {
   
     // Regular metronome click
     const osc = audioContextRef.current.createOscillator();
-    const gain = audioContextRef.current.createGain();
-  
-    osc.frequency.value = isDownbeat ? 1000 : 800;
-    gain.gain.setValueAtTime(0.5, time);
-    gain.gain.linearRampToValueAtTime(0, time + 0.1);
-  
+    const gain = audioContextRef.current.createGain(); 
+    osc.type = 'square';
+    osc.frequency.value = isDownbeat ? 480 : 330;
+    gain.gain.setValueAtTime(0.3, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
     osc.connect(gain);
     gain.connect(audioContextRef.current.destination);
-  
     osc.start(time);
-    osc.stop(time + 0.06);
+    osc.stop(time + 0.12);
   };
 
    
@@ -236,90 +254,13 @@ export default function MusicSheetClient() {
 
   const beatsPerSystem = timeSignature.top * 4; // number of beats in each system
 
-  const positions: { [key: string]: [number, number] } = {
-    "1": [104.375, 120], 
-    "2": [203.125, 120],
-    "3": [301.875, 120],
-    "4": [400.625, 120],
-    "5": [499.375, 120],
-    "6": [598.125, 120],
-    "7": [696.875, 120],
-    "8": [795.625, 120],
-    "9": [894.375, 120],
-    "10": [993.125, 120],
-    "11": [1091.875, 120],
-    "12": [1190.625, 120],
-    "13": [1289.375, 120],
-    "14": [1388.125, 120],
-    "15": [1486.875, 120],
-    "16": [1585.625, 120],
-  };
-
-  
-  const positionslower : {[key: string]: [number , number]}={
-    "17": [104.375, 202],
-    "18": [203.125, 202],
-    "19": [301.875, 202],
-    "20": [400.625, 202],
-    "21": [499.375, 202],
-    "22": [598.125, 202],
-    "23": [696.875, 202],
-    "24": [795.625, 202],
-    "25": [894.375, 202],
-    "26": [993.125, 202],
-    "27": [1091.875, 202],
-    "28": [1190.625, 202],
-    "29": [1289.375, 202],
-    "30": [1388.125, 202],
-    "31": [1486.875, 202],
-    "32": [1585.625, 202],
-  }
-
-  const regenerateRandomLowerNotes = () => {
-    setLowerRandomPositions(getRandomUniquePositions(positionslower, 5));
-  };
-
-  useEffect(() => {
-    const rand = getRandomUniquePositions(positionslower, 5);
-    setLowerRandomPositions(rand);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
-
-  const regenerateRandomNotes = () => {
-    setRandomPositions(getRandomUniquePositions(positions, 5));
-  };
-  
-  function getRandomUniquePositions(
-    posObj: { [key: string]: [number, number] },
-    count: number
-  ): [string, [number, number]][] {
-    const entries = Object.entries(posObj);
-    const shuffled = [...entries].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, count);
-  }
-
-  useEffect(() => {
-    const rand = getRandomUniquePositions(positions, 5);
-    setRandomPositions(rand);
-    
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  
-  
-
-
   // Update ref whenever sliderBeat changes
   useEffect(() => {
     sliderBeatRef.current = sliderBeat;
   }, [sliderBeat]);
   
-  
-
-
-  
-
   function getStaffPositionsFromSemitones(semitoneDistance: number): number {
-    return semitoneDistance / 1.85;
+    return semitoneDistance / 1.95;
   }
   
   function isAccidental(note: number): boolean {
@@ -659,10 +600,12 @@ React.useEffect(() => {
         const correct: Note[] = [];
         const incorrect: Note[] = [];
   
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const expectedUpper = randomPositions.map(([_, pos]) => pos);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const expectedLower = lowerrandomPositions.map(([_, pos]) => pos);
+        const expectedUpper = UpperStaffpositions
+          .filter(item => item.whole)
+          .map(item => item.whole as [number, number]);
+        const expectedLower = LowerStaffpositions
+          .filter(item => item.whole)
+          .map(item => item.whole as [number, number]);
         const playedNotes: [number, number,number][] = Object.values(keyspositions).flat();
         console.log("keypostioions",keyspositions)
         console.log("played notes",playedNotes)
@@ -898,7 +841,7 @@ React.useEffect(() => {
     <Suspense fallback={<div>Loading...</div>}>
 
     <div className="flex flex-col items-center">
-      <StatusbarMusicSheet isPlaying={isPlaying}/>
+      <StatusbarMusicSheet courseTitle={courseTitle} isPlaying={isPlaying} IncorrectNotes={IncorrectNotes} totalNotes={totalNotes} correctNotes={correctNotes}  playCount={playCount}/>
       <div className="flex items-center justify-center w-full h-full inset-0 bg-[#F8F6F1]"> 
       <div className="flex flex-col items-center justify-center pb-32">
         
@@ -929,7 +872,7 @@ React.useEffect(() => {
             />
           </div>
           <div className="space-x-10">
-            <button onClick={() => { regenerateRandomNotes(); regenerateRandomLowerNotes(); }} className="px-2 py-1 bg-green-500 text-white rounded">
+            <button className="px-2 py-1 bg-green-500 text-white rounded">
               Shuffle Notes
             </button>
           </div>
@@ -946,7 +889,7 @@ React.useEffect(() => {
           <image
             key={`whole-${idx}`}
             href={item.imageSrc}
-            transform={`translate(${x-15}, ${y-10}) scale(0.5)`}
+            transform={`translate(${x-18}, ${y-26}) scale(0.6)`}
             width={60}
             height={60}
             className="transition duration-500 ease-in-out"
@@ -1026,7 +969,7 @@ React.useEffect(() => {
           <image
             key={`whole-${idx}`}
             href={item.imageSrc}
-            transform={`translate(${x-15}, ${y-15}) scale(0.5)`}
+            transform={`translate(${x-18}, ${y-26}) scale(0.6)`}
             width={60}
             height={60}
             className="transition duration-500 ease-in-out"
@@ -1105,7 +1048,7 @@ React.useEffect(() => {
     </div>
     </div>
     
-    <FooterMusicsheet nextNoteTimeRef={nextNoteTimeRef} scheduleAheadTime={scheduleAheadTime} playClick={playClick} audioContextRef={audioContextRef} currentBeatRef={currentBeatRef} setSliderBeat={setSliderBeat} setIsPlaying={setIsPlaying} scheduler={scheduler} timerID={timerID} isCountingIn={isCountingIn} isMetronomeRunning={isMetronomeRunning} isPlaying={isPlaying} initializeAudioContext={initializeAudioContext} bpm={bpm} setBpm={setBpm} setIsCountingIn={setIsCountingIn} setIsMetronomeRunning={setIsMetronomeRunning}/>
+    <FooterMusicsheet nextNoteTimeRef={nextNoteTimeRef} scheduleAheadTime={scheduleAheadTime} playClick={playClick} audioContextRef={audioContextRef} currentBeatRef={currentBeatRef} setSliderBeat={setSliderBeat} setIsPlaying={setIsPlaying} scheduler={scheduler} timerID={timerID} isCountingIn={isCountingIn} isMetronomeRunning={isMetronomeRunning} isPlaying={isPlaying} initializeAudioContext={initializeAudioContext} bpm={bpm} setBpm={setBpm} setIsCountingIn={setIsCountingIn} setIsMetronomeRunning={setIsMetronomeRunning}  setCapturedNotes={setCapturedNotes} setPlayCount={setPlayCount}/>
     
   </div>
   </Suspense>

@@ -4,6 +4,14 @@ import { faPlay, faPause } from '@fortawesome/free-solid-svg-icons';
 
 import { MutableRefObject, Dispatch, SetStateAction } from "react";
 
+type CapturedNoteGroup = {
+  beat: number;
+  notes: number[];
+  x_position: number;
+  systemIndex: 0 | 1;
+  y_position: number; // <-- add this
+};
+
 interface FooterPlayButtonProps {
   nextNoteTimeRef: MutableRefObject<number>;
   scheduleAheadTime: number;
@@ -19,6 +27,9 @@ interface FooterPlayButtonProps {
   bpm: number;
   setIsCountingIn: Dispatch<SetStateAction<boolean>>;
   setIsMetronomeRunning: Dispatch<SetStateAction<boolean>>;
+  setCapturedNotes: React.Dispatch<React.SetStateAction<CapturedNoteGroup[]>>;
+  setPlayCount: React.Dispatch<React.SetStateAction<number>>;
+
   initializeAudioContext: () => Promise<void>;
 }
 
@@ -36,7 +47,9 @@ export default function FooterPlayButton({nextNoteTimeRef,
   bpm,
   setIsCountingIn,
   setIsMetronomeRunning,
-  initializeAudioContext
+  initializeAudioContext,
+  setCapturedNotes,
+  setPlayCount
 }: FooterPlayButtonProps) {
     return(
         <div className="flex gap-4 items-center">
@@ -54,6 +67,10 @@ export default function FooterPlayButton({nextNoteTimeRef,
                       setIsPlaying(false);
                       return;
                     }
+                    setCapturedNotes([])
+                    setPlayCount(prev=>prev+1)
+                    await Promise.resolve(); // allow reset to apply before starting
+
                     await initializeAudioContext();
                     setIsCountingIn(true);
                     setSliderBeat(0);

@@ -37,7 +37,7 @@ export default function Navbar() {
             key={item.name}
             href={item.href}
             className={`font-medium px-6 py-4 rounded-full transition-all duration-200
-              ${isActive ? 'bg-[#D4AF37] text-primary-background' : 'text-white'}
+              ${isActive ? 'bg-[#D4AF37] text-[#0a0a0a]' : 'text-white'}
             `}
           >
             {item.name}

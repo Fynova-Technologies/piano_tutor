@@ -10,28 +10,31 @@ const unitLessonsData = [
   {
     fkid: "1",
     unitlessons: [
-      { id: "1", lessontitle: "Whole Notes & Whole Rests / Semiberves ", link: "/musicsheet" , imageSrc :"/assets/pngegg.png", restImageSrc:"/assets/rectangle-svgrepo-com.svg",pattern:"/pattern.json",patternkey:"patterns" },
-      { id: "2", lessontitle: "Half Notes & Half Rests / Minims", link: "/musicsheet", imageSrc:"/assets/half-note-svgrepo-com.svg", restImageSrc:"/assets/rectangle-svgrepo-com.svg", pattern:"/pattern.json",patternkey:"patterns2"  },
-      { id: "3", lessontitle: "Quarter Notes / Crotchets", link: "/musicsheet", imageSrc:"/assets/quarter-note-svgrepo-com.svg",pattern:"/pattern.json",patternkey:"patterns3" },
-      { id: "4", lessontitle: "C song", link: "/musicsheet",imageSrc:"/assets/quarter-note-svgrepo-com.svg",pattern:"/pattern.json",patternkey:"patterns4"   },
+      { id: "1", lessontitle: "Finding Middle C", link: "/musicsheet" ,pattern:"/pattern.json",patternkey:"patterns" },
+      { id: "2", lessontitle: "Playing the White Keys", link: "/musicsheet", pattern:"/pattern.json",patternkey:"patterns7"  },
+      { id: "3", lessontitle: "Exploring Black Keys", link: "/musicsheet",  pattern:"/pattern.json",patternkey:"patterns5"  },
+      { id: "4", lessontitle: "Simple Patterns", link: "/musicsheet",  pattern:"/pattern.json",patternkey:"patterns6"  },
+      { id: "5", lessontitle: "Half Notes & Half Rests / Minims", link: "/musicsheet",  pattern:"/pattern.json",patternkey:"patterns2"  },
+      { id: "6", lessontitle: "Quarter Notes / Crotchets", link: "/musicsheet", pattern:"/pattern.json",patternkey:"patterns3" },
+      { id: "7", lessontitle: "C song", link: "/musicsheet",pattern:"/pattern.json",patternkey:"patterns4"   },
     ],
   },
   {
     fkid: "2",
     unitlessons: [
-      { id: "1", lessontitle: "Introduction to C 2", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
-      { id: "2", lessontitle: "Try C Music 2", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
-      { id: "3", lessontitle: "Introduction To D Key 2", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
-      { id: "4", lessontitle: "Introduction To D Key 2", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
+      { id: "1", lessontitle: "Introduction to C 2", link: "/musicsheet", pattern: "", patternkey: "" },
+      { id: "2", lessontitle: "Try C Music 2", link: "/musicsheet", pattern: "", patternkey: "" },
+      { id: "3", lessontitle: "Introduction To D Key 2", link: "/musicsheet", pattern: "", patternkey: "" },
+      { id: "4", lessontitle: "Introduction To D Key 2", link: "/musicsheet", pattern: "", patternkey: "" },
     ],
   },
   {
     fkid: "3",
     unitlessons: [
-      { id: "1", lessontitle: "Introduction to C 3", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
-      { id: "2", lessontitle: "Try C Music 3", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
-      { id: "3", lessontitle: "Introduction To D Key 3", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
-      { id: "4", lessontitle: "Introduction To D Key 3", link: "/musicsheet", imageSrc: "", restImageSrc: "", pattern: "", patternkey: "" },
+      { id: "1", lessontitle: "Introduction to C 3", link: "/musicsheet", pattern: "", patternkey: "" },
+      { id: "2", lessontitle: "Try C Music 3", link: "/musicsheet", pattern: "", patternkey: "" },
+      { id: "3", lessontitle: "Introduction To D Key 3", link: "/musicsheet", pattern: "", patternkey: "" },
+      { id: "4", lessontitle: "Introduction To D Key 3", link: "/musicsheet", pattern: "", patternkey: "" },
     ],
   },
 ];
@@ -50,7 +53,7 @@ export default function PianoLesson() {
 
   // Static lesson selectors (first row)
   const topLessons = [
-    {id:"1",  title: "1A", description: "Introduction to keys", link: "/musicsheet" },
+    {id:"1",  title: "1A", description: "Finding Middle C:", link: "/musicsheet" },
     {id:"2", title: " 1B", description: "Basic Scales and Finger Exercises", link: "/scales" },
     {id:"3", title: " 1C", description: "Reading Sheet Music", link: "/sheetmusic" },
     {id:"4", title: " 1D", description: "Simple Songs for Beginners", link: "/beginnersongs" },
@@ -103,10 +106,9 @@ export default function PianoLesson() {
                   const params = new URLSearchParams({
                     id: lesson.id,
                     title: lesson.lessontitle,
-                    imageSrc: lesson.imageSrc ?? '',
-                    restImageSrc: lesson.restImageSrc??"",
                     pattern: lesson.pattern??"",
-                    patternkey: lesson.patternkey??""
+                    patternkey: lesson.patternkey??"",
+                    lessontitle:lesson.lessontitle??""
                   });
                   router.push(`${lesson.link}?${params.toString()}`);
                 }}

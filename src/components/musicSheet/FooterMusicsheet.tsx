@@ -20,7 +20,18 @@ type FooterMusicsheetProps = {
   bpm: number;
   setIsCountingIn: React.Dispatch<React.SetStateAction<boolean>>;
   setIsMetronomeRunning: React.Dispatch<React.SetStateAction<boolean>>;
+  setCapturedNotes: React.Dispatch<React.SetStateAction<CapturedNoteGroup[]>>;
+  setPlayCount: React.Dispatch<React.SetStateAction<number>>;
+
   initializeAudioContext: () => Promise<void>;
+};
+
+type CapturedNoteGroup = {
+  beat: number;
+  notes: number[];
+  x_position: number;
+  systemIndex: 0 | 1;
+  y_position: number; // <-- add this
 };
 
 export default function FooterMusicsheet({
@@ -40,7 +51,9 @@ export default function FooterMusicsheet({
   bpm,
   setIsCountingIn,
   setIsMetronomeRunning,
-  initializeAudioContext
+  initializeAudioContext,
+  setCapturedNotes,
+  setPlayCount
 }: FooterMusicsheetProps) {
     
     
@@ -88,7 +101,7 @@ export default function FooterMusicsheet({
           </button>
         </div>
       
-      <FooterPlayButton bpm={bpm} timerID={timerID}   scheduler={scheduler}   audioContextRef={audioContextRef}  currentBeatRef={currentBeatRef} scheduleAheadTime={scheduleAheadTime}   nextNoteTimeRef={ nextNoteTimeRef} isCountingIn={isCountingIn} isPlaying={isPlaying} setIsPlaying={setIsPlaying} initializeAudioContext={initializeAudioContext} setIsCountingIn={setIsCountingIn} setSliderBeat={setSliderBeat} playClick={playClick} setIsMetronomeRunning={setIsMetronomeRunning} />
+      <FooterPlayButton bpm={bpm} timerID={timerID}   setPlayCount={setPlayCount}   scheduler={scheduler}   audioContextRef={audioContextRef}  currentBeatRef={currentBeatRef} scheduleAheadTime={scheduleAheadTime}   nextNoteTimeRef={ nextNoteTimeRef} isCountingIn={isCountingIn} isPlaying={isPlaying} setIsPlaying={setIsPlaying} initializeAudioContext={initializeAudioContext} setIsCountingIn={setIsCountingIn} setSliderBeat={setSliderBeat} playClick={playClick} setIsMetronomeRunning={setIsMetronomeRunning} setCapturedNotes={setCapturedNotes} />
       
       <div className="Settings flex gap-4">
         <button className="bg-[#D4AF37] py-[6px] w-[101px] h-[48px] px-[16px] rounded-2xl flex gap-2 primary-color-text items-center text-[16px]"><Image src="/icon.svg" width={15} height={10} alt="icon"/>Learn</button>
