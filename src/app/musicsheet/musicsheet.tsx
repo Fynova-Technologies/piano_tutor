@@ -6,6 +6,7 @@ import StatusbarMusicSheet from "@/components/musicSheet/StatusbarMusicSheet";
 import FooterMusicsheet from "@/components/musicSheet/FooterMusicsheet";
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from "react";
+import { useMediaQuery } from "@/components/MediaQuery/useMediaQueryHook";
 
 
 const STAFF_LINE_GAP = 20; // px 
@@ -104,6 +105,28 @@ export default function MusicSheetClient() {
   const [unitLessonsData, setUnitLessonsData] = useState<UnitLesson[]>([]);
   const Id = searchParams?.get('id')||""
   const [id]=useState(Id)
+  const upperClefRef = useRef<HTMLDivElement>(null);
+  const lowerClefRef = useRef<HTMLDivElement>(null);
+  const prevBeatRef = useRef<number>(-1);
+ 
+
+useEffect(() => {
+  const prev = prevBeatRef.current;
+  const movedToLower = prev < beatsPerSystem && sliderBeat >= beatsPerSystem;
+  const movedToUpper = prev >= beatsPerSystem && sliderBeat < beatsPerSystem;
+
+  if (movedToLower && lowerClefRef.current) {
+    lowerClefRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  if (movedToUpper && upperClefRef.current) {
+    upperClefRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  prevBeatRef.current = sliderBeat;
+}, [sliderBeat]);
+
+
 
   useEffect(() => {
       fetch("/unitLessonsData.json")
@@ -861,7 +884,7 @@ React.useEffect(() => {
       <div className="flex items-center justify-center w-full h-full inset-0 bg-[#F8F6F1]"> 
       <div className="flex flex-col items-center justify-center pb-32">
         
-      <div className="w-[1700px] border-4 border-white my-10 bg-white p-12 flex flex-col items-center">
+      <div className={`w-[1700px] border-4 border-white my-10 bg-white p-12 flex flex-col items-center`} >
         <div className={`flex flex-col items-center gap-2 ${isPlaying ? '' : 'hidden'}`}>
           <div className="flex items-center gap-2">
             <label className="text-lg text-[#0A0A0B]">Time Signature:</label>
@@ -893,8 +916,8 @@ React.useEffect(() => {
             </button>
           </div>
         </div>
-      
-      <svg width={STAFF_WIDTH} height={350}>
+      <div ref={upperClefRef}>
+      <svg width={STAFF_WIDTH} height={350} >
         {drawStaffLines(20)}
         {drawStaffLines(220)}
 
@@ -961,6 +984,8 @@ React.useEffect(() => {
           bottom: 0
         }} isPlaying={isPlaying} systemIndex={0}/>
       </svg>
+    </div>
+      <div ref={lowerClefRef}>
 
       <svg width={STAFF_WIDTH} height={450}>
         {drawStaffLines(100)}
@@ -1030,6 +1055,7 @@ React.useEffect(() => {
           systemIndex={1}
         />
     </svg>
+    </div>
     <div className="flex justify-between items-center mt-4">
       
       </div>

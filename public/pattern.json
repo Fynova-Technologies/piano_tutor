@@ -2,24 +2,24 @@
   "patterns": {
     "upper": [
       { "whole": [104.375, 120],"imageSrc" :"/assets/wholeNoteMeasure.svg"},
-      { "rest":  [600, 55], "imageSrc":"/assets/rectangle-svgrepo-com.svg"  },
+      { "rest":  [590, 55], "imageSrc":"/assets/rectangle-svgrepo-com.svg"  },
       { "whole": [894.375, 120],"imageSrc" :"/assets/wholeNoteMeasure.svg" },
-      { "rest":  [1400, 55], "imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1380, 55], "imageSrc":"/assets/rectangle-svgrepo-com.svg" },
       { "rest":  [200, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [600, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [1000, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [1400, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
+      { "rest":  [590, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [990, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1380, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
     ],
     "lower": [
       { "whole": [499.375, 202],"imageSrc" :"/assets/wholeNoteMeasure.svg" },
       { "whole": [1289.375, 202],"imageSrc" :"/assets/wholeNoteMeasure.svg" },
       { "rest":  [200,135],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [1000, 135],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [1400, 135],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [990, 135],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1380, 135],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
       { "rest":  [200, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [600, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [1000, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [1400, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
+      { "rest":  [590, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [990, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1380, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
     ]
   },
   "patterns2": {
@@ -68,9 +68,9 @@
       {"whole": [1190.625, 120],"imageSrc":"/assets/quarter-note-measure-svgrepo-com.svg"},
       {"whole": [1289.375, 120],"imageSrc":"/assets/wholeNoteMeasure.svg"},
       { "rest":  [200, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [600, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [1000, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [1400, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
+      { "rest":  [590, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [990, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1380, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
     ]
     ,
     "lower":[
@@ -88,9 +88,9 @@
       {"whole": [1190.625, 202],"imageSrc":"/assets/quarter-note-measure-svgrepo-com.svg"},
       {"whole": [1289.375, 202],"imageSrc":"/assets/wholeNoteMeasure.svg"},
       { "rest":  [200, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [600, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [1000, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [1400, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
+      { "rest":  [590, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [990, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1380, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
     ]
 
   },
@@ -108,9 +108,9 @@
       {"whole": [1190.625, 120],"imageSrc":"/assets/quarter-note-measure-svgrepo-com.svg"},
       {"whole": [1289.375, 120],"imageSrc":"/assets/wholeNoteMeasure.svg"},
       { "rest":  [200, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [600, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [1000, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [1400, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
+      { "rest":  [590, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [990, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1380, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
     ]
     ,
     "lower":[
@@ -126,9 +126,9 @@
       {"whole": [1190.625, 202],"imageSrc":"/assets/quarter-note-measure-svgrepo-com.svg"},
       {"whole": [1289.375, 202],"imageSrc":"/assets/wholeNoteMeasure.svg"},
       { "rest":  [200, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [600, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [1000, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
-      { "rest":  [1400, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
+      { "rest":  [590, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [990, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" },
+      { "rest":  [1380, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg" }
     ]
 
   },
@@ -138,32 +138,32 @@
       {"whole":[894.375,120],"imageSrc":"/assets/quarter-note-measure-svgrepo-com.svg"},
       {"whole":[],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
-      {"rest":[600, 55],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[590, 55],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
       {"whole":[],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
-      {"rest":[600,255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[590,255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
       {"rest":[200,255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[1000,255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[1400,255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[1400,55],"imageSrc":"/assets/rectangle-svgrepo-com.svg"}
+      {"rest":[990,255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[1380,255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[1380,55],"imageSrc":"/assets/rectangle-svgrepo-com.svg"}
     ],
     "lower":[
       {"whole":[104.375, 202],"imageSrc":"/assets/quarter-note-measure-svgrepo-com.svg"},
       {"whole":[],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[894.375, 202],"imageSrc":"/assets/quarter-note-measure-svgrepo-com.svg"},
-      {"rest":[600,135],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[590,135],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
       {"whole":[],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
-      {"rest":[1400,135],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[1380,135],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
       {"rest":[200, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[600, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[1400, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[1000, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"}
+      {"rest":[590, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[1380, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[990, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"}
     ]
   },
   "patterns6":{
@@ -172,16 +172,16 @@
       {"whole":[203.125, 101.02564102564102],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[301.875, 80.51282051282051],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[499.375, 120],"imageSrc":"/assets/quarter-note-measure-svgrepo-com.svg"},
-      {"rest":[1400, 55],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[1380, 55],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
       {"whole":[598.125, 101.02564102564102],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[696.875, 80.51282051282051],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[1091.875, 80.51282051282051],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[894.375, 120],"imageSrc":"/assets/quarter-note-measure-svgrepo-com.svg"},
       {"whole":[993.125, 101.02564102564102],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"rest":[200, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[600, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[1000, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[1400, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[590, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[990, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[1380, 255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
       {"rest":[380, 60],"imageSrc":"assets/restquarternote.svg"},
       {"rest":[1180, 60],"imageSrc":"assets/restquarternote.svg"},
       {"rest":[780, 60],"imageSrc":"assets/restquarternote.svg"}
@@ -193,16 +193,16 @@
       {"whole":[203.125, 183.02564102564102],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[301.875, 162.51282051282053],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[499.375, 162.51282051282053],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
-      {"rest":[1000,135],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[990,135],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
       {"whole":[598.125, 183.02564102564102],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[696.875, 202],"imageSrc":"/assets/quarter-note-measure-svgrepo-com.svg"},
       {"whole":[1289.375, 202],"imageSrc":"/assets/quarter-note-measure-svgrepo-com.svg"},
       {"whole":[1388.125, 183.02564102564102],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[1486.875, 162.51282051282053],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
-      {"rest":[600,315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[590,315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
       {"rest":[200,315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[1000,315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[1400,315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[990,315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[1380,315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
       {"rest":[380, 120],"imageSrc":"assets/restquarternote.svg"},
       {"rest":[780, 120],"imageSrc":"assets/restquarternote.svg"},
       {"rest":[1580, 120],"imageSrc":"assets/restquarternote.svg"}
@@ -223,10 +223,10 @@
       {"whole":[1091.875, 101.02564102564102],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[1190.625, 90.76923076923077],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"rest":[200,255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[600,255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[1400,255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[1000,255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[1400,55],"imageSrc":"/assets/rectangle-svgrepo-com.svg"}
+      {"rest":[590,255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[1380,255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[990,255],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[1380,55],"imageSrc":"/assets/rectangle-svgrepo-com.svg"}
 
     
     ],
@@ -235,16 +235,16 @@
       {"whole":[203.125, 193.28205128205127],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[301.875, 183.02564102564102],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[400.625, 172.76923076923077],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
-      {"rest":[600,135],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[590,135],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
       {"whole":[894.375, 172.76923076923077],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[993.125, 183.02564102564102],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[1091.875, 193.28205128205127],"imageSrc":"/assets/quarter-note-svgrepo-com.svg"},
       {"whole":[1190.625, 202],"imageSrc":"/assets/quarter-note-measure-svgrepo-com.svg"},
-      {"rest":[1400,135],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[1380,135],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
       {"rest":[200, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[600, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[1400, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
-      {"rest":[1000, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"}
+      {"rest":[590, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[1380, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"},
+      {"rest":[990, 315],"imageSrc":"/assets/rectangle-svgrepo-com.svg"}
     ]
   }
 }
