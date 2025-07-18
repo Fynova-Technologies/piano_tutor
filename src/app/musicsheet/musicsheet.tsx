@@ -6,7 +6,6 @@ import StatusbarMusicSheet from "@/components/musicSheet/StatusbarMusicSheet";
 import FooterMusicsheet from "@/components/musicSheet/FooterMusicsheet";
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from "react";
-import { useMediaQuery } from "@/components/MediaQuery/useMediaQueryHook";
 
 
 const STAFF_LINE_GAP = 20; // px 
