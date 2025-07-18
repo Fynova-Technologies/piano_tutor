@@ -1,7 +1,8 @@
+'use client'
 import Image from "next/image";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause } from '@fortawesome/free-solid-svg-icons';
-
+import { useSearchParams, useRouter } from "next/navigation";
 import { MutableRefObject, Dispatch, SetStateAction } from "react";
 
 type CapturedNoteGroup = {
@@ -10,6 +11,12 @@ type CapturedNoteGroup = {
   x_position: number;
   systemIndex: 0 | 1;
   y_position: number; // <-- add this
+};
+
+type UnitLesson = {
+  
+     id: string, lessontitle: string, link: string, pattern: string, patternkey: string 
+  
 };
 
 interface FooterPlayButtonProps {
@@ -29,8 +36,10 @@ interface FooterPlayButtonProps {
   setIsMetronomeRunning: Dispatch<SetStateAction<boolean>>;
   setCapturedNotes: React.Dispatch<React.SetStateAction<CapturedNoteGroup[]>>;
   setPlayCount: React.Dispatch<React.SetStateAction<number>>;
-
+  unitLessonsData: UnitLesson[];
   initializeAudioContext: () => Promise<void>;
+  id:string,
+  playBackgroundMusic: () => void;
 }
 
 export default function FooterPlayButton({nextNoteTimeRef,
@@ -49,13 +58,41 @@ export default function FooterPlayButton({nextNoteTimeRef,
   setIsMetronomeRunning,
   initializeAudioContext,
   setCapturedNotes,
-  setPlayCount
+  setPlayCount,
+  unitLessonsData,
+  id,
+  playBackgroundMusic
+
+  
 }: FooterPlayButtonProps) {
+
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const currentId = searchParams.get("unitId");
+  const currentIndex = unitLessonsData.findIndex(lesson => lesson.id === currentId);
+
+  const goToLesson = (lesson: unknown) => {
+    const typedLesson = lesson as UnitLesson;
+    console.log("typesLesson",typedLesson)
+    const params = new URLSearchParams({
+      id: id,
+      title: typedLesson.lessontitle,
+      pattern: typedLesson.pattern ?? "",
+      patternkey: typedLesson.patternkey ?? "",
+      unitId: typedLesson.id??""
+    });
+    router.push(`${typedLesson.link}?${params.toString()}`);
+  };
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex < unitLessonsData.length - 1;
+
+
     return(
         <div className="flex gap-4 items-center">
                 <div className="flex items-center gap-2">
                 {/* Backward Skip Button (Design Only) */}
-                  <button className="px-5 py-2 text-white">
+                  <button className="px-5 py-2 text-white"onClick={() => hasPrevious && !isPlaying && goToLesson(unitLessonsData[currentIndex - 1])}
+                    disabled={!hasPrevious}>
                     <Image src="/skip_previous_filled.png" width={45} height={20} alt="skip previous" className="ml-2" />
                   </button>
         
@@ -67,6 +104,7 @@ export default function FooterPlayButton({nextNoteTimeRef,
                       setIsPlaying(false);
                       return;
                     }
+                    playBackgroundMusic()
                     setCapturedNotes([])
                     setPlayCount(prev=>prev+1)
                     await Promise.resolve(); // allow reset to apply before starting
@@ -102,7 +140,8 @@ export default function FooterPlayButton({nextNoteTimeRef,
                 </button>
         
                 {/* Forward Skip Button (Design Only) */}
-                <button className="px-4 py-2  text-white rounded">
+                <button className="px-4 py-2  text-white rounded"    onClick={() => hasNext && goToLesson(unitLessonsData[currentIndex + 1])}
+                    disabled={!hasNext}>
                   <Image src="/skip_next_filled.png" width={45} height={20} alt="skip previous" className="ml-2" />
                 </button>
                 </div>

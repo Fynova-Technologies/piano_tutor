@@ -5,47 +5,33 @@ import React, { useState, useEffect } from "react";
 import {motion} from "framer-motion";
 import { useMediaQuery } from "@/components/MediaQuery/useMediaQueryHook";
 
-
-const unitLessonsData = [
-  {
-    fkid: "1",
-    unitlessons: [
-      { id: "1", lessontitle: "Finding Middle C", link: "/musicsheet" ,pattern:"/pattern.json",patternkey:"patterns" },
-      { id: "2", lessontitle: "Playing the White Keys", link: "/musicsheet", pattern:"/pattern.json",patternkey:"patterns7"  },
-      { id: "3", lessontitle: "Exploring Black Keys", link: "/musicsheet",  pattern:"/pattern.json",patternkey:"patterns5"  },
-      { id: "4", lessontitle: "Simple Patterns", link: "/musicsheet",  pattern:"/pattern.json",patternkey:"patterns6"  },
-      { id: "5", lessontitle: "Half Notes & Half Rests / Minims", link: "/musicsheet",  pattern:"/pattern.json",patternkey:"patterns2"  },
-      { id: "6", lessontitle: "Quarter Notes / Crotchets", link: "/musicsheet", pattern:"/pattern.json",patternkey:"patterns3" },
-      { id: "7", lessontitle: "C song", link: "/musicsheet",pattern:"/pattern.json",patternkey:"patterns4"   },
-    ],
-  },
-  {
-    fkid: "2",
-    unitlessons: [
-      { id: "1", lessontitle: "Introduction to C 2", link: "/musicsheet", pattern: "", patternkey: "" },
-      { id: "2", lessontitle: "Try C Music 2", link: "/musicsheet", pattern: "", patternkey: "" },
-      { id: "3", lessontitle: "Introduction To D Key 2", link: "/musicsheet", pattern: "", patternkey: "" },
-      { id: "4", lessontitle: "Introduction To D Key 2", link: "/musicsheet", pattern: "", patternkey: "" },
-    ],
-  },
-  {
-    fkid: "3",
-    unitlessons: [
-      { id: "1", lessontitle: "Introduction to C 3", link: "/musicsheet", pattern: "", patternkey: "" },
-      { id: "2", lessontitle: "Try C Music 3", link: "/musicsheet", pattern: "", patternkey: "" },
-      { id: "3", lessontitle: "Introduction To D Key 3", link: "/musicsheet", pattern: "", patternkey: "" },
-      { id: "4", lessontitle: "Introduction To D Key 3", link: "/musicsheet", pattern: "", patternkey: "" },
-    ],
-  },
-];
+type UnitLesson = {
+  fkid: string,
+  unitlessons: [
+    { id: string, lessontitle: string, link: string, pattern: string, patternkey: string }
+  ]
+};
 
 
 // Main component
 export default function PianoLesson() {
-  const [classId, setClassId] = useState("1");
+  const [classId, setClassId] = useState<string>("");
   const router = useRouter();
   const [methodName, setMethodName] = useState("1A");
   const isMobile = useMediaQuery("(max-width: 768px)");
+  const [unitLessonsData, setUnitLessonsData] = useState<UnitLesson[]>([]);
+  
+
+  
+  useEffect(() => {
+    fetch("/unitLessonsData.json")
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Data", data.Lessons);
+        setUnitLessonsData(data.Lessons);
+        setClassId(data.Lessons[0].fkid)
+      });
+  }, []);
 
   
 
@@ -104,11 +90,11 @@ export default function PianoLesson() {
                 onClick={() => {
                   setActiveLesson(lesson.id);
                   const params = new URLSearchParams({
-                    id: lesson.id,
+                    id: classId,
                     title: lesson.lessontitle,
                     pattern: lesson.pattern??"",
                     patternkey: lesson.patternkey??"",
-                    lessontitle:lesson.lessontitle??""
+                    unitId:lesson.id??""
                   });
                   router.push(`${lesson.link}?${params.toString()}`);
                 }}

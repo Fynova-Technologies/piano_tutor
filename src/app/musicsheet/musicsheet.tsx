@@ -47,6 +47,13 @@ type PatternData = {
   };
 };
 
+type UnitLesson = {
+ 
+
+     id: string, lessontitle: string, link: string, pattern: string, patternkey: string 
+
+};
+
 
 type Note = { x_pos: number; y_pos: number; systemIndex: number };
 type NoteEvent = { note: number; time: number };
@@ -80,14 +87,11 @@ export default function MusicSheetClient() {
   const [isCountingIn, setIsCountingIn] = useState(false);
   const currentBeatRef = useRef(0);
   const [isMetronomeRunning, setIsMetronomeRunning] = useState(false);
-  // const countInBuffer = useRef<AudioBuffer | null>(null);
   const countInBuffers = useRef<(AudioBuffer | null)[]>([null, null, null, null]);
   const searchParams = useSearchParams();
-  // const imageSrc = searchParams?.get('imageSrc') || '';
-  // const restImageSrc = searchParams?.get('restImageSrc') || ""
   const pattern = searchParams?.get('pattern')||""
   const patternkey = searchParams?.get('patternkey')||""
-  const coursetitle = searchParams?.get('lessontitle')||""
+  const coursetitle = searchParams?.get('title')||""
   const [wholeNotes, setWholeNotes] = useState<PatternItem[]>([]);
   const [restNotes, setRestNotes] = useState<PatternItem[]>([]);
   const [lowerwholeNotes, setLowerWholeNotes] = useState<PatternItem[]>([]);  
@@ -97,13 +101,23 @@ export default function MusicSheetClient() {
   const [playCount, setPlayCount] = useState(0);
   const [totalNotes, setTotalNotes] = useState<[number, number][]>([]);
   const [courseTitle,setCourseTitle] = useState("")
-
-
-  console.log("patterns",pattern)
+  const [unitLessonsData, setUnitLessonsData] = useState<UnitLesson[]>([]);
+  const Id = searchParams?.get('id')||""
+  const [id]=useState(Id)
 
   useEffect(() => {
-  console.log("patterns", pattern);
+      fetch("/unitLessonsData.json")
+        .then((res) => res.json())
+        .then((data) => {
+          const unit = data.Lessons.find((u: { fkid: unknown; }) => u.fkid === id)
+          setUnitLessonsData (unit.unitlessons)
+        });
+    }, [id, searchParams]);
 
+
+  
+
+  useEffect(() => {
   fetch(pattern)
     .then((res) => res.json())
     .then((data: PatternData) => {
@@ -125,7 +139,6 @@ export default function MusicSheetClient() {
         if (item.rest) lowerrest.push(item);
       });
 
-      // 👇 Combine all whole note positions [x, y]
       const totalNotePositions = [
         ...whole,
         ...lowerwhole
@@ -193,7 +206,7 @@ export default function MusicSheetClient() {
     const osc = audioContextRef.current.createOscillator();
     const gain = audioContextRef.current.createGain(); 
     osc.type = 'square';
-    osc.frequency.value = isDownbeat ? 480 : 330;
+    osc.frequency.value = isDownbeat ? 330 : 330;
     gain.gain.setValueAtTime(0.3, time);
     gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
     osc.connect(gain);
@@ -201,6 +214,38 @@ export default function MusicSheetClient() {
     osc.start(time);
     osc.stop(time + 0.12);
   };
+
+  const backgroundBuffer = useRef<AudioBuffer | null>(null);
+
+  // Call this once when app loads
+  const loadBackgroundMusic = async (url: string) => {
+    if (!audioContextRef.current) return;
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    const decodedBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
+    backgroundBuffer.current = decodedBuffer;
+  };
+
+  const backgroundSourceRef = useRef<AudioBufferSourceNode | null>(null);
+
+  const playBackgroundMusic = () => {
+    if (!audioContextRef.current || !backgroundBuffer.current) return;
+
+    const source = audioContextRef.current.createBufferSource();
+    source.buffer = backgroundBuffer.current;
+    source.connect(audioContextRef.current.destination);
+    source.loop = true; // Optional: loop the background music
+    source.start();
+    backgroundSourceRef.current = source;
+  };
+
+
+
+
+
+  useEffect(() => {
+  loadBackgroundMusic("/bgmusic.mp3"); // Make sure this is in your public folder
+}, []);
 
    
 
@@ -507,36 +552,6 @@ React.useEffect(() => {
   };
 
 
-
-  // const drawSubdivisionLines = (yStart: number) => {
-  //   const measureCount = 4;
-  //   const totalBeats = timeSignature.top * measureCount;
-  //   const beatWidth = (STAFF_WIDTH - CLEF_WIDTH) / totalBeats;
-  //   const subWidth = beatWidth / subdivisionsPerBeat;
-  
-  //   const lines = [];
-  
-  //   for (let i = 0; i < totalBeats * subdivisionsPerBeat; i++) {
-  //     // Skip if it's a main beat line (already drawn)
-  //     if (i % subdivisionsPerBeat === 0) continue;
-  
-  //     const x = CLEF_WIDTH + i * subWidth;
-  //     lines.push(
-  //       <line
-  //         key={`sub-${i}-${yStart}`}
-  //         x1={x}
-  //         y1={yStart}
-  //         x2={x}
-  //         y2={yStart + 4 * STAFF_LINE_GAP}
-  //         stroke="gray"
-  //         strokeWidth="0.5"
-  //         strokeDasharray="2,2"
-  //       />
-  //     );
-  //   }
-  //   return lines;
-  // };
-
   const NoteRenderer: React.FC<NoteRendererProps> = ({
     capturedNotes,
     timeSignature,
@@ -607,8 +622,6 @@ React.useEffect(() => {
           .filter(item => item.whole)
           .map(item => item.whole as [number, number]);
         const playedNotes: [number, number,number][] = Object.values(keyspositions).flat();
-        console.log("keypostioions",keyspositions)
-        console.log("played notes",playedNotes)
         // Upper system (treble)
         const usedUpper: boolean[] = new Array(expectedUpper.length).fill(false);
         playedNotes
@@ -724,7 +737,8 @@ React.useEffect(() => {
         x2={x}
         y2={y2}
         stroke="red"
-        strokeWidth="2"
+        strokeWidth="20"
+        opacity={0.6}
       />
     );
     }
@@ -738,7 +752,9 @@ React.useEffect(() => {
           x2={x}
           y2={y2}
           stroke="red"
-          strokeWidth="2"
+          strokeWidth="20"
+          opacity={0.6}
+
         />
       );
     }
@@ -881,8 +897,7 @@ React.useEffect(() => {
       <svg width={STAFF_WIDTH} height={350}>
         {drawStaffLines(20)}
         {drawStaffLines(220)}
-        {/* {drawSubdivisionLines(20)}
-        {drawSubdivisionLines(140)} */}
+
          {wholeNotes.map((item, idx) => {
         const [x, y] = item.whole!;
         return (
@@ -918,17 +933,6 @@ React.useEffect(() => {
         <text x={5} y={225 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
 
         {drawMeasureLines(20)}
-        {/* {drawMeasureLines(220)} */}
-        {/* {randomPositions.map(([note, [x, y]]) => (
-          <g key={note}>
-          <image
-            href={imageSrc}
-            transform={`translate(${x-15}, ${y-25}) scale(0.5)`}
-            width={60}
-            height={60}
-          />      
-      </g>
-    ))} */}
         <text x={CLEF_WIDTH + 35} y={20 + 1 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.top}
         </text>
@@ -961,8 +965,7 @@ React.useEffect(() => {
       <svg width={STAFF_WIDTH} height={450}>
         {drawStaffLines(100)}
         {drawStaffLines(300)}
-        {/* {drawSubdivisionLines(100)}
-        {drawSubdivisionLines(220)} */}
+
          {lowerwholeNotes.map((item, idx) => {
         const [x, y] = item.whole!;
         return (
@@ -992,23 +995,10 @@ React.useEffect(() => {
         );
       })}
         
-        
-        {/* {lowerrandomPositions.map(([note, [x, y]]) => (
-      <g key={note}>
-            <image
-                  href={imageSrc}
-                  transform={`translate(${x-15}, ${y-15}) scale(0.5)`}
-                  width={60}
-                  height={60}
-                />
-            
-    </g>
-    ))} */}
         <text x={5} y={110 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black">𝄞</text>
         <text x={5} y={305 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
 
         {drawMeasureLines2(100)}
-        {/* {drawMeasureLines(220)} */}
 
         <text x={CLEF_WIDTH + 35} y={100 + 1 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.top}
@@ -1048,7 +1038,7 @@ React.useEffect(() => {
     </div>
     </div>
     
-    <FooterMusicsheet nextNoteTimeRef={nextNoteTimeRef} scheduleAheadTime={scheduleAheadTime} playClick={playClick} audioContextRef={audioContextRef} currentBeatRef={currentBeatRef} setSliderBeat={setSliderBeat} setIsPlaying={setIsPlaying} scheduler={scheduler} timerID={timerID} isCountingIn={isCountingIn} isMetronomeRunning={isMetronomeRunning} isPlaying={isPlaying} initializeAudioContext={initializeAudioContext} bpm={bpm} setBpm={setBpm} setIsCountingIn={setIsCountingIn} setIsMetronomeRunning={setIsMetronomeRunning}  setCapturedNotes={setCapturedNotes} setPlayCount={setPlayCount}/>
+    <FooterMusicsheet playBackgroundMusic={playBackgroundMusic} id={id}  unitLessonsData={unitLessonsData} nextNoteTimeRef={nextNoteTimeRef} scheduleAheadTime={scheduleAheadTime} playClick={playClick} audioContextRef={audioContextRef} currentBeatRef={currentBeatRef} setSliderBeat={setSliderBeat} setIsPlaying={setIsPlaying} scheduler={scheduler} timerID={timerID} isCountingIn={isCountingIn} isMetronomeRunning={isMetronomeRunning} isPlaying={isPlaying} initializeAudioContext={initializeAudioContext} bpm={bpm} setBpm={setBpm} setIsCountingIn={setIsCountingIn} setIsMetronomeRunning={setIsMetronomeRunning}  setCapturedNotes={setCapturedNotes} setPlayCount={setPlayCount}/>
     
   </div>
   </Suspense>

@@ -1,6 +1,7 @@
 'use client'
 import Image from "next/image"
 import { useState,useEffect } from "react";
+
 interface StatusbarMusicSheetProps {
     isPlaying: boolean;
     playCount: number;
@@ -15,14 +16,15 @@ export default function StatusbarMusicSheet({isPlaying, playCount, totalNotes,co
   const [lastScore,setlastScore]= useState(0)
   const [highScore,setHighScore]= useState(0)
   
+  
   useEffect(()=>{
-    if(IncorrectNotes.length>0){
+    if(IncorrectNotes.length>0 && correctNotes.length>IncorrectNotes.length){
       setlastScore( Math.ceil(((correctNotes.length - IncorrectNotes.length) / totalNotes.length) * 100));}
       if(lastScore>highScore){
         setHighScore(lastScore)
       }
-    else{
-      setlastScore(Math.floor((Math.floor(correctNotes.length) / totalNotes.length) * 100));
+    else if(correctNotes.length>0){
+      setlastScore(10);
       if(lastScore>highScore){
         setHighScore(lastScore)
       }
