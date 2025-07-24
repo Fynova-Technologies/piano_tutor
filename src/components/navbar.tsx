@@ -30,20 +30,20 @@ export default function Navbar() {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex space-x-6">
-  {navItems.map((item) => {
-        const isActive = pathname === item.href;
-    return(
-    <a
-            key={item.name}
-            href={item.href}
-            className={`font-medium px-6 py-4 rounded-full transition-all duration-200
-              ${isActive ? 'bg-[#D4AF37] text-[#0a0a0a]' : 'text-white'}
-            `}
-          >
-            {item.name}
-          </a>
-  )})}
-</div>
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+              return(
+                <a
+                  key={item.name}
+                  href={item.href}
+                  className={`font-medium px-6 py-4 rounded-full transition-all duration-200
+                    ${isActive ? 'bg-[#D4AF37] text-[#0a0a0a]' : 'text-white'}
+                  `}
+                >
+                    {item.name}
+                </a>
+            )})}
+        </div>
 
 
         {/* Right Side */}

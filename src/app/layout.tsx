@@ -33,8 +33,10 @@ export default function RootLayout({
         className={`${inter.variable} ${poppins.variable}`}
       >
         <Navbar/>
+        <main className="w-full">
+          {children}
+        </main>
 
-        {children}
       </body>
     </html>
   );

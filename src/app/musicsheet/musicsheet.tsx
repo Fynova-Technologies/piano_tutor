@@ -6,6 +6,8 @@ import StatusbarMusicSheet from "@/components/musicSheet/StatusbarMusicSheet";
 import FooterMusicsheet from "@/components/musicSheet/FooterMusicsheet";
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from "react";
+import { useMediaQuery } from "@/components/MediaQuery/useMediaQueryHook";
+
 
 
 const STAFF_LINE_GAP = 20; // px 
@@ -107,7 +109,27 @@ export default function MusicSheetClient() {
   const upperClefRef = useRef<HTMLDivElement>(null);
   const lowerClefRef = useRef<HTMLDivElement>(null);
   const prevBeatRef = useRef<number>(-1);
- 
+  const mobileWidth = useMediaQuery('(max-width: 768px)')
+
+
+// const [STAFF_WIDTH, setSTAFF_WIDTH] = useState(1200);
+// const BASE_WIDTH = 1600;
+
+// useEffect(() => {
+//   const updateSize = () => {
+//     const width = window.innerWidth;
+//     if (width > 1600) setSTAFF_WIDTH(1600);
+//     else if (width > 1200) setSTAFF_WIDTH(1200);
+//     else if (width > 800) setSTAFF_WIDTH(900);
+//     else setSTAFF_WIDTH(700);
+//   };
+//   updateSize();
+//   window.addEventListener('resize', updateSize);
+//   return () => window.removeEventListener('resize', updateSize);
+// }, []);
+
+// const scaleX = STAFF_WIDTH / BASE_WIDTH;
+
 
 useEffect(() => {
   const prev = prevBeatRef.current;
@@ -327,7 +349,7 @@ useEffect(() => {
   }, [sliderBeat]);
   
   function getStaffPositionsFromSemitones(semitoneDistance: number): number {
-    return semitoneDistance / 1.95;
+    return  semitoneDistance / 1.95;
   }
   
   function isAccidental(note: number): boolean {
@@ -406,7 +428,7 @@ useEffect(() => {
     console.log("baseY",baseY)
     const baseYWithOffset = baseY + systemYOffset;
   
-    const middleStaffLine = baseYWithOffset + 2 * STAFF_LINE_GAP;
+    const middleStaffLine = baseYWithOffset + 2 * STAFF_WIDTH;
   
     // Reference note per clef
     if(note>=65&&note<=71){
@@ -419,7 +441,7 @@ useEffect(() => {
     const semitoneDistance = referenceNote - note;
     const staffPositions = getStaffPositionsFromSemitones(semitoneDistance);
   
-    return referenceY + staffPositions * ((STAFF_LINE_GAP / 2));}
+    return referenceY + staffPositions * ((STAFF_WIDTH / 2));}
     else if(note>=72){
       const referenceNote =
         clef === 'treble' ? 69 :
@@ -430,7 +452,7 @@ useEffect(() => {
       const semitoneDistance = referenceNote - note;
       const staffPositions = getStaffPositionsFromSemitones(semitoneDistance);
     
-      return referenceY + staffPositions * ((STAFF_LINE_GAP / 2)-2);}
+      return referenceY + staffPositions * ((STAFF_WIDTH / 2)-2);}
     else{
       const referenceNote =
       clef === 'treble' ? 72 :
@@ -442,7 +464,7 @@ useEffect(() => {
     const staffPositions = getStaffPositionsFromSemitones(semitoneDistance);
     return referenceY + staffPositions * (STAFF_LINE_GAP / 2);
     }
-  }, []);
+  }, [STAFF_WIDTH]);
    
   function getClefForNote(note: number): 'treble' | 'middle' | 'bass' {
     if (note >= 60 + 1) return 'treble'; // above Middle C
@@ -491,7 +513,7 @@ const captureChordGroup = React.useCallback((group: NoteEvent[]) => {
   });
 
   setCapturedNotes((prev) => [...prev, ...newNotes]);
-}, [timeSignature, getNoteY]);
+}, [getSliderXForBeat, timeSignature, getNoteY]);
 
   const getMIDIMessage = React.useCallback((midiMessage: WebMidi.MIDIMessageEvent) => {
   const [status, note, velocity] = midiMessage.data;
@@ -722,6 +744,7 @@ React.useEffect(() => {
 
   
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   function getSliderXForBeat(beat: number, timeSignature: { top: number }): number {
        // two systems of `beatsPerSystem` each
        const beatsPerSystem = timeSignature.top * 4;
@@ -877,13 +900,12 @@ React.useEffect(() => {
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-
     <div className="flex flex-col items-center">
       <StatusbarMusicSheet courseTitle={courseTitle} isPlaying={isPlaying} IncorrectNotes={IncorrectNotes} totalNotes={totalNotes} correctNotes={correctNotes}  playCount={playCount}/>
-      <div className="flex items-center justify-center w-full h-full inset-0 bg-[#F8F6F1]"> 
-      <div className="flex flex-col items-center justify-center pb-32">
+      <div className="flex items-center justify-center w-full md:w-full h-full inset-0 bg-[#F8F6F1]"> 
+      <div className="flex flex-col items-center justify-center pb-32 w-full">
         
-      <div className={`w-[1700px] border-4 border-white my-10 bg-white p-12 flex flex-col items-center`} >
+      <div className={`${mobileWidth?"w-[90%]":"w-[90%]"} border-4 my-10  border-white  bg-white p-12 flex flex-col items-center`} >
         <div className={`flex flex-col items-center gap-2 ${isPlaying ? '' : 'hidden'}`}>
           <div className="flex items-center gap-2">
             <label className="text-lg text-[#0A0A0B]">Time Signature:</label>
@@ -916,7 +938,7 @@ React.useEffect(() => {
           </div>
         </div>
       <div ref={upperClefRef}>
-      <svg width={STAFF_WIDTH} height={350} >
+      <svg width="100%"   viewBox={`0 0 ${STAFF_WIDTH} 350`} height={350}  preserveAspectRatio="xMidYMid meet">
         {drawStaffLines(20)}
         {drawStaffLines(220)}
 
@@ -926,7 +948,7 @@ React.useEffect(() => {
           <image
             key={`whole-${idx}`}
             href={item.imageSrc}
-            transform={`translate(${x-18}, ${y-26}) scale(0.6)`}
+            transform={`translate(${x - 18}, ${y - 26}) scale(0.6)`}
             width={60}
             height={60}
             className="transition duration-500 ease-in-out"
@@ -941,7 +963,7 @@ React.useEffect(() => {
           <image
             key={`rest-${idx}`}
             href={item.imageSrc}
-            transform={`translate(${x}, ${y}) scale(0.5)`}
+            transform={`translate(${x - 18}, ${y - 26}) scale(0.6)`}
             width={30}
             height={30}
             className="transition duration-300 ease-in"
@@ -955,19 +977,20 @@ React.useEffect(() => {
         <text x={5} y={225 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
 
         {drawMeasureLines(20)}
-        <text x={CLEF_WIDTH + 35} y={20 + 1 * STAFF_LINE_GAP} className="text-[24px]">
-          {timeSignature.top}
-        </text>
-        <text x={CLEF_WIDTH + 35 } y={20 + 3 * STAFF_LINE_GAP} className="text-[24px]">
-          {timeSignature.bottom}
-        </text>
+        <text x={(CLEF_WIDTH + 35) } y={20 + 1 * STAFF_LINE_GAP} className="text-[20px] md:text-[24px]">
+    {timeSignature.top}
+  </text>
+  <text x={(CLEF_WIDTH + 35) } y={20 + 3 * STAFF_LINE_GAP} className="text-[20px] md:text-[24px]">
+    {timeSignature.bottom}
+  </text>
 
-        <text x={CLEF_WIDTH + 35 } y={220 + 1 * STAFF_LINE_GAP} className="text-[24px]">
-          {timeSignature.top}
-        </text>
-        <text x={CLEF_WIDTH + 35 } y={220 + 3 * STAFF_LINE_GAP} className="text-[24px]">
-          {timeSignature.bottom}
-        </text>
+  {/* Bass Clef time */}
+  <text x={(CLEF_WIDTH + 35) } y={220 + 1 * STAFF_LINE_GAP} className="text-[20px] md:text-[24px]">
+    {timeSignature.top}
+  </text>
+  <text x={(CLEF_WIDTH + 35) } y={220 + 3 * STAFF_LINE_GAP} className="text-[20px] md:text-[24px]">
+    {timeSignature.bottom}
+  </text>
 
       {drawSlider(0)}
       
@@ -986,7 +1009,7 @@ React.useEffect(() => {
     </div>
       <div ref={lowerClefRef}>
 
-      <svg width={STAFF_WIDTH} height={450}>
+      <svg width="100%"   viewBox={`0 0 ${STAFF_WIDTH} 350`} height={350}  preserveAspectRatio="xMidYMid meet">
         {drawStaffLines(100)}
         {drawStaffLines(300)}
 
