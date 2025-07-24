@@ -88,8 +88,8 @@ export default function FooterPlayButton({nextNoteTimeRef,
 
 
     return(
-        <div className="flex items-center w-full">
-                <div className="flex items-center gap-2 w-full">
+        <div className="flex items-center justify-center w-full">
+                <div className="flex items-center justify-center gap-2 w-full">
                 {/* Backward Skip Button (Design Only) */}
                   <button className="px-5 py-2 text-white"onClick={() => hasPrevious && !isPlaying && goToLesson(unitLessonsData[currentIndex - 1])}
                     disabled={!hasPrevious}>

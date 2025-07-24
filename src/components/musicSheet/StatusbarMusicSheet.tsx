@@ -41,7 +41,7 @@ export default function StatusbarMusicSheet({isPlaying, playCount, totalNotes,co
             <div className="p-5 flex-2">
               <span className="text-[#0A0A0B] font-medium text-[24px] ml-10">{courseTitle}</span>
             </div>
-            <div className="p-4 flex-1">
+            <div className="p-4 mr-12">
               <div className="flex space-x-8 items-center">
                 <div className="flex items-center space-x-3">
                     <Image src="/Frame.svg" width={28} height={20} alt="icon"/>
