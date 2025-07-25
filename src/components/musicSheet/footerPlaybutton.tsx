@@ -39,7 +39,7 @@ interface FooterPlayButtonProps {
   unitLessonsData: UnitLesson[];
   initializeAudioContext: () => Promise<void>;
   id:string,
-  playBackgroundMusic: () => void;
+  // playBackgroundMusic: () => void;
 }
 
 export default function FooterPlayButton({nextNoteTimeRef,
@@ -61,7 +61,7 @@ export default function FooterPlayButton({nextNoteTimeRef,
   setPlayCount,
   unitLessonsData,
   id,
-  playBackgroundMusic
+  // playBackgroundMusic
 
   
 }: FooterPlayButtonProps) {
@@ -104,7 +104,7 @@ export default function FooterPlayButton({nextNoteTimeRef,
                       setIsPlaying(false);
                       return;
                     }
-                    playBackgroundMusic()
+                    // playBackgroundMusic()
                     setCapturedNotes([])
                     setPlayCount(prev=>prev+1)
                     await Promise.resolve(); // allow reset to apply before starting

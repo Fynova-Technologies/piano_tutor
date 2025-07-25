@@ -50,12 +50,8 @@ type PatternData = {
 };
 
 type UnitLesson = {
- 
-
-     id: string, lessontitle: string, link: string, pattern: string, patternkey: string 
-
+  id: string, lessontitle: string, link: string, pattern: string, patternkey: string 
 };
-
 
 type Note = { x_pos: number; y_pos: number; systemIndex: number };
 type NoteEvent = { note: number; time: number };
@@ -63,7 +59,6 @@ let currentChord: NoteEvent[] = [];
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 let lastNoteTime = 0;
 const CHORD_WINDOW_MS = 30;
-
 const THRESHOLD = 1;
 
 export default function MusicSheetClient() {
@@ -71,7 +66,6 @@ export default function MusicSheetClient() {
   const [sliderBeat, setSliderBeat] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [bpm, setBpm] = useState(100);
-  // const subdivisionsPerBeat = 4; // e.g., 4 for 16th notes in 4/4 time
   const [capturedNotes, setCapturedNotes] = useState<CapturedNoteGroup[]>([]);
   const [correctNotes,setCorrectNotes] = useState<correctNotes[]>([]);
   const [IncorrectNotes,setInCorrectNotes] = useState<correctNotes[]>([]);
@@ -79,8 +73,6 @@ export default function MusicSheetClient() {
   const sliderBeatRef = useRef(sliderBeat);
   const [keyspositions, setKeysPositions] = useState<{ [key: string]: [number, number,number][] }>({});
   const [checking, setChecking] = useState(false);
-  // const [randomPositions, setRandomPositions] = useState<[string, [number, number]][]>([]);
-  // const [lowerrandomPositions, setLowerRandomPositions] = useState<[string, [number, number]][]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const nextNoteTimeRef = useRef(0);
   const timerID = useRef<NodeJS.Timeout | null>(null);
@@ -112,43 +104,6 @@ export default function MusicSheetClient() {
   const mobileWidth = useMediaQuery('(max-width: 768px)')
 
 
-// const [STAFF_WIDTH, setSTAFF_WIDTH] = useState(1200);
-// const BASE_WIDTH = 1600;
-
-// useEffect(() => {
-//   const updateSize = () => {
-//     const width = window.innerWidth;
-//     if (width > 1600) setSTAFF_WIDTH(1600);
-//     else if (width > 1200) setSTAFF_WIDTH(1200);
-//     else if (width > 800) setSTAFF_WIDTH(900);
-//     else setSTAFF_WIDTH(700);
-//   };
-//   updateSize();
-//   window.addEventListener('resize', updateSize);
-//   return () => window.removeEventListener('resize', updateSize);
-// }, []);
-
-// const scaleX = STAFF_WIDTH / BASE_WIDTH;
-
-
-useEffect(() => {
-  const prev = prevBeatRef.current;
-  const movedToLower = prev < beatsPerSystem && sliderBeat >= beatsPerSystem;
-  const movedToUpper = prev >= beatsPerSystem && sliderBeat < beatsPerSystem;
-
-  if (movedToLower && lowerClefRef.current) {
-    lowerClefRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  if (movedToUpper && upperClefRef.current) {
-    upperClefRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  prevBeatRef.current = sliderBeat;
-}, [sliderBeat]);
-
-
-
   useEffect(() => {
       fetch("/unitLessonsData.json")
         .then((res) => res.json())
@@ -157,9 +112,6 @@ useEffect(() => {
           setUnitLessonsData (unit.unitlessons)
         });
     }, [id, searchParams]);
-
-
-  
 
   useEffect(() => {
   fetch(pattern)
@@ -196,7 +148,7 @@ useEffect(() => {
       setLowerRestNotes(lowerrest);
       setUpperStaffpositions(upperPattern);
       setLowerStaffpositions(lowerPattern);
-      setTotalNotes(totalNotePositions); // 👈 set it here
+      setTotalNotes(totalNotePositions);
       setCourseTitle(coursetitle)
     })
     .catch((err) => console.error("Error loading patterns:", err));
@@ -237,7 +189,6 @@ useEffect(() => {
 
   const playClick = (time = 0, isDownbeat = false, countInIndex: number | null = null) => {
     if (!audioContextRef.current) return;
-  
     if (countInIndex !== null && countInBuffers.current[countInIndex]) {
       const source = audioContextRef.current.createBufferSource();
       source.buffer = countInBuffers.current[countInIndex];
@@ -245,8 +196,6 @@ useEffect(() => {
       source.start(time);
       return;
     }
-  
-    // Regular metronome click
     const osc = audioContextRef.current.createOscillator();
     const gain = audioContextRef.current.createGain(); 
     osc.type = 'square';
@@ -259,37 +208,37 @@ useEffect(() => {
     osc.stop(time + 0.12);
   };
 
-  const backgroundBuffer = useRef<AudioBuffer | null>(null);
+  // const backgroundBuffer = useRef<AudioBuffer | null>(null);
 
-  // Call this once when app loads
-  const loadBackgroundMusic = async (url: string) => {
-    if (!audioContextRef.current) return;
-    const response = await fetch(url);
-    const arrayBuffer = await response.arrayBuffer();
-    const decodedBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
-    backgroundBuffer.current = decodedBuffer;
-  };
+  // // Call this once when app loads
+  // const loadBackgroundMusic = async (url: string) => {
+  //   if (!audioContextRef.current) return;
+  //   const response = await fetch(url);
+  //   const arrayBuffer = await response.arrayBuffer();
+  //   const decodedBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
+  //   backgroundBuffer.current = decodedBuffer;
+  // };
 
-  const backgroundSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  // const backgroundSourceRef = useRef<AudioBufferSourceNode | null>(null);
 
-  const playBackgroundMusic = () => {
-    if (!audioContextRef.current || !backgroundBuffer.current) return;
+  // const playBackgroundMusic = () => {
+  //   if (!audioContextRef.current || !backgroundBuffer.current) return;
 
-    const source = audioContextRef.current.createBufferSource();
-    source.buffer = backgroundBuffer.current;
-    source.connect(audioContextRef.current.destination);
-    source.loop = true; // Optional: loop the background music
-    source.start();
-    backgroundSourceRef.current = source;
-  };
-
-
+  //   const source = audioContextRef.current.createBufferSource();
+  //   source.buffer = backgroundBuffer.current;
+  //   source.connect(audioContextRef.current.destination);
+  //   source.loop = true; // Optional: loop the background music
+  //   source.start();
+  //   backgroundSourceRef.current = source;
+  // };
 
 
 
-  useEffect(() => {
-  loadBackgroundMusic("/bgmusic.mp3"); // Make sure this is in your public folder
-}, []);
+
+
+//   useEffect(() => {
+//   loadBackgroundMusic("/bgmusic.mp3"); // Make sure this is in your public folder
+// }, []);
 
    
 
@@ -328,20 +277,32 @@ useEffect(() => {
     }
   }, [scheduleNote, bpm]);
 
- 
-
-
- 
   
     // Clean up on component unmount
-    useEffect(() => {
-      return () => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        if (audioContextRef.current) audioContextRef.current.close();
-      };
-    }, []);
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (audioContextRef.current) audioContextRef.current.close();
+    };
+  }, []);
 
   const beatsPerSystem = timeSignature.top * 4; // number of beats in each system
+  
+  useEffect(() => {
+    const prev = prevBeatRef.current;
+    const movedToLower = prev < beatsPerSystem && sliderBeat >= beatsPerSystem;
+    const movedToUpper = prev >= beatsPerSystem && sliderBeat < beatsPerSystem;
+
+    if (movedToLower && lowerClefRef.current) {
+      lowerClefRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    if (movedToUpper && upperClefRef.current) {
+      upperClefRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    prevBeatRef.current = sliderBeat;
+  }, [beatsPerSystem, sliderBeat]);
 
   // Update ref whenever sliderBeat changes
   useEffect(() => {
@@ -353,7 +314,6 @@ useEffect(() => {
   }
   
   function isAccidental(note: number): boolean {
-    // C#, D#, F#, G#, A# (black keys on piano)
     const pitch = note % 12;
     return [1, 3, 6, 8, 10].includes(pitch);
   }
@@ -421,21 +381,17 @@ useEffect(() => {
     clef: 'treble' | 'middle' | 'bass',
     systemIndex: number
   ): number => {
+    
     const systemYOffset = systemIndex * 82;
-  
-    // Base Y per clef
     const baseY = clef === 'treble' ? 20 : clef === 'bass' ? 140 : 80; // middle ledger line ~80
-    console.log("baseY",baseY)
     const baseYWithOffset = baseY + systemYOffset;
-  
     const middleStaffLine = baseYWithOffset + 2 * STAFF_WIDTH;
   
-    // Reference note per clef
     if(note>=65&&note<=71){
     const referenceNote =
       clef === 'treble' ? 71 :
       clef === 'bass' ? 50 :
-      60; // Middle C
+      60;
   
     const referenceY = middleStaffLine;
     const semitoneDistance = referenceNote - note;
@@ -452,7 +408,7 @@ useEffect(() => {
       const semitoneDistance = referenceNote - note;
       const staffPositions = getStaffPositionsFromSemitones(semitoneDistance);
     
-      return referenceY + staffPositions * ((STAFF_WIDTH / 2)-2);}
+      return referenceY + staffPositions * (STAFF_WIDTH / 2);}
     else{
       const referenceNote =
       clef === 'treble' ? 72 :
@@ -464,7 +420,7 @@ useEffect(() => {
     const staffPositions = getStaffPositionsFromSemitones(semitoneDistance);
     return referenceY + staffPositions * (STAFF_LINE_GAP / 2);
     }
-  }, [STAFF_WIDTH]);
+  }, []);
    
   function getClefForNote(note: number): 'treble' | 'middle' | 'bass' {
     if (note >= 60 + 1) return 'treble'; // above Middle C
@@ -799,7 +755,6 @@ React.useEffect(() => {
           stroke="red"
           strokeWidth="20"
           opacity={0.6}
-
         />
       );
     }
@@ -808,9 +763,9 @@ React.useEffect(() => {
 
   useEffect(() => {
     if (!isPlaying) {
-      setCapturedNotes([]); // Clear previous notes
+      setCapturedNotes([]);
       setSliderBeat(0);
-      stopMetronome()     // Start from beginning
+      stopMetronome()     
     }
   }, [isPlaying]);
 
@@ -905,7 +860,7 @@ React.useEffect(() => {
       <div className="flex items-center justify-center w-full md:w-full h-full inset-0 bg-[#F8F6F1]"> 
       <div className="flex flex-col items-center justify-center pb-32 w-full">
         
-      <div className={`${mobileWidth?"w-[90%]":"w-[90%]"} border-4 my-10  border-white  bg-white p-12 flex flex-col items-center`} >
+      <div className={`${mobileWidth?"w-[1700px]":"w-[1700px]"} border-4 my-10  border-white  bg-white p-12 flex flex-col items-center`} >
         <div className={`flex flex-col items-center gap-2 ${isPlaying ? '' : 'hidden'}`}>
           <div className="flex items-center gap-2">
             <label className="text-lg text-[#0A0A0B]">Time Signature:</label>
@@ -939,6 +894,8 @@ React.useEffect(() => {
         </div>
       <div ref={upperClefRef}>
       <svg width="100%"   viewBox={`0 0 ${STAFF_WIDTH} 350`} height={350}  preserveAspectRatio="xMidYMid meet">
+      {/* <svg width={STAFF_WIDTH} height={350} > */}
+  
         {drawStaffLines(20)}
         {drawStaffLines(220)}
 
@@ -1009,7 +966,8 @@ React.useEffect(() => {
     </div>
       <div ref={lowerClefRef}>
 
-      <svg width="100%"   viewBox={`0 0 ${STAFF_WIDTH} 350`} height={350}  preserveAspectRatio="xMidYMid meet">
+      <svg width="100%"   viewBox={`0 0 ${STAFF_WIDTH} 350`} height={450}  preserveAspectRatio="xMidYMid meet">
+
         {drawStaffLines(100)}
         {drawStaffLines(300)}
 
@@ -1086,7 +1044,7 @@ React.useEffect(() => {
     </div>
     </div>
     
-    <FooterMusicsheet playBackgroundMusic={playBackgroundMusic} id={id}  unitLessonsData={unitLessonsData} nextNoteTimeRef={nextNoteTimeRef} scheduleAheadTime={scheduleAheadTime} playClick={playClick} audioContextRef={audioContextRef} currentBeatRef={currentBeatRef} setSliderBeat={setSliderBeat} setIsPlaying={setIsPlaying} scheduler={scheduler} timerID={timerID} isCountingIn={isCountingIn} isMetronomeRunning={isMetronomeRunning} isPlaying={isPlaying} initializeAudioContext={initializeAudioContext} bpm={bpm} setBpm={setBpm} setIsCountingIn={setIsCountingIn} setIsMetronomeRunning={setIsMetronomeRunning}  setCapturedNotes={setCapturedNotes} setPlayCount={setPlayCount}/>
+    <FooterMusicsheet  id={id}  unitLessonsData={unitLessonsData} nextNoteTimeRef={nextNoteTimeRef} scheduleAheadTime={scheduleAheadTime} playClick={playClick} audioContextRef={audioContextRef} currentBeatRef={currentBeatRef} setSliderBeat={setSliderBeat} setIsPlaying={setIsPlaying} scheduler={scheduler} timerID={timerID} isCountingIn={isCountingIn} isMetronomeRunning={isMetronomeRunning} isPlaying={isPlaying} initializeAudioContext={initializeAudioContext} bpm={bpm} setBpm={setBpm} setIsCountingIn={setIsCountingIn} setIsMetronomeRunning={setIsMetronomeRunning}  setCapturedNotes={setCapturedNotes} setPlayCount={setPlayCount}/>
     
   </div>
   </Suspense>
