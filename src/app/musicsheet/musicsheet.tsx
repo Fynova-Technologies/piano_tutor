@@ -385,7 +385,7 @@ export default function MusicSheetClient() {
     const systemYOffset = systemIndex * 82;
     const baseY = clef === 'treble' ? 20 : clef === 'bass' ? 140 : 80; // middle ledger line ~80
     const baseYWithOffset = baseY + systemYOffset;
-    const middleStaffLine = baseYWithOffset + 2 * STAFF_WIDTH;
+    const middleStaffLine = baseYWithOffset + 2 * STAFF_LINE_GAP;
   
     if(note>=65&&note<=71){
     const referenceNote =
@@ -397,7 +397,7 @@ export default function MusicSheetClient() {
     const semitoneDistance = referenceNote - note;
     const staffPositions = getStaffPositionsFromSemitones(semitoneDistance);
   
-    return referenceY + staffPositions * ((STAFF_WIDTH / 2));}
+    return referenceY + staffPositions * ((STAFF_LINE_GAP / 2));}
     else if(note>=72){
       const referenceNote =
         clef === 'treble' ? 69 :
@@ -408,7 +408,7 @@ export default function MusicSheetClient() {
       const semitoneDistance = referenceNote - note;
       const staffPositions = getStaffPositionsFromSemitones(semitoneDistance);
     
-      return referenceY + staffPositions * (STAFF_WIDTH / 2);}
+      return referenceY + staffPositions * ((STAFF_LINE_GAP / 2)-2);}
     else{
       const referenceNote =
       clef === 'treble' ? 72 :
@@ -860,7 +860,7 @@ React.useEffect(() => {
       <div className="flex items-center justify-center w-full md:w-full h-full inset-0 bg-[#F8F6F1]"> 
       <div className="flex flex-col items-center justify-center pb-32 w-full">
         
-      <div className={`${mobileWidth?"w-[1700px]":"w-[1700px]"} border-4 my-10  border-white  bg-white p-12 flex flex-col items-center`} >
+      <div className={`${mobileWidth?"w-[90%]":"w-[90%]"} border-4 my-10  border-white  bg-white p-12 flex flex-col items-center`} >
         <div className={`flex flex-col items-center gap-2 ${isPlaying ? '' : 'hidden'}`}>
           <div className="flex items-center gap-2">
             <label className="text-lg text-[#0A0A0B]">Time Signature:</label>
@@ -966,7 +966,7 @@ React.useEffect(() => {
     </div>
       <div ref={lowerClefRef}>
 
-      <svg width="100%"   viewBox={`0 0 ${STAFF_WIDTH} 350`} height={450}  preserveAspectRatio="xMidYMid meet">
+      <svg width="100%"   viewBox={`0 0 ${STAFF_WIDTH} 350`} height={420}  preserveAspectRatio="xMidYMid meet">
 
         {drawStaffLines(100)}
         {drawStaffLines(300)}
