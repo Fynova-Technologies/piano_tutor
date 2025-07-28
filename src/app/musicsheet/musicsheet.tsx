@@ -1,18 +1,32 @@
 "use client";
 
-import React, { useCallback } from "react";
-import { useState, useRef, useEffect, JSX } from "react";
+import React from "react";
+import { useState, useRef, useEffect } from "react";
 import StatusbarMusicSheet from "@/components/musicSheet/StatusbarMusicSheet";
 import FooterMusicsheet from "@/components/musicSheet/FooterMusicsheet";
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from "react";
 import { useMediaQuery } from "@/components/MediaQuery/useMediaQueryHook";
-
+import ConnectMidiDevice from "@/hooks/connectMidiDevice";
+import GetNoteYposition from "@/hooks/yPositionCalculations";
+import CaptureChordGroup from "@/hooks/capturedChordGroup";
+import OnPlayClick from "@/hooks/onPlayClick";
+import Scheduler from "@/hooks/scheduler";
+import { loadCountInSound } from '@/utils/loadCountInSound';
+import NoteRenderer from "@/components/musicSheet/noteRenderer";
+import CheckNotesRender from "@/components/musicSheet/notesCheckingforender";
+import { drawSlider } from "@/utils/drawSlider";
+import renderLedgerLines from "@/utils/renderLedgerLines";
+import drawMeasureLinesLower from "@/utils/drawMeasurelinesLower";
+import getSliderXForBeat from "@/hooks/xpositionCalculation";
+import drawStaffLines from "@/utils/drawStaffLines";
+import drawSvg from "@/utils/drawSvgUpper";
 
 
 const STAFF_LINE_GAP = 20; // px 
 const STAFF_WIDTH = 1620;
 const CLEF_WIDTH = 40;
+const THRESHOLD = 1;
 
 type CapturedNoteGroup = {
   beat: number;
@@ -21,12 +35,6 @@ type CapturedNoteGroup = {
   systemIndex: 0 | 1;
   y_position: number; // <-- add this
 };
-interface NoteRendererProps {
-  capturedNotes: CapturedNoteGroup[];
-  timeSignature: { top: number; bottom: number };
-  isPlaying: boolean;
-  systemIndex: 0 | 1; // Add systemIndex property
-}
 
 type correctNotes={
   systemIndex: number;
@@ -34,13 +42,11 @@ type correctNotes={
   y_pos : number
 }
 
-
 type PatternItem = {
   whole?: [number, number];
   rest?: [number, number];
   imageSrc: string;
 };
-
 
 type PatternData = {
   [key: string]: {
@@ -53,16 +59,8 @@ type UnitLesson = {
   id: string, lessontitle: string, link: string, pattern: string, patternkey: string 
 };
 
-type Note = { x_pos: number; y_pos: number; systemIndex: number };
-type NoteEvent = { note: number; time: number };
-let currentChord: NoteEvent[] = [];
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-let lastNoteTime = 0;
-const CHORD_WINDOW_MS = 30;
-const THRESHOLD = 1;
-
 export default function MusicSheetClient() {
-  const [timeSignature, setTimeSignature] = useState({ top: 4, bottom: 4 });
+  const [timeSignature] = useState({ top: 4, bottom: 4 });
   const [sliderBeat, setSliderBeat] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [bpm, setBpm] = useState(100);
@@ -81,7 +79,7 @@ export default function MusicSheetClient() {
   const [isCountingIn, setIsCountingIn] = useState(false);
   const currentBeatRef = useRef(0);
   const [isMetronomeRunning, setIsMetronomeRunning] = useState(false);
-  const countInBuffers = useRef<(AudioBuffer | null)[]>([null, null, null, null]);
+  const countInBuffers = React.useRef<(AudioBuffer | null)[]>([null, null, null, null]);
   const searchParams = useSearchParams();
   const pattern = searchParams?.get('pattern')||""
   const patternkey = searchParams?.get('patternkey')||""
@@ -156,25 +154,13 @@ export default function MusicSheetClient() {
 }, [pattern, patternkey,coursetitle]);
 
  
-  const loadCountInSound = async () => {
-    if (!audioContextRef.current) return;
-    const soundUrls = [
-      '/sound/one.mp3',
-      '/sound/two.mp3',
-      '/sound/three.mp3',
-      '/sound/start.mp3',
-    ];
-
-    const promises = soundUrls.map(async (url, i) => {
-      const response = await fetch(url);
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = await audioContextRef.current!.decodeAudioData(arrayBuffer);
-      countInBuffers.current[i] = buffer;
-    });
-  
-    await Promise.all(promises);
-  };
-
+  useEffect(() => {
+      async function loadBuffers() {
+        if (!audioContextRef.current) return;
+        await loadCountInSound(audioContextRef.current, countInBuffers);
+      }
+      loadBuffers();
+    }, []);
 
   const initializeAudioContext = async () => {
     if (!audioContextRef.current) {
@@ -183,66 +169,10 @@ export default function MusicSheetClient() {
   
     // Only load if any buffer is null
     if (countInBuffers.current.some(buffer => !buffer)) {
-      await loadCountInSound();
+      await loadCountInSound(audioContextRef.current, countInBuffers);
     }
   };
-
-  const playClick = (time = 0, isDownbeat = false, countInIndex: number | null = null) => {
-    if (!audioContextRef.current) return;
-    if (countInIndex !== null && countInBuffers.current[countInIndex]) {
-      const source = audioContextRef.current.createBufferSource();
-      source.buffer = countInBuffers.current[countInIndex];
-      source.connect(audioContextRef.current.destination);
-      source.start(time);
-      return;
-    }
-    const osc = audioContextRef.current.createOscillator();
-    const gain = audioContextRef.current.createGain(); 
-    osc.type = 'square';
-    osc.frequency.value = isDownbeat ? 330 : 330;
-    gain.gain.setValueAtTime(0.3, time);
-    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
-    osc.connect(gain);
-    gain.connect(audioContextRef.current.destination);
-    osc.start(time);
-    osc.stop(time + 0.12);
-  };
-
-  // const backgroundBuffer = useRef<AudioBuffer | null>(null);
-
-  // // Call this once when app loads
-  // const loadBackgroundMusic = async (url: string) => {
-  //   if (!audioContextRef.current) return;
-  //   const response = await fetch(url);
-  //   const arrayBuffer = await response.arrayBuffer();
-  //   const decodedBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
-  //   backgroundBuffer.current = decodedBuffer;
-  // };
-
-  // const backgroundSourceRef = useRef<AudioBufferSourceNode | null>(null);
-
-  // const playBackgroundMusic = () => {
-  //   if (!audioContextRef.current || !backgroundBuffer.current) return;
-
-  //   const source = audioContextRef.current.createBufferSource();
-  //   source.buffer = backgroundBuffer.current;
-  //   source.connect(audioContextRef.current.destination);
-  //   source.loop = true; // Optional: loop the background music
-  //   source.start();
-  //   backgroundSourceRef.current = source;
-  // };
-
-
-
-
-
-//   useEffect(() => {
-//   loadBackgroundMusic("/bgmusic.mp3"); // Make sure this is in your public folder
-// }, []);
-
-   
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   const scheduleNote = (beatNumber: number, time: number | undefined) => {
     playClick(time, beatNumber % 4 === 0); // Downbeat every 4 beats
   };
@@ -252,33 +182,7 @@ export default function MusicSheetClient() {
     clearInterval(timerID.current as NodeJS.Timeout | undefined);
     timerID.current = null;
   };
-
-
-  const scheduler = useCallback(() => {
-    while (
-      audioContextRef.current &&
-      nextNoteTimeRef.current < audioContextRef.current.currentTime + scheduleAheadTime
-    ) {
   
-      // Sync slider movement (in real-time) with audio schedule
-      const scheduledBeat = currentBeatRef.current;
-      const scheduledTime = nextNoteTimeRef.current;
-      scheduleNote(currentBeatRef.current, nextNoteTimeRef.current);
-
-
-  
-      // This causes the slider to update at *exactly* the right time
-      setTimeout(() => {
-        setSliderBeat(scheduledBeat);
-      }, (scheduledTime - audioContextRef.current!.currentTime) * 1000);
-  
-      nextNoteTimeRef.current += 60.0 / bpm;
-      currentBeatRef.current++;
-    }
-  }, [scheduleNote, bpm]);
-
-  
-    // Clean up on component unmount
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
@@ -311,116 +215,7 @@ export default function MusicSheetClient() {
   
   function getStaffPositionsFromSemitones(semitoneDistance: number): number {
     return  semitoneDistance / 1.95;
-  }
-  
-  function isAccidental(note: number): boolean {
-    const pitch = note % 12;
-    return [1, 3, 6, 8, 10].includes(pitch);
-  }
-
-  function getAccidentalSymbol(note: number): string {
-    const pitch = note % 12;
-    
-    // C#, D#, F#, G#, A#
-    if ([1, 3, 6, 8, 10].includes(pitch)) {
-      return "♯";
-    }
-    return "";
-  }
-  
-  // Render ledger lines for notes that fall outside the staff
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  function renderLedgerLines(x: number, y: number, isTreble: boolean, _note: number): JSX.Element[] {
-    const lines: JSX.Element[] = [];
-    const staffTop = isTreble ? 20 : 140;
-    const staffBottom = staffTop + 4 * 20; // 4 spaces between 5 lines
-    
-    if (y < staffTop) {
-      // Add ledger lines above the staff
-      let lineY = staffTop;
-      while (lineY >= y) {
-        lines.push(
-          <line
-            key={`ledger-above-${lineY}`}
-            x1={x - 10}
-            y1={lineY}
-            x2={x + 10}
-            y2={lineY}
-            stroke="black"
-            strokeWidth="1"
-          />
-        );
-        lineY -= 20; // Move up one staff line gap
-      }
-    } else if (y > staffBottom) {
-      // Add ledger lines below the staff
-      let lineY = staffBottom;
-      while (lineY <= y) {
-        lines.push(
-          <line
-            key={`ledger-below-${lineY}`}
-            x1={x - 10}
-            y1={lineY}
-            x2={x + 10}
-            y2={lineY}
-            stroke="black"
-            strokeWidth="1"
-          />
-        );
-        lineY += 20; // Move down one staff line gap
-      }
-    }
-    
-    return lines;
-  }
-
-  
-
-  const getNoteY = useCallback((
-    note: number,
-    clef: 'treble' | 'middle' | 'bass',
-    systemIndex: number
-  ): number => {
-    
-    const systemYOffset = systemIndex * 82;
-    const baseY = clef === 'treble' ? 20 : clef === 'bass' ? 140 : 80; // middle ledger line ~80
-    const baseYWithOffset = baseY + systemYOffset;
-    const middleStaffLine = baseYWithOffset + 2 * STAFF_LINE_GAP;
-  
-    if(note>=65&&note<=71){
-    const referenceNote =
-      clef === 'treble' ? 71 :
-      clef === 'bass' ? 50 :
-      60;
-  
-    const referenceY = middleStaffLine;
-    const semitoneDistance = referenceNote - note;
-    const staffPositions = getStaffPositionsFromSemitones(semitoneDistance);
-  
-    return referenceY + staffPositions * ((STAFF_LINE_GAP / 2));}
-    else if(note>=72){
-      const referenceNote =
-        clef === 'treble' ? 69 :
-        clef === 'bass' ? 50 :
-        60; // Middle C
-    
-      const referenceY = middleStaffLine;
-      const semitoneDistance = referenceNote - note;
-      const staffPositions = getStaffPositionsFromSemitones(semitoneDistance);
-    
-      return referenceY + staffPositions * ((STAFF_LINE_GAP / 2)-2);}
-    else{
-      const referenceNote =
-      clef === 'treble' ? 72 :
-      clef === 'bass' ? 50 :
-      60; // Middle C
-  
-    const referenceY = middleStaffLine;
-    const semitoneDistance = referenceNote - note;
-    const staffPositions = getStaffPositionsFromSemitones(semitoneDistance);
-    return referenceY + staffPositions * (STAFF_LINE_GAP / 2);
-    }
-  }, []);
+  }  
    
   function getClefForNote(note: number): 'treble' | 'middle' | 'bass' {
     if (note >= 60 + 1) return 'treble'; // above Middle C
@@ -428,81 +223,15 @@ export default function MusicSheetClient() {
     return 'middle'; // C4
   }
 
-  let chordTimeout: ReturnType<typeof setTimeout> | null = null;
-
-const captureChordGroup = React.useCallback((group: NoteEvent[]) => {
-  if (group.length === 0) return;
-
-    const currentSliderBeat = sliderBeatRef.current;
-    const x_absolute = getSliderXForBeat(currentSliderBeat, timeSignature);
-    const systemIndex = currentSliderBeat < timeSignature.top * 4 ? 0 : 1;
-    const newNotes = group.map((ev, i) => {
-    const clef = getClefForNote(ev.note);
-    const y = getNoteY(ev.note, clef, systemIndex);
-    const isTreble = systemIndex === 0;
-
-    setKeysPositions((prevPos) => {
-      const currentPositions = prevPos[ev.note] || [];
-      const newPosition: [number, number, number] = [x_absolute, y, isTreble ? 0 : 1];
-
-      const alreadyExists = currentPositions.some(
-        (pos) => pos[0] === newPosition[0] && pos[1] === newPosition[1] && pos[2] === newPosition[2]
-      );
-
-      if (alreadyExists) return prevPos;
-
-      return {
-        ...prevPos,
-        [ev.note]: [...currentPositions, newPosition],
-      };
-    });
-
-    activeNotes.current.set(ev.note, currentSliderBeat);
-    console.log("i",i)
-    return {
-      beat: currentSliderBeat,
-      notes: [ev.note],
-      x_position: x_absolute,
-      y_position: y,
-      systemIndex: isTreble ? 0 : 1 as 0 | 1,
-    };
-  });
-
-  setCapturedNotes((prev) => [...prev, ...newNotes]);
-}, [getSliderXForBeat, timeSignature, getNoteY]);
-
-  const getMIDIMessage = React.useCallback((midiMessage: WebMidi.MIDIMessageEvent) => {
-  const [status, note, velocity] = midiMessage.data;
-  const statusType = status & 0xF0;
-
-  if (statusType === 0x80 || (statusType === 0x90 && velocity === 0)) {
-    activeNotes.current.delete(note);
-    return;
-  }
-
-  if (statusType === 0x90 && velocity > 0 && isPlaying) {
-    if (!activeNotes.current.has(note)) {
-      const now = performance.now();
-
-      currentChord.push({ note, time: now });
-      lastNoteTime = now;
-
-      // Clear any previous pending finalization
-      if (chordTimeout) clearTimeout(chordTimeout);
-
-      // Set timeout to finalize current chord
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      chordTimeout = setTimeout(() => {
-        if (currentChord.length > 0) {
-          console.log("Finalizing chord:", currentChord);
-          captureChordGroup(currentChord);
-          currentChord = [];
-        }
-      }, CHORD_WINDOW_MS);
-    }
-  }
-}, [captureChordGroup, isPlaying]);
-
+  const playClick = OnPlayClick({audioContextRef,countInBuffers});
+  const getNoteY = GetNoteYposition({STAFF_LINE_GAP, getStaffPositionsFromSemitones });
+  const getSliderXForBeatSimple = (beat: number, timeSignature: { top: number }) => getSliderXForBeat(beat, timeSignature, STAFF_WIDTH, CLEF_WIDTH);
+  
+  const captureChordGroup = CaptureChordGroup({ sliderBeatRef, getNoteY, activeNotes, setCapturedNotes,setKeysPositions,
+    getSliderXForBeat: getSliderXForBeatSimple, timeSignature, getClefForNote  });
+  
+    const {getMIDIMessage} = ConnectMidiDevice({ isPlaying, captureChordGroup });
+  const scheduler = Scheduler({audioContextRef,bpm,nextNoteTimeRef,scheduleAheadTime,currentBeatRef,scheduleNote,setSliderBeat})
 
 // Setup MIDI event listener with cleanup
 React.useEffect(() => {
@@ -535,232 +264,7 @@ React.useEffect(() => {
     }
     
   }, [getMIDIMessage]);
-
-
-  const drawStaffLines = (yStart: number) => {
-    return new Array(5).fill(0).map((_, i) => (
-      <line
-        key={i}
-        x1={10}
-        y1={yStart + i * STAFF_LINE_GAP}
-        x2={STAFF_WIDTH +100}
-        y2={yStart + i * STAFF_LINE_GAP}
-        stroke="black"
-        strokeWidth="1"
-    />    
-    ));
-  };
-
-
-  const NoteRenderer: React.FC<NoteRendererProps> = ({
-    capturedNotes,
-    timeSignature,
-    systemIndex,
-  }) => {
-    const beatsPerSystem = timeSignature.top * 4;
-  
-    const notesInThisSystem = capturedNotes.filter(group =>
-      systemIndex === 0
-        ? group.beat < beatsPerSystem
-        : group.beat >= beatsPerSystem
-    );
-    return (
-      <>
-        
-        {notesInThisSystem.map((group, gi) =>
-          group.notes.map((note, ni) => {
-            const x = getSliderXForBeat(group.beat, timeSignature);
-            const y = group.y_position; // Use precomputed Y
-  
-            const showAccidental = isAccidental(note);
-            const accidentalSymbol = getAccidentalSymbol(note);
-            // offset for simultaneously pressed key notes
-            const xOffset = ni * 8; // 8px spacing
-
-  
-            return (
-              <g key={`${systemIndex}-${gi}-${ni}`} className="note-group">
-                {renderLedgerLines(x+xOffset, y, systemIndex === 0, note)}
-                {showAccidental && (
-                  <text
-                    x={x + xOffset - 12}
-                    y={y + 5}
-                    fontSize="16"
-                    fill="#64B5F6"
-                    className="accidental"
-                  >
-                    {accidentalSymbol}
-                  </text>
-                  
-                )}
-                <circle
-                  cx={x }
-                  cy={y}
-                  r={4}
-                  fill="#64B5F6"
-                  className="note-head"
-                />
-              </g>
-            );
-          })
-        )}
-      </>
-    );
-  };
-  
-
-  const NoteRenderer2: React.FC<NoteRendererProps> = ({ systemIndex }) => {
-    React.useEffect(() => {
-      if (!isPlaying && checking) {
-        const correct: Note[] = [];
-        const incorrect: Note[] = [];
-  
-        const expectedUpper = UpperStaffpositions
-          .filter(item => item.whole)
-          .map(item => item.whole as [number, number]);
-        const expectedLower = LowerStaffpositions
-          .filter(item => item.whole)
-          .map(item => item.whole as [number, number]);
-        const playedNotes: [number, number,number][] = Object.values(keyspositions).flat();
-        // Upper system (treble)
-        const usedUpper: boolean[] = new Array(expectedUpper.length).fill(false);
-        playedNotes
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          .filter(([_, y,z]) => z === 0 )
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          .forEach(([x, y,_]) => {
-            let matched = -1;
-            for (let i = 0; i < expectedUpper.length; i++) {
-              if (usedUpper[i]) continue;
-              const [ex, ey] = expectedUpper[i];
-              if (Math.abs(x - ex) < THRESHOLD && Math.abs(y - ey) < THRESHOLD) {
-                matched = i;
-                break;
-              }
-            }
-            if (matched !== -1) {
-              const [mx, my] = expectedUpper[matched];
-              correct.push({ x_pos: mx, y_pos: my, systemIndex: 0 });
-              usedUpper[matched] = true;
-            } else {
-              incorrect.push({ x_pos: x, y_pos: y, systemIndex: 0 });
-            }
-          });
-  
-        // Lower system (bass)
-        const usedLower: boolean[] = new Array(expectedLower.length).fill(false);
-        playedNotes
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          .filter(([_, y,z]) => z === 1)
-          .forEach(([x, y]) => {
-            let matched = -1;
-            for (let i = 0; i < expectedLower.length; i++) {
-              if (usedLower[i]) continue;
-              const [lx, ly] = expectedLower[i];
-              if (Math.abs(x - lx) < THRESHOLD && Math.abs(y - ly) < THRESHOLD) {
-                matched = i;
-                break;
-              }
-            }
-            if (matched !== -1) {
-              const [mx, my] = expectedLower[matched];
-              correct.push({ x_pos: mx, y_pos: my, systemIndex: 1 });
-              usedLower[matched] = true;
-            } else {
-              incorrect.push({ x_pos: x, y_pos: y, systemIndex: 1 });
-            }
-          });
-  
-        setCorrectNotes(correct);
-        setInCorrectNotes(incorrect);
-        setChecking(false);
-      }
-    }, []);
-  
-    return (
-      <>
-        {correctNotes
-          .filter((note) => note.systemIndex === systemIndex)
-          .map((note, idx) => (
-            <g key={`correct-${idx}`} className="note-group">
-              <circle cx={note.x_pos} cy={note.y_pos} r={6} fill="green" />
-            </g>
-          ))}
-        {IncorrectNotes
-          .filter((note) => note.systemIndex === systemIndex)
-          .map((note, idx) => (
-            <g key={`incorrect-${idx}`} className="note-group">
-              <circle cx={note.x_pos} cy={note.y_pos} r={4} fill="red" />
-            </g>
-          ))}
-      </>
-    );
-  };
-  
-
-  
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  function getSliderXForBeat(beat: number, timeSignature: { top: number }): number {
-       // two systems of `beatsPerSystem` each
-       const beatsPerSystem = timeSignature.top * 4;
-       // where in its own system this beat falls
-       const beatInSystem   = beat % beatsPerSystem;
-       const beatWidth      = (STAFF_WIDTH - CLEF_WIDTH) / beatsPerSystem;
-       return CLEF_WIDTH + 15 + beatInSystem * beatWidth + beatWidth / 2;
-  }
-
-  function drawSlider(systemIndex: 0 | 1): JSX.Element | null {
-    const totalBeats = beatsPerSystem * 2;
-    if (sliderBeat < 0 || sliderBeat >= totalBeats) return null;
-  
-    // are we drawing for the upper or lower system?
-    const isUpper = (systemIndex === 0);
-    const inUpper = sliderBeat < beatsPerSystem;
-    if (isUpper !== inUpper) return null;  // only draw in the right system
-  
-    // compute beat‑within‑this‑system
-    const beatInSystem = inUpper
-      ? sliderBeat
-      : sliderBeat - beatsPerSystem;
-  
-    const beatWidth = (STAFF_WIDTH - CLEF_WIDTH) / beatsPerSystem;
-    const x = CLEF_WIDTH + 15 + beatInSystem * beatWidth + beatWidth / 2;
-  
-    // y‑ranges for each svg:
-    if(isUpper){
-    const y1 =  20 ;
-    const y2 =  200 + 4 * STAFF_LINE_GAP + STAFF_LINE_GAP;
-    return (
-      <line
-        x1={x}
-        y1={y1}
-        x2={x}
-        y2={y2}
-        stroke="red"
-        strokeWidth="20"
-        opacity={0.6}
-      />
-    );
-    }
-    else{
-      const y1 =  100 ;
-      const y2 =  280 + 4 * STAFF_LINE_GAP + STAFF_LINE_GAP;
-      return (
-        <line
-          x1={x}
-          y1={y1}
-          x2={x}
-          y2={y2}
-          stroke="red"
-          strokeWidth="20"
-          opacity={0.6}
-        />
-      );
-    }
-    
-  }
-
+ 
   useEffect(() => {
     if (!isPlaying) {
       setCapturedNotes([]);
@@ -768,8 +272,6 @@ React.useEffect(() => {
       stopMetronome()     
     }
   }, [isPlaying]);
-
-
 
   useEffect(() => {
     if (!isMetronomeRunning) {
@@ -787,71 +289,28 @@ React.useEffect(() => {
 
   useEffect(() => {
     const totalBeats     = beatsPerSystem * 2;  // two systems: upper + lower
+    if (isPlaying) {
+      intervalRef.current = setInterval(() => {
+        setSliderBeat((prev) => {
+          const next = prev + 1;
+          if (next >= totalBeats) {
+            clearInterval(intervalRef.current!);
+            setIsPlaying(false);
+            setChecking(true);
+            return prev;
+          }
+          return next;
+        });
+      }, (60 / bpm) * 1000);
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    }
 
-  if (isPlaying) {
-    intervalRef.current = setInterval(() => {
-      setSliderBeat((prev) => {
-        const next = prev + 1;
-        if (next >= totalBeats) {
-          clearInterval(intervalRef.current!);
-          setIsPlaying(false);
-          setChecking(true);
-          return prev;
-        }
-        return next;
-      });
-    }, (60 / bpm) * 1000);
-  } else {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-  }
-
-  return () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-  };
-}, [isPlaying, bpm, timeSignature, beatsPerSystem]);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isPlaying, bpm, timeSignature, beatsPerSystem]);
  
-
-  function drawMeasureLines(yStart: number): JSX.Element[] {
-    const measureCount = 4;
-    const totalBeats = timeSignature.top * measureCount;
-    const beatWidth = (STAFF_WIDTH + 29 - CLEF_WIDTH) / totalBeats;
-  
-    return new Array(measureCount + 1).fill(0).map((_, i) => {
-      const x = CLEF_WIDTH - 30 + i * timeSignature.top * beatWidth;
-      return (
-        <line
-          key={`measure-${i}-${yStart}`}
-          x1={x}
-          y1={yStart}
-          x2={x}
-          y2={300}
-          stroke="black"
-          strokeWidth="1"
-        />
-      );
-    });
-  }
-
-  function drawMeasureLines2(yStart: number): JSX.Element[] {
-    const measureCount = 4;
-    const totalBeats = timeSignature.top * measureCount;
-    const beatWidth = (STAFF_WIDTH + 29 - CLEF_WIDTH) / totalBeats;
-  
-    return new Array(measureCount + 1).fill(0).map((_, i) => {
-      const x = CLEF_WIDTH -30 + i * timeSignature.top * beatWidth;
-      return (
-        <line
-          key={`measure-${i}-${yStart}`}
-          x1={x}
-          y1={yStart}
-          x2={x}
-          y2={380}
-          stroke="black"
-          strokeWidth="1"
-        />
-      );
-    });
-  }
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
@@ -861,115 +320,20 @@ React.useEffect(() => {
       <div className="flex flex-col items-center justify-center pb-32 w-full">
         
       <div className={`${mobileWidth?"w-[90%]":"w-[90%]"} border-4 my-10  border-white  bg-white p-12 flex flex-col items-center`} >
-        <div className={`flex flex-col items-center gap-2 ${isPlaying ? '' : 'hidden'}`}>
-          <div className="flex items-center gap-2">
-            <label className="text-lg text-[#0A0A0B]">Time Signature:</label>
-            <input
-              type="number"
-              min="1"
-              max="12"
-              value={timeSignature.top}
-              onChange={(e) =>
-                setTimeSignature((prev) => ({ ...prev, top: parseInt(e.target.value) }))
-              }
-              className="w-12 border-2 border-primary-dark px-1 text-[#0A0A0B]"
-            />
-            <span className="text-lg text-primary-dark">/</span>
-            <input
-              type="number"
-              min="1"
-              max="16"
-              value={timeSignature.bottom}
-              onChange={(e) =>
-                setTimeSignature((prev) => ({ ...prev, bottom: parseInt(e.target.value) }))
-              }
-              className="w-12 border-2 px-1 text-[#0A0A0B] border-primary-dark"
-            />
-          </div>
-          <div className="space-x-10">
-            <button className="px-2 py-1 bg-green-500 text-white rounded">
-              Shuffle Notes
-            </button>
-          </div>
-        </div>
       <div ref={upperClefRef}>
-      <svg width="100%"   viewBox={`0 0 ${STAFF_WIDTH} 350`} height={350}  preserveAspectRatio="xMidYMid meet">
-      {/* <svg width={STAFF_WIDTH} height={350} > */}
-  
-        {drawStaffLines(20)}
-        {drawStaffLines(220)}
-
-         {wholeNotes.map((item, idx) => {
-        const [x, y] = item.whole!;
-        return (
-          <image
-            key={`whole-${idx}`}
-            href={item.imageSrc}
-            transform={`translate(${x - 18}, ${y - 26}) scale(0.6)`}
-            width={60}
-            height={60}
-            className="transition duration-500 ease-in-out"
-          />
-        );
+      {drawSvg({
+        STAFF_WIDTH, CLEF_WIDTH, STAFF_LINE_GAP, beatsPerSystem, timeSignature, wholeNotes,
+          restNotes, sliderBeat, isPlaying, capturedNotes, checking, UpperStaffpositions,
+          LowerStaffpositions, keyspositions, THRESHOLD, setCorrectNotes, setInCorrectNotes,
+          setChecking, correctNotes, IncorrectNotes, getSliderXForBeat: (beat: number) => getSliderXForBeatSimple(beat, timeSignature),
+          height:350, staffX1: 20, staffX2: 220,
       })}
-
-          {/* Rest notes with different transition */}
-          {restNotes.map((item, idx) => {
-        const [x, y] = item.rest!;
-        return (
-          <image
-            key={`rest-${idx}`}
-            href={item.imageSrc}
-            transform={`translate(${x - 18}, ${y - 26}) scale(0.6)`}
-            width={30}
-            height={30}
-            className="transition duration-300 ease-in"
-          />
-        );
-      })}
-
-        
-
-        <text x={5} y={32 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black" className="">𝄞</text>
-        <text x={5} y={225 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
-
-        {drawMeasureLines(20)}
-        <text x={(CLEF_WIDTH + 35) } y={20 + 1 * STAFF_LINE_GAP} className="text-[20px] md:text-[24px]">
-    {timeSignature.top}
-  </text>
-  <text x={(CLEF_WIDTH + 35) } y={20 + 3 * STAFF_LINE_GAP} className="text-[20px] md:text-[24px]">
-    {timeSignature.bottom}
-  </text>
-
-  {/* Bass Clef time */}
-  <text x={(CLEF_WIDTH + 35) } y={220 + 1 * STAFF_LINE_GAP} className="text-[20px] md:text-[24px]">
-    {timeSignature.top}
-  </text>
-  <text x={(CLEF_WIDTH + 35) } y={220 + 3 * STAFF_LINE_GAP} className="text-[20px] md:text-[24px]">
-    {timeSignature.bottom}
-  </text>
-
-      {drawSlider(0)}
-      
-        
-        
-      <NoteRenderer
-    capturedNotes={capturedNotes}
-    timeSignature={timeSignature}
-    isPlaying={isPlaying}
-    systemIndex={0}
-  />      <NoteRenderer2 capturedNotes={[]} timeSignature={{
-          top: 0,
-          bottom: 0
-        }} isPlaying={isPlaying} systemIndex={0}/>
-      </svg>
     </div>
       <div ref={lowerClefRef}>
-
       <svg width="100%"   viewBox={`0 0 ${STAFF_WIDTH} 350`} height={420}  preserveAspectRatio="xMidYMid meet">
 
-        {drawStaffLines(100)}
-        {drawStaffLines(300)}
+        {drawStaffLines(100,STAFF_WIDTH, STAFF_LINE_GAP)}
+        {drawStaffLines(300,STAFF_WIDTH, STAFF_LINE_GAP)}
 
          {lowerwholeNotes.map((item, idx) => {
         const [x, y] = item.whole!;
@@ -985,7 +349,6 @@ React.useEffect(() => {
         );
       })}
 
-          {/* Rest notes with different transition */}
           {lowerrestNotes.map((item, idx) => {
         const [x, y] = item.rest!;
         return (
@@ -1003,7 +366,7 @@ React.useEffect(() => {
         <text x={5} y={110 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black">𝄞</text>
         <text x={5} y={305 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
 
-        {drawMeasureLines2(100)}
+        {drawMeasureLinesLower(100,timeSignature,STAFF_WIDTH, CLEF_WIDTH)}
 
         <text x={CLEF_WIDTH + 35} y={100 + 1 * STAFF_LINE_GAP} className="text-[24px]">
           {timeSignature.top}
@@ -1019,35 +382,29 @@ React.useEffect(() => {
           {timeSignature.bottom}
         </text>
 
-        {drawSlider(1)}
-
-        
+        {drawSlider(1, beatsPerSystem, sliderBeat, STAFF_WIDTH, CLEF_WIDTH, STAFF_LINE_GAP)}
+       
         <NoteRenderer
           capturedNotes={capturedNotes}
           timeSignature={timeSignature}
           isPlaying={isPlaying}
           systemIndex={1}
+          getSliderXForBeat={getSliderXForBeatSimple}
+          renderLedgerLines={renderLedgerLines}
         />      
-        <NoteRenderer2
-          capturedNotes={[]}
-          timeSignature={{ top: 0, bottom: 0 }}
-          isPlaying={isPlaying}
-          systemIndex={1}
-        />
+        
+        <CheckNotesRender capturedNotes={[]} timeSignature={{top: 0,bottom: 0}} isPlaying={isPlaying} systemIndex={1} 
+    checking={checking}  UpperStaffpositions={UpperStaffpositions} LowerStaffpositions={LowerStaffpositions} 
+    keyspositions={keyspositions} THRESHOLD={ THRESHOLD} setCorrectNotes={setCorrectNotes} setInCorrectNotes={setInCorrectNotes}
+    setChecking={setChecking}correctNotes={correctNotes}IncorrectNotes={IncorrectNotes} 
+  />
     </svg>
     </div>
-    <div className="flex justify-between items-center mt-4">
-      
-      </div>
+    </div>          
     </div>
-            
-    </div>
-    </div>
-    
+    </div>  
     <FooterMusicsheet  id={id}  unitLessonsData={unitLessonsData} nextNoteTimeRef={nextNoteTimeRef} scheduleAheadTime={scheduleAheadTime} playClick={playClick} audioContextRef={audioContextRef} currentBeatRef={currentBeatRef} setSliderBeat={setSliderBeat} setIsPlaying={setIsPlaying} scheduler={scheduler} timerID={timerID} isCountingIn={isCountingIn} isMetronomeRunning={isMetronomeRunning} isPlaying={isPlaying} initializeAudioContext={initializeAudioContext} bpm={bpm} setBpm={setBpm} setIsCountingIn={setIsCountingIn} setIsMetronomeRunning={setIsMetronomeRunning}  setCapturedNotes={setCapturedNotes} setPlayCount={setPlayCount}/>
-    
   </div>
   </Suspense>
-
   );
 }
