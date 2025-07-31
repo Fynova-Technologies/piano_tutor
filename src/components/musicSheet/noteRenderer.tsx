@@ -6,7 +6,7 @@ type CapturedNoteGroup = {
   notes: number[];
   x_position: number;
   systemIndex: 0 | 1;
-  y_position: number; // <-- add this
+  y_position: number;
 };
 
 interface NoteRendererProps {
@@ -59,11 +59,9 @@ const NoteRenderer: React.FC<NoteRendererProps> = ({
   
             const showAccidental = isAccidental(note);
             const accidentalSymbol = getAccidentalSymbol(note);
-            // offset for simultaneously pressed key notes
             const xOffset = ni * 8; // 8px spacing
 
-  
-            return (
+           return (
               <g key={`${systemIndex}-${gi}-${ni}`} className="note-group">
                 {renderLedgerLines(x+xOffset, y, systemIndex === 0, note)}
                 {showAccidental && (

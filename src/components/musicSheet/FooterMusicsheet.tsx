@@ -2,7 +2,6 @@ import Image from "next/image";
 import { useEffect } from "react";
 import FooterPlayButton from "./footerPlaybutton";
 
-
 type FooterMusicsheetProps = {
   nextNoteTimeRef: React.MutableRefObject<number>;
   scheduleAheadTime: number;
@@ -24,7 +23,6 @@ type FooterMusicsheetProps = {
   setPlayCount: React.Dispatch<React.SetStateAction<number>>;
   unitLessonsData: UnitLesson[],
   id:string,
-  // playBackgroundMusic: () => void;
   initializeAudioContext: () => Promise<void>;
 };
 
@@ -33,7 +31,7 @@ type CapturedNoteGroup = {
   notes: number[];
   x_position: number;
   systemIndex: 0 | 1;
-  y_position: number; // <-- add this
+  y_position: number;
 };
 
 
@@ -65,11 +63,9 @@ export default function FooterMusicsheet({
   setPlayCount,
   unitLessonsData,
   id,
-  // playBackgroundMusic
   
 }: FooterMusicsheetProps) {
-    
-    
+        
     useEffect(() => {
         if (!isMetronomeRunning) {
           return
@@ -96,30 +92,18 @@ export default function FooterMusicsheet({
               <span className="font-medium text-[14px]">{bpm}</span>
               <label className="font-medium text-[14px]">BPM:</label>
             </div>
-            {/* <input
-              type="range"
-              min="30"
-              max="200"
-              value={bpm}
-              onChange={(e) => setBpm(parseInt(e.target.value))}
-              className="w-40"
-            /> */}
           </div>
-
           <button
             className="px-2 py-1 text-5xl text-[#FEFEFE] cursor-pointer"
             onClick={() => setBpm((prev) => Math.min(200, prev + 1))}
           >
             +
           </button>
-        </div>
-      
-      <FooterPlayButton id={id}  unitLessonsData={unitLessonsData} bpm={bpm} timerID={timerID}   setPlayCount={setPlayCount}   scheduler={scheduler}   audioContextRef={audioContextRef}  currentBeatRef={currentBeatRef} scheduleAheadTime={scheduleAheadTime}   nextNoteTimeRef={ nextNoteTimeRef} isCountingIn={isCountingIn} isPlaying={isPlaying} setIsPlaying={setIsPlaying} initializeAudioContext={initializeAudioContext} setIsCountingIn={setIsCountingIn} setSliderBeat={setSliderBeat} playClick={playClick} setIsMetronomeRunning={setIsMetronomeRunning} setCapturedNotes={setCapturedNotes} />
-      
+        </div>      
+      <FooterPlayButton id={id}  unitLessonsData={unitLessonsData} bpm={bpm} timerID={timerID}   setPlayCount={setPlayCount}   scheduler={scheduler}   audioContextRef={audioContextRef}  currentBeatRef={currentBeatRef} scheduleAheadTime={scheduleAheadTime}   nextNoteTimeRef={ nextNoteTimeRef} isCountingIn={isCountingIn} isPlaying={isPlaying} setIsPlaying={setIsPlaying} initializeAudioContext={initializeAudioContext} setIsCountingIn={setIsCountingIn} setSliderBeat={setSliderBeat} playClick={playClick} setIsMetronomeRunning={setIsMetronomeRunning} setCapturedNotes={setCapturedNotes} />      
       <div className="Settings flex gap-4 mr-8 w-full items-end justify-end">
         <button className="bg-[#D4AF37] py-[6px] w-[101px] h-[48px] px-[16px] rounded-2xl flex gap-2 primary-color-text items-center text-[16px]"><Image src="/icon.svg" width={15} height={10} alt="icon"/>Learn</button>
         <Image src="/settings.svg" width={50} height={40} alt="icon"/>
-
       </div>
     </div>
     </div>
