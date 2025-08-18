@@ -1,6 +1,7 @@
 import Image from "next/image";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import FooterPlayButton from "./footerPlaybutton";
+import OptionPopup from "../optionPopup";
 
 type FooterMusicsheetProps = {
   nextNoteTimeRef: React.MutableRefObject<number>;
@@ -78,11 +79,14 @@ export default function FooterMusicsheet({
         }
         return () => clearInterval(timerID.current as NodeJS.Timeout);
       }, [isCountingIn, isMetronomeRunning, isPlaying, scheduler, timerID]);
-    
+    const [openDialogue, setOpenDialogue] = useState(false);
     return(
     <div className={` flex fixed bottom-0 items-end justify-end bg-[#0a0a0a] w-full gap-2 p-4 ${isPlaying ? 'hidden' : ' '}`}>
       <div className="flex items-center justify-between w-full">
         <div className="flex ml-8 items-center gap-4 w-full ">
+          <div>
+        {openDialogue && <OptionPopup openDialogue={openDialogue} setOpenDialogue={setOpenDialogue} />}
+      </div>
           <button
             className="px-2 py-1 text-5xl text-[#FEFEFE] cursor-pointer"
             onClick={() => setBpm((prev) => Math.max(30, prev - 1))}
@@ -103,8 +107,9 @@ export default function FooterMusicsheet({
       <FooterPlayButton id={id}  unitLessonsData={unitLessonsData} bpm={bpm} timerID={timerID}   setPlayCount={setPlayCount}   scheduler={scheduler}   audioContextRef={audioContextRef}  currentBeatRef={currentBeatRef} scheduleAheadTime={scheduleAheadTime}   nextNoteTimeRef={ nextNoteTimeRef} isCountingIn={isCountingIn} isPlaying={isPlaying} setIsPlaying={setIsPlaying} initializeAudioContext={initializeAudioContext} setIsCountingIn={setIsCountingIn} setSliderBeat={setSliderBeat} playClick={playClick} setIsMetronomeRunning={setIsMetronomeRunning} setCapturedNotes={setCapturedNotes} />      
       <div className="Settings flex gap-4 mr-8 w-full items-end justify-end">
         <button className="bg-[#D4AF37] py-[6px] w-[101px] h-[48px] px-[16px] rounded-2xl flex gap-2 primary-color-text items-center text-[16px]"><Image src="/icon.svg" width={15} height={10} alt="icon"/>Learn</button>
-        <Image src="/settings.svg" width={50} height={40} alt="icon"/>
+        <Image src="/settings.svg" width={50} height={40} alt="icon" onClick={()=> setOpenDialogue(!openDialogue)}/>
       </div>
+      
     </div>
     </div>
     )

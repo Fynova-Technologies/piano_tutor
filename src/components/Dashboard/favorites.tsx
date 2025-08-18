@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Image from "next/image"
 import HeartIcon from "../hearfilled";
+import GetPopupContainer from '@/components/favouritepopup';
 
 type SongInformation = {
   id: number;
@@ -19,6 +20,7 @@ export default function Favorite(){
     const [liked, setLiked] = useState<{ [id: string]: boolean }>({});
     const [openDialogue, setOpenDialogue] = useState(false);
     const [favorites,setFavorites]= useState<SongInformation[] | null>(null)
+    const [dialogueSong, setDialogueSong] = useState<SongInformation | null>(null);
     
     const handleClick = (id:number) => {
      setLiked((prev) => ({
@@ -44,47 +46,6 @@ export default function Favorite(){
     isMounted = false;
   };
 }, []);
-    
-    
-
-    
-
-    // const songs = [
-    //     {
-    //         id: 1,
-    //         title: "Song One",
-    //         artist: "Artist A",
-    //         ratings:4,
-    //         imageUrl: "/songs/s1.jpg" // Placeholder image
-    //     },
-    //     {
-    //         id: 2,
-    //         title: "Song Two",
-    //         artist: "Artist B",
-    //         ratings: 5,
-    //         imageUrl: "/songs/s2.jpg" // Placeholder image
-    //     },
-    //     {
-    //         id: 3,
-    //         title: "Song Three",
-    //         artist: "Artist C",
-    //         ratings: 3,
-    //         imageUrl: "/songs/s3.jpg" // Placeholder image
-    //     },
-    //     {
-    //         id: 4,
-    //         title: "Song Four",
-    //         artist: "Artist D",
-    //         ratings: 4,
-    //         imageUrl: "/songs/s4.jpg" // Placeholder image
-    //     },
-    //     {   id: 5,
-    //         title: "Song Five",
-    //         artist: "Artist E",
-    //         ratings: 2,
-    //         imageUrl: "/songs/s5.jpg" // Placeholder image
-    //     }
-    // ]
 
     if (!favorites) return <p>Loading favorites...</p>;
 
@@ -95,52 +56,15 @@ export default function Favorite(){
                     <h1 className="text-2xl font-bold mb-4 text-[#151517]">Favorites</h1>
                     <div className="song-card grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 p-4">
                             {favorites?.map(( song,index) =>
-                                    <div key={index} className="w-[80%]"  >
-                                    <div className={`flex flex-col w-full ${openDialogue?"":"hidden"}`}>
-                                        <div className='flex'>
-                                            <h1 className='text-[#151517] text-2xl font-bold'>Music Title</h1>
-                                            <div className='flex mx-auto'>
-                                                <Image
-                                                    src="/hearfilled.png"
-                                                    alt="Heart Icon"
-                                                    width={20}
-                                                    height={20}
-                                                    className="cursor-pointer"  />
-                                                <Image
-                                                    onClick={() => setOpenDialogue(!openDialogue)}
-                                                    src="/SVGRepo_iconCarrier.png"
-                                                    alt="Share Icon"
-                                                    width={20}
-                                                    height={20}
-                                                    className="cursor-pointer ml-2" />
-                                                
-
-                                            </div>
-                                        </div>
-                                        <div className="flex">
-                                            <div className='flex flex-1'>
-                                                <Image
-                                                    src={song.imageUrl || "/songs/s1.jpg"} // Placeholder image
-                                                    alt={song.title}
-                                                    width={200}
-                                                    height={200}
-                                                    className="w-[400px] h-[300px] object-cover rounded-xl"
-                                                />
-                                            </div>
-                                            <div className="flex-1">
-
-                                                
-                                            </div>
-
-                                        </div>
-                                    </div>
+                                    <div key={index} className="w-[80%]"   >
                                     <div className="relative rounded-t-2xl overflow-hidden shadow-lg group " >
                                         <Image
                                             src={song.imageUrl || "/songs/s1.jpg"} // Placeholder image
                                             alt={song.title}
                                             width={400}
                                             height={400}
-                                            className="object-cover w-full h-[300px] rounded-t-2xl transition-transform duration-300 hover:scale-105"
+                                            className="object-cover w-full h-[300px] rounded-t-2xl transition-transform duration-300 hover:scale-105 cursor-pointer"
+                                            onClick={() => { setOpenDialogue(!openDialogue); setDialogueSong(song); }}
                                         />
                                        <div className="absolute bottom-2 left-7 flex flex-row gap-1">
                                             {[...Array(5)].map((_, i) => (
@@ -172,6 +96,9 @@ export default function Favorite(){
                                     </div>
                                 </div>
                                 
+                            )}
+                            {openDialogue && dialogueSong && (
+                                <GetPopupContainer dialogueSong={dialogueSong} openDialogue={openDialogue} setOpenDialogue={setOpenDialogue}/>
                             )}
                             
                         </div>

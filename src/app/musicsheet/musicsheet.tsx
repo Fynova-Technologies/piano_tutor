@@ -326,7 +326,7 @@ React.useEffect(() => {
           restNotes, sliderBeat, isPlaying, capturedNotes, checking, UpperStaffpositions,
           LowerStaffpositions, keyspositions, THRESHOLD, setCorrectNotes, setInCorrectNotes,
           setChecking, correctNotes, IncorrectNotes, getSliderXForBeat: (beat: number) => getSliderXForBeatSimple(beat, timeSignature),
-          height:350, staffX1: 20, staffX2: 220,
+          height:400, staffX1: 20, staffX2: 220,
       })}
     </div>
       <div ref={lowerClefRef}>
