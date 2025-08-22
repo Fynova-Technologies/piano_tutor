@@ -26,6 +26,8 @@ type FooterMusicsheetProps = {
   id:string,
   initializeAudioContext: () => Promise<void>;
   backgroundSoundRef: React.MutableRefObject<HTMLAudioElement | null>;
+  metronomeVolume: number;
+  setMetronomeVolume?: React.Dispatch<React.SetStateAction<number>>;
 };
 
 type CapturedNoteGroup = {
@@ -63,7 +65,9 @@ export default function FooterMusicsheet({
   setPlayCount,
   unitLessonsData,
   id,
-  backgroundSoundRef
+  backgroundSoundRef,
+  metronomeVolume,
+  setMetronomeVolume,
   
 }: FooterMusicsheetProps) {
         
@@ -80,12 +84,16 @@ export default function FooterMusicsheet({
         return () => clearInterval(timerID.current as NodeJS.Timeout);
       }, [isCountingIn, isMetronomeRunning, isPlaying, scheduler, timerID]);
     const [openDialogue, setOpenDialogue] = useState(false);
+    const [backgroundVolume, setBackgroundVolume] = useState(100);
+
+
+
     return(
     <div className={` flex fixed bottom-0 items-end justify-end bg-[#0a0a0a] w-full gap-2 p-4 ${isPlaying ? 'hidden' : ' '}`}>
       <div className="flex items-center justify-between w-full">
         <div className="flex ml-8 items-center gap-4 w-full ">
           <div>
-        {openDialogue && <OptionPopup openDialogue={openDialogue} setOpenDialogue={setOpenDialogue} />}
+        {openDialogue && <OptionPopup openDialogue={openDialogue} setOpenDialogue={setOpenDialogue} backgroundVolume={backgroundVolume} setBackgroundVolume={setBackgroundVolume} metronomeVolume={metronomeVolume} setMetronomeVolume={setMetronomeVolume}  />}
       </div>
           <button
             className="px-2 py-1 text-5xl text-[#FEFEFE] cursor-pointer"
@@ -104,7 +112,10 @@ export default function FooterMusicsheet({
             +
           </button>
         </div>      
-      <FooterPlayButton id={id} backgroundSoundRef={backgroundSoundRef}  unitLessonsData={unitLessonsData} bpm={bpm} timerID={timerID}   setPlayCount={setPlayCount}   scheduler={scheduler}   audioContextRef={audioContextRef}  currentBeatRef={currentBeatRef} scheduleAheadTime={scheduleAheadTime}   nextNoteTimeRef={ nextNoteTimeRef} isCountingIn={isCountingIn} isPlaying={isPlaying} setIsPlaying={setIsPlaying} initializeAudioContext={initializeAudioContext} setIsCountingIn={setIsCountingIn} setSliderBeat={setSliderBeat} playClick={playClick} setIsMetronomeRunning={setIsMetronomeRunning} setCapturedNotes={setCapturedNotes} />      
+      <FooterPlayButton id={id} backgroundSoundRef={backgroundSoundRef}  unitLessonsData={unitLessonsData} bpm={bpm} timerID={timerID}   setPlayCount={setPlayCount}   
+        scheduler={scheduler}   audioContextRef={audioContextRef}  currentBeatRef={currentBeatRef} scheduleAheadTime={scheduleAheadTime}   nextNoteTimeRef={ nextNoteTimeRef} isCountingIn={isCountingIn} 
+        isPlaying={isPlaying} setIsPlaying={setIsPlaying} initializeAudioContext={initializeAudioContext} setIsCountingIn={setIsCountingIn} setSliderBeat={setSliderBeat} playClick={playClick} setIsMetronomeRunning={setIsMetronomeRunning} 
+        setCapturedNotes={setCapturedNotes} setBackgroundVolume={setBackgroundVolume} backgroundVolume={backgroundVolume}/>      
       <div className="Settings flex gap-4 mr-8 w-full items-end justify-end">
         <button className="bg-[#D4AF37] py-[6px] w-[101px] h-[48px] px-[16px] rounded-2xl flex gap-2 primary-color-text items-center text-[16px]"><Image src="/icon.svg" width={15} height={10} alt="icon"/>Learn</button>
         <Image src="/settings.svg" width={50} height={40} alt="icon" onClick={()=> setOpenDialogue(!openDialogue)}/>

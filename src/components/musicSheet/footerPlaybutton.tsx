@@ -40,6 +40,8 @@ interface FooterPlayButtonProps {
   initializeAudioContext: () => Promise<void>;
   id:string,
   backgroundSoundRef: MutableRefObject<HTMLAudioElement | null>;
+  setBackgroundVolume?: Dispatch<SetStateAction<number>>;
+  backgroundVolume?: number;
 }
 
 export default function FooterPlayButton({nextNoteTimeRef,
@@ -61,7 +63,8 @@ export default function FooterPlayButton({nextNoteTimeRef,
   setPlayCount,
   unitLessonsData,
   id,
-  backgroundSoundRef
+  backgroundSoundRef,
+  backgroundVolume,
 }: FooterPlayButtonProps) {
 
   const searchParams = useSearchParams();
@@ -83,23 +86,18 @@ export default function FooterPlayButton({nextNoteTimeRef,
   };
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < unitLessonsData.length - 1;
-  // const toggleMusic = () => {
-  //   if (!backgroundSoundRef.current) return;
-
-  //   if (isPlaying) {
-  //     backgroundSoundRef.current.pause();
-  //   } else {
-  //     backgroundSoundRef.current.play();
-  //   }
-  // };
 
   useEffect(() => {
     if (!backgroundSoundRef.current) return;
 
-    if (!isPlaying) {
+    if (!isPlaying || (backgroundVolume ?? 0) / 100 === 0) {
       backgroundSoundRef.current.pause();
     } else {
       backgroundSoundRef.current.play();
+    }
+    if (backgroundSoundRef.current && backgroundVolume !== undefined) {
+      backgroundSoundRef.current.volume = backgroundVolume / 100;
+      console.log("Background Volume:", backgroundVolume / 100);
     }
   })
 

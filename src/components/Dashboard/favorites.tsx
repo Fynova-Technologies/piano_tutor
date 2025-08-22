@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Image from "next/image"
-import HeartIcon from "../hearfilled";
-import GetPopupContainer from '@/components/favouritepopup';
+import HeartIcon from "../library/hearfilled";
+import GetPopupContainer from '@/components/favouritepopup/favouritepopup';
 
 type SongInformation = {
   id: number;
@@ -83,7 +83,7 @@ export default function Favorite(){
                                         <div>
                                             <div className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-md  "       onClick={() => handleClick(song.id)}>
 
-                                                <HeartIcon isLiked={liked[song.id]} />
+                                                <HeartIcon isLiked={liked[song.id] }/>
 
 
                                             </div>

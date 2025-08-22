@@ -223,8 +223,8 @@ export default function MusicSheetClient() {
     if (note <= 60 - 1) return 'bass';   // below Middle C
     return 'middle'; // C4
   }
-
-  const playClick = OnPlayClick({audioContextRef,countInBuffers});
+  const [metronomeVolume,setMetronomeVolume]=useState(100)
+  const playClick = OnPlayClick({audioContextRef,countInBuffers,metronomeVolume});
   const getNoteY = GetNoteYposition({STAFF_LINE_GAP, getStaffPositionsFromSemitones });
   const getSliderXForBeatSimple = (beat: number, timeSignature: { top: number }) => getSliderXForBeat(beat, timeSignature, STAFF_WIDTH, CLEF_WIDTH);
   
@@ -407,7 +407,7 @@ React.useEffect(() => {
     <FooterMusicsheet  id={id}  unitLessonsData={unitLessonsData} nextNoteTimeRef={nextNoteTimeRef} scheduleAheadTime={scheduleAheadTime} 
       playClick={playClick} audioContextRef={audioContextRef} currentBeatRef={currentBeatRef} setSliderBeat={setSliderBeat} setIsPlaying={setIsPlaying} 
       scheduler={scheduler} timerID={timerID} isCountingIn={isCountingIn} isMetronomeRunning={isMetronomeRunning} isPlaying={isPlaying} initializeAudioContext={initializeAudioContext} 
-      bpm={bpm} setBpm={setBpm} setIsCountingIn={setIsCountingIn} setIsMetronomeRunning={setIsMetronomeRunning}  setCapturedNotes={setCapturedNotes} setPlayCount={setPlayCount} backgroundSoundRef={backgroundSoundRef}/>
+      bpm={bpm} setBpm={setBpm} setIsCountingIn={setIsCountingIn} setIsMetronomeRunning={setIsMetronomeRunning}  setCapturedNotes={setCapturedNotes} setPlayCount={setPlayCount} backgroundSoundRef={backgroundSoundRef} metronomeVolume={metronomeVolume} setMetronomeVolume={setMetronomeVolume}/>
   </div>
   </Suspense>
   );

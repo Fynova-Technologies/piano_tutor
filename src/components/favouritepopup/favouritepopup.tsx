@@ -1,7 +1,7 @@
 // import { XMarkIcon, LockClosedIcon, StarIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import { useState } from 'react';
-import HeartIcon from '@/components/hearfilled';
+import PopupHeartIcon from '@/components/favouritepopup/popupHeartanimation';
 
 interface SubLevel {
   name: string;
@@ -44,15 +44,15 @@ export default function GetPopupContainer({ dialogueSong, openDialogue, setOpenD
         {/* Left section: Title + Image */}
         <div className=" flex justify-between ">
           <h2 className="text-lg font-bold mb-4 text-black">{dialogueSong.title}</h2>
-          <div className=" flex justify-space-between items-start gap-4">
+          <div className=" flex justify-space-between items-center gap-4">
             <div className=" cursor-pointer text-black"       onClick={() => handleClick(dialogueSong.id)}>
-              <HeartIcon isLiked={liked[dialogueSong.id]} />
+              <PopupHeartIcon isLiked={liked[dialogueSong.id]} />
             </div>
             <Image
               src="/assets/cross-circle.svg"
               alt="Album cover"
-              height={30}
-              width={30}
+              height={32}
+              width={32}
               className="rounded-2xl border cursor-pointer"
               onClick={() => setOpenDialogue(!openDialogue)}
             />

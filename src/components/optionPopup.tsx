@@ -12,22 +12,26 @@ interface OptionSettingsData {
 
 interface SoundOptionsData {
   Measure: [string, number];
-  Instrument: [string, number];
+  Background_Music: [string, number];
   Countoff: [string, number];
-  Accompaniment: [string, number];
+  Instrument: [string, number];
 }
 
 type OptionPopupProps = {
   openDialogue: boolean;
   setOpenDialogue: React.Dispatch<React.SetStateAction<boolean>>;
+  backgroundVolume: number;
+  setBackgroundVolume?: React.Dispatch<React.SetStateAction<number>>;
+  metronomeVolume: number;
+  setMetronomeVolume?: React.Dispatch<React.SetStateAction<number>>; 
 };
 
-export default function OptionPopup({ openDialogue, setOpenDialogue }: OptionPopupProps) {
+export default function OptionPopup({ openDialogue, setOpenDialogue,backgroundVolume,setBackgroundVolume,metronomeVolume,setMetronomeVolume }: OptionPopupProps) {
   const defaultSoundSettings: SoundOptionsData = {
-    Measure: ["assets/metro.svg", 100],
+    Measure: ["assets/metro.svg", metronomeVolume ],
     Instrument: ["assets/colored.svg", 100],
     Countoff: ["assets/Vector (2).svg", 100],
-    Accompaniment: ["assets/Vector (3).svg", 100],
+    Background_Music: ["assets/Vector (3).svg", backgroundVolume],
   };
 
   const defaultOptionSettings: OptionSettingsData = {
@@ -56,6 +60,23 @@ export default function OptionPopup({ openDialogue, setOpenDialogue }: OptionPop
       ...prev,
       [field]: [imageUrl, change],
     }));
+    switch (field) {
+    case "Measure":
+      setMetronomeVolume?.(change);
+      break;
+    case "Background_Music":
+      setBackgroundVolume?.(change);
+      break;
+    // case "Countoff":
+    //   // if you plan to control count-in volume separately
+    //   setCountoffVolume?.(change);
+    //   break;
+    // case "Accompaniment":
+    //   setAccompanimentVolume?.(change);
+    //   break;
+    default:
+      break;
+  }
   };
 
   const resetSettings = () => {
