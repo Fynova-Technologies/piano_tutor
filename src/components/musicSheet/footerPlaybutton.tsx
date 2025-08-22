@@ -3,7 +3,7 @@ import Image from "next/image";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause } from '@fortawesome/free-solid-svg-icons';
 import { useSearchParams, useRouter } from "next/navigation";
-import { MutableRefObject, Dispatch, SetStateAction } from "react";
+import { MutableRefObject, Dispatch, SetStateAction, useEffect } from "react";
 
 type CapturedNoteGroup = {
   beat: number;
@@ -39,6 +39,7 @@ interface FooterPlayButtonProps {
   unitLessonsData: UnitLesson[];
   initializeAudioContext: () => Promise<void>;
   id:string,
+  backgroundSoundRef: MutableRefObject<HTMLAudioElement | null>;
 }
 
 export default function FooterPlayButton({nextNoteTimeRef,
@@ -60,6 +61,7 @@ export default function FooterPlayButton({nextNoteTimeRef,
   setPlayCount,
   unitLessonsData,
   id,
+  backgroundSoundRef
 }: FooterPlayButtonProps) {
 
   const searchParams = useSearchParams();
@@ -81,6 +83,25 @@ export default function FooterPlayButton({nextNoteTimeRef,
   };
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < unitLessonsData.length - 1;
+  // const toggleMusic = () => {
+  //   if (!backgroundSoundRef.current) return;
+
+  //   if (isPlaying) {
+  //     backgroundSoundRef.current.pause();
+  //   } else {
+  //     backgroundSoundRef.current.play();
+  //   }
+  // };
+
+  useEffect(() => {
+    if (!backgroundSoundRef.current) return;
+
+    if (!isPlaying) {
+      backgroundSoundRef.current.pause();
+    } else {
+      backgroundSoundRef.current.play();
+    }
+  })
 
 
     return(
@@ -90,6 +111,11 @@ export default function FooterPlayButton({nextNoteTimeRef,
                     disabled={!hasPrevious}>
                     <Image src="/skip_previous_filled.png" width={45} height={20} alt="skip previous" className="ml-2" />
                   </button>
+                  <audio
+                    ref={backgroundSoundRef}
+                    src="/songs/jungle-waves.mp3"
+                    loop
+                  />
                 <button
                   className=" px-5 py-4 bg-white text-white rounded-full hover:bg-zinc-300 cursor-pointer"
                   onClick={async () => {
@@ -103,6 +129,7 @@ export default function FooterPlayButton({nextNoteTimeRef,
                     await initializeAudioContext();
                     setIsCountingIn(true);
                     setSliderBeat(0);
+                    // toggleMusic();
                     currentBeatRef.current = 0;                  
                     const now = audioContextRef.current!.currentTime;
                     const scheduleTime = now;                  

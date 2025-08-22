@@ -72,6 +72,7 @@ export default function MusicSheetClient() {
   const [keyspositions, setKeysPositions] = useState<{ [key: string]: [number, number,number][] }>({});
   const [checking, setChecking] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const backgroundSoundRef = useRef<HTMLAudioElement | null>(null);
   const nextNoteTimeRef = useRef(0);
   const timerID = useRef<NodeJS.Timeout | null>(null);
   const scheduleAheadTime = 0.2; // Schedule 100ms ahead
@@ -403,7 +404,10 @@ React.useEffect(() => {
     </div>          
     </div>
     </div>  
-    <FooterMusicsheet  id={id}  unitLessonsData={unitLessonsData} nextNoteTimeRef={nextNoteTimeRef} scheduleAheadTime={scheduleAheadTime} playClick={playClick} audioContextRef={audioContextRef} currentBeatRef={currentBeatRef} setSliderBeat={setSliderBeat} setIsPlaying={setIsPlaying} scheduler={scheduler} timerID={timerID} isCountingIn={isCountingIn} isMetronomeRunning={isMetronomeRunning} isPlaying={isPlaying} initializeAudioContext={initializeAudioContext} bpm={bpm} setBpm={setBpm} setIsCountingIn={setIsCountingIn} setIsMetronomeRunning={setIsMetronomeRunning}  setCapturedNotes={setCapturedNotes} setPlayCount={setPlayCount}/>
+    <FooterMusicsheet  id={id}  unitLessonsData={unitLessonsData} nextNoteTimeRef={nextNoteTimeRef} scheduleAheadTime={scheduleAheadTime} 
+      playClick={playClick} audioContextRef={audioContextRef} currentBeatRef={currentBeatRef} setSliderBeat={setSliderBeat} setIsPlaying={setIsPlaying} 
+      scheduler={scheduler} timerID={timerID} isCountingIn={isCountingIn} isMetronomeRunning={isMetronomeRunning} isPlaying={isPlaying} initializeAudioContext={initializeAudioContext} 
+      bpm={bpm} setBpm={setBpm} setIsCountingIn={setIsCountingIn} setIsMetronomeRunning={setIsMetronomeRunning}  setCapturedNotes={setCapturedNotes} setPlayCount={setPlayCount} backgroundSoundRef={backgroundSoundRef}/>
   </div>
   </Suspense>
   );

@@ -25,6 +25,7 @@ type FooterMusicsheetProps = {
   unitLessonsData: UnitLesson[],
   id:string,
   initializeAudioContext: () => Promise<void>;
+  backgroundSoundRef: React.MutableRefObject<HTMLAudioElement | null>;
 };
 
 type CapturedNoteGroup = {
@@ -37,9 +38,7 @@ type CapturedNoteGroup = {
 
 
 type UnitLesson = {
-
      id: string, lessontitle: string, link: string, pattern: string, patternkey: string 
-
 };
 
 export default function FooterMusicsheet({
@@ -64,6 +63,7 @@ export default function FooterMusicsheet({
   setPlayCount,
   unitLessonsData,
   id,
+  backgroundSoundRef
   
 }: FooterMusicsheetProps) {
         
@@ -104,7 +104,7 @@ export default function FooterMusicsheet({
             +
           </button>
         </div>      
-      <FooterPlayButton id={id}  unitLessonsData={unitLessonsData} bpm={bpm} timerID={timerID}   setPlayCount={setPlayCount}   scheduler={scheduler}   audioContextRef={audioContextRef}  currentBeatRef={currentBeatRef} scheduleAheadTime={scheduleAheadTime}   nextNoteTimeRef={ nextNoteTimeRef} isCountingIn={isCountingIn} isPlaying={isPlaying} setIsPlaying={setIsPlaying} initializeAudioContext={initializeAudioContext} setIsCountingIn={setIsCountingIn} setSliderBeat={setSliderBeat} playClick={playClick} setIsMetronomeRunning={setIsMetronomeRunning} setCapturedNotes={setCapturedNotes} />      
+      <FooterPlayButton id={id} backgroundSoundRef={backgroundSoundRef}  unitLessonsData={unitLessonsData} bpm={bpm} timerID={timerID}   setPlayCount={setPlayCount}   scheduler={scheduler}   audioContextRef={audioContextRef}  currentBeatRef={currentBeatRef} scheduleAheadTime={scheduleAheadTime}   nextNoteTimeRef={ nextNoteTimeRef} isCountingIn={isCountingIn} isPlaying={isPlaying} setIsPlaying={setIsPlaying} initializeAudioContext={initializeAudioContext} setIsCountingIn={setIsCountingIn} setSliderBeat={setSliderBeat} playClick={playClick} setIsMetronomeRunning={setIsMetronomeRunning} setCapturedNotes={setCapturedNotes} />      
       <div className="Settings flex gap-4 mr-8 w-full items-end justify-end">
         <button className="bg-[#D4AF37] py-[6px] w-[101px] h-[48px] px-[16px] rounded-2xl flex gap-2 primary-color-text items-center text-[16px]"><Image src="/icon.svg" width={15} height={10} alt="icon"/>Learn</button>
         <Image src="/settings.svg" width={50} height={40} alt="icon" onClick={()=> setOpenDialogue(!openDialogue)}/>
