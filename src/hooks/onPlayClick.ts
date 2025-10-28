@@ -5,8 +5,10 @@ type OnPlayClickProps = {
 };
 
 export default function OnPlayClick({ audioContextRef, countInBuffers,metronomeVolume }: OnPlayClickProps) {
+
     const playClick = (time = 0, isDownbeat = false, countInIndex: number | null = null) => {
     if (!audioContextRef.current) return;
+    
     if (countInIndex !== null && countInBuffers.current[countInIndex]) {
       const source = audioContextRef.current.createBufferSource();
       source.buffer = countInBuffers.current[countInIndex];

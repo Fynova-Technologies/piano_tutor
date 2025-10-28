@@ -330,9 +330,11 @@ React.useEffect(() => {
           height:400, staffX1: 20, staffX2: 220,
       })}
     </div>
-      <div ref={lowerClefRef}>
-      <svg width="100%"   viewBox={`0 0 ${STAFF_WIDTH} 350`} height={420}  preserveAspectRatio="xMidYMid meet">
 
+      <div ref={lowerClefRef}>
+
+
+      <svg width="100%"   viewBox={`0 0 ${STAFF_WIDTH} 350`} height={420}  preserveAspectRatio="xMidYMid meet">
         {drawStaffLines(100,STAFF_WIDTH, STAFF_LINE_GAP)}
         {drawStaffLines(300,STAFF_WIDTH, STAFF_LINE_GAP)}
 
@@ -363,6 +365,8 @@ React.useEffect(() => {
           />
         );
       })}
+        <image href="/assets/black.svg" x={-150} y={-10} width="330" height="500" />
+
         
         <text x={5} y={110 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black">𝄞</text>
         <text x={5} y={305 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>

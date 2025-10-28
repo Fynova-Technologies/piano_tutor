@@ -120,6 +120,7 @@ export default function drawSvg({
                 })}
 
         
+        <image href="/assets/black.svg" x={-150} y={-90} width="330" height="500" />
 
                 <text x={5} y={32 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black" className="">𝄞</text>
                 <text x={5} y={225 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
