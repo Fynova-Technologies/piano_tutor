@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-
+import LogoutButton from '@/app/logout/page';
+import { supabase } from '@/lib/supabaseClient';
 
 const navItems = [
   { name: 'Methods', href: '/method' },
@@ -17,7 +18,17 @@ const navItems = [
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
-
+  const [userLoggedIn, setUserLoggedIn] = useState(false);
+  useEffect(() => {
+  const getSession = async () => {
+        try {
+          const { data, error } = await supabase.auth.getSession();
+          if(data.session){setUserLoggedIn(true);}
+          if (error) throw error;} catch (error) {
+          console.log("Error getting session:", error);
+        }}
+        getSession();
+      }, []);
 
   return (
     <nav className="bg-[#0A0A0B] border-b shadow-sm px-4 py-3 sm:px-6">
@@ -57,6 +68,10 @@ export default function Navbar() {
           {/* Profile */}
           <div className="w-8 h-8 rounded-full overflow-hidden">
             <Image src="/assets/user.png" alt="User" width={1000} height={500} />
+          </div>
+          <div>
+            {userLoggedIn ? <LogoutButton /> : <a href="/login" className="bg-gray-200 text-black px-4 py-2 rounded-lg hover:bg-gray-300"
+>Login</a>}
           </div>
 
           {/* Mobile Menu Toggle */}
