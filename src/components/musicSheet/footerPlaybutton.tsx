@@ -8,6 +8,7 @@ import { getUserUsage, recordPlay } from "@/lib/pyawallHelpers"
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import PaywallButton from "../paywallcomponents/paywallWidget";
+import FingerprintJS from '@fingerprintjs/fingerprintjs';
 
 type CapturedNoteGroup = {
   beat: number;
@@ -88,22 +89,34 @@ export default function FooterPlayButton({nextNoteTimeRef,
     });
     router.push(`${typedLesson.link}?${params.toString()}`);
   };
-  const hasPrevious = currentIndex > 0;
-  const hasNext = currentIndex < unitLessonsData.length - 1;
+const hasPrevious = currentIndex > 0;
+const hasNext = currentIndex < unitLessonsData.length - 1;
 
-  useEffect(() => {
-    if (!backgroundSoundRef.current) return;
+useEffect(() => {
+if (!backgroundSoundRef.current) return;
 
-    if (!isPlaying || (backgroundVolume ?? 0) / 100 === 0) {
-      backgroundSoundRef.current.pause();
-    } else {
-      backgroundSoundRef.current.play();
+  if (!isPlaying || (backgroundVolume ?? 0) / 100 === 0) {
+    backgroundSoundRef.current.pause();
+  } else {
+    backgroundSoundRef.current.play();
+  }
+  if (backgroundSoundRef.current && backgroundVolume !== undefined) {
+    backgroundSoundRef.current.volume = backgroundVolume / 100;
+    console.log("Background Volume:", backgroundVolume / 100);
+  }
+
+  (async () => {
+    try {
+      const agent = await FingerprintJS.load();
+      const result = await agent.get();
+      console.log('Device ID:', result.visitorId);
+    } catch (e) {
+      console.error('FingerprintJS error:', e);
     }
-    if (backgroundSoundRef.current && backgroundVolume !== undefined) {
-      backgroundSoundRef.current.volume = backgroundVolume / 100;
-      console.log("Background Volume:", backgroundVolume / 100);
-    }
-  })
+  })();
+}, [backgroundSoundRef, isPlaying, backgroundVolume]);
+  const [isAuthorizedDevice, setIsAuthorizedDevice] = useState(false);
+
   // paywall integration here
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [usage, setUsage] = useState<any>(null)
@@ -114,23 +127,53 @@ export default function FooterPlayButton({nextNoteTimeRef,
     const [count,setCount]=useState<number>(0)
     const [resultcount,setResultCount]=useState<number>(0)
   
-    useEffect(() => {
-      async function load() {
-        const usageData = await getUserUsage()
-        setUsage(usageData)
-        setPaywalled(usageData?.play_count >= 5 && !usageData?.is_subscribed)
-        setLoading(false)
-      }
-      load()
-      const getSession = async () => {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        if(data.session){setUserLoggedIn(true);}
-        if (error) throw error;} catch (error) {
-        console.log("Error getting session:", error);
-      }}
-      getSession();
-    }, [])
+useEffect(() => {
+  (async () => {
+    try {
+      const usageData = await getUserUsage()
+      setUsage(usageData)
+      setPaywalled(usageData?.play_count >= 5 && !usageData?.is_subscribed)
+      setLoading(false)
+    } catch (err) {
+      console.error('Failed to load usage:', err)
+    }
+
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if(data.session){setUserLoggedIn(true);}
+      if (error) throw error;
+    } catch (error) {
+      console.log("Error getting session:", error);
+    }
+
+    try {
+      const fp = await FingerprintJS.load();
+      const result = await fp.get();
+      const deviceId = result.visitorId;
+
+      const res = await fetch('/api/verify-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId }),
+      });
+
+      const responseData = await res.json();
+      setIsAuthorizedDevice(responseData.authorized);
+      console.log('Authorization status:', responseData.authorized);
+    } catch (err) {
+      console.error('Verification failed:', err);
+      setIsAuthorizedDevice(false);
+    }
+
+    try {
+      const fp2 = await FingerprintJS.load();
+      const result2 = await fp2.get();
+      console.log(result2.visitorId);
+    } catch (err) {
+      console.error(err);
+    }
+  })();
+}, [])
     const countIncreament = ()=>{
 if(resultcount<5){
         setCount(resultcount)
@@ -180,6 +223,8 @@ if(resultcount<5){
       )
     }
 
+    
+
     return(
         <div className="flex items-center justify-center w-full">
                 <div className="flex items-center justify-center gap-2 w-full">
@@ -193,6 +238,7 @@ if(resultcount<5){
                     loop
                   />
                 <button
+                  disabled={!isAuthorizedDevice}
                   className=" px-5 py-4 bg-white text-white rounded-full hover:bg-zinc-300 cursor-pointer"
                   onClick={async () => {
                     if (isPlaying || isCountingIn) {
@@ -202,7 +248,7 @@ if(resultcount<5){
                     countIncreament()              
                     handlePlay()
 
-                    if(userLoggedIn || count>=7){
+                    // if(userLoggedIn || count>=7){
 
                     setCapturedNotes([])
                     setPlayCount(prev=>prev+1)
@@ -230,7 +276,7 @@ if(resultcount<5){
                       setIsMetronomeRunning(true);
                       setIsPlaying(true);
                     }, (startTime - now) * 1000);
-                  }}}
+                  }}
                   
                 }
                 >
