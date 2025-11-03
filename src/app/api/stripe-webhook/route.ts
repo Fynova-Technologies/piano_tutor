@@ -8,7 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // ⚠️ Use service key on server only
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! // ⚠️ Use service key on server only
 );
 
 export async function POST(req: Request) {

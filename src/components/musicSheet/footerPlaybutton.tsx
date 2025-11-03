@@ -123,6 +123,7 @@ if (!backgroundSoundRef.current) return;
     const [loading, setLoading] = useState(true)
     const [paywalled, setPaywalled] = useState(false)
     const [errMsg,setErrorMsg]=useState<string|null>(null)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [userLoggedIn,setUserLoggedIn]=useState<boolean>(false)
     const [count,setCount]=useState<number>(0)
     const [resultcount,setResultCount]=useState<number>(0)
@@ -222,8 +223,6 @@ if(resultcount<5){
         </div>
       )
     }
-
-    
 
     return(
         <div className="flex items-center justify-center w-full">
