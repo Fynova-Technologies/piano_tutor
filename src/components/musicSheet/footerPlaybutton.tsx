@@ -288,7 +288,7 @@ if(resultcount<5){
                 </button>
                 </div>
                 <div className="flex bottom-4 left-1/2 transform -translate-x-1/2">
-                  <button className="mt-6 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">
+                  <button className="mt-6 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">
                     Play Note ({5 - (usage?.play_count || 0)} free left)
                   </button>
                   

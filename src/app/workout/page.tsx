@@ -43,10 +43,9 @@ export default function WorkoutsPage() {
         const ex: Exercise = { ...(exercise as any), category: categoryBlock.Ex_Category };
         if (d <= 2) groups.Beginner.push(ex);
         else if (d <= 4) groups.Intermediate.push(ex);
-        else groups.Advanced.push(ex);
+        else if (d>=4) groups.Advanced.push(ex);
       });
     });
-
     return groups;
   }, []);
 
@@ -126,6 +125,8 @@ export default function WorkoutsPage() {
                   src={exercise.animation}
                   alt={exercise.workout_name}
                   className="w-full h-40 object-contain mb-3"
+                  height={160}
+                  width={160}
                 />
               ) : (
                 <div className="w-full h-40 bg-gray-700 mb-3 flex items-center justify-center text-gray-400">
@@ -173,6 +174,8 @@ export default function WorkoutsPage() {
               src={selectedExercise.target_muscle_image}
               alt="Target Muscles"
               className="w-full h-48 object-contain mt-4"
+              height={192}
+              width={192}
             />
           </div>
         </div>

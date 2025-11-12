@@ -10,9 +10,11 @@ import { supabase } from '@/lib/supabaseClient';
 const navItems = [
   { name: 'Methods', href: '/method' },
   {name: 'Library',href:"/library"},
-  { name: 'Dashboard', href: '/dashboard' },
-  { name: 'Projects', href: '/musicsheet' },
-  
+  { name: 'Dashboard', href: '/' },
+  // { name: 'Projects', href: '/musicsheet' },
+  {name: 'Techniques', href: '/techniques' },
+  {name:'SASR', href:'/sasr' },
+  {name: 'Reports', href: '/reports' }
 ];
 
 export default function Navbar() {

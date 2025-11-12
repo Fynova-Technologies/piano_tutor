@@ -1,11 +1,24 @@
 "use client";
+import MusicCategories from "@/components/Dashboard/musicCategories";
+import ContinueLearning from "@/components/Dashboard/countinueLearning";
+import Favorite from "@/components/Dashboard/favorites";
 
 export default function Home() {
   
 
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-
+    <div className=" font-[family-name:var(--font-geist-sans)]">
+      <div className="overflow-y-auto">
+            <div className="flex  justify-center bg-[#F8F6F1] px-1 py-16">
+              <div className="max-w-[90%] w-full text-center">
+                <MusicCategories/>
+              </div>
+      
+            </div>
+            <ContinueLearning />
+            <Favorite/>
+      
+          </div>
     </div>
   );
 }

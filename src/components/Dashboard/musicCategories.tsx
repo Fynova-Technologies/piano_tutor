@@ -15,9 +15,9 @@ export default function MusicCategories() {
       const strokeDashoffset = circumference - (progress / 100) * circumference;
     return(
         <div>
-          {isMobile?
+          {/* {isMobile?
             <div className="primary-color-text">Mobile View</div>:<div className="primary-color-text">Desktop View</div>
-          }
+          } */}
           
             <div className={`${isMobile? "flex flex-col justify-center items-center space-y-5": "flex justify-center space-x-8"} `}>
                   <div
