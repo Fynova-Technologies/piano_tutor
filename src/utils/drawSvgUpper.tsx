@@ -86,7 +86,7 @@ export default function drawSvg({
     const getSliderXForBeatSimple = (beat: number) => getSliderXForBeat(beat);
     
     return(
-        <div>
+        <div style={{overflow: 'visible'}}>
             <svg width="100%"   viewBox={`0 0 ${STAFF_WIDTH} 350`} height={height}  preserveAspectRatio="xMidYMid meet">  
                 {drawStaffLines(staffX1,STAFF_WIDTH, STAFF_LINE_GAP)}
                 {drawStaffLines(staffX2 ,STAFF_WIDTH, STAFF_LINE_GAP)}
@@ -118,9 +118,14 @@ export default function drawSvg({
                       />
                     );
                 })}
+                 <defs>
+    <clipPath id="leftClip">
+      <rect x="-185" y="-90" width="330" height="500" />
+    </clipPath>
+  </defs>
 
         
-        <image href="/assets/black.svg" x={-150} y={-90} width="330" height="500" />
+        <image href="/assets/black.svg" x={-185} y={-90} width="330" height="500" />
 
                 <text x={5} y={32 + 3 * STAFF_LINE_GAP} fontSize="90" stroke="black" className="">𝄞</text>
                 <text x={5} y={225 + 3 * STAFF_LINE_GAP} fontSize="80" stroke="black">𝄢</text>
