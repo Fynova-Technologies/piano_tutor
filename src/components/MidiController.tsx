@@ -30,6 +30,7 @@ export default function PracticePage() {
   }
 
   // Play one event (highlight sheet and play via Tone)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async function playEventAt(i: number) {
     if (!sheetRef.current) return;
     const ev = events[i];
@@ -154,6 +155,7 @@ export default function PracticePage() {
   }
 
   // Called when MIDI controller notifies pressed notes
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function onUserPressed(pressed: Set<string>) {
     const ev = events[index];
     if (!ev) return;
@@ -240,7 +242,7 @@ export default function PracticePage() {
       />
 
       <div className="mt-4">
-        <MidiController onPressed={onUserPressed} />
+        <MidiController />
       </div>
 
       <div className="mt-4 p-4 bg-white rounded shadow">

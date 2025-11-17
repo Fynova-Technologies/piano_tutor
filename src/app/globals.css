@@ -47,3 +47,19 @@ body {
 .primary-color-text{
   color: var(--primary-dark);
 }
+
+.highlighted-correct {
+  fill: #22c55e !important;
+  stroke: #14532d !important;
+  stroke-width: 2px !important;
+}
+
+.highlighted-wrong {
+  fill: #ef4444 !important;
+  stroke: #7f1d1d !important;
+  stroke-width: 2px !important;
+}
+
+.highlighted-press {
+  fill: #3b82f6 !important;
+}
