@@ -63,3 +63,18 @@ body {
 .highlighted-press {
   fill: #3b82f6 !important;
 }
+
+  .cursor {
+    stroke: none !important;
+    fill: rgba(255, 0, 0, 0.35) !important; /* rectangle fill color */
+  }
+
+  .cursor-line {
+    stroke: none !important; /* disable the default horizontal line */
+  }
+
+  /* Make the rectangle tall enough to cover staff height */
+  .cursor-rect {
+    fill: rgba(255, 0, 0, 0.6) !important;
+    width: 3px !important;   /* cursor width */
+  }

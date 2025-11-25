@@ -101,48 +101,48 @@ export default function MusicXMLPlayer() {
   }, []);
 
   function extractNotes(osmd:OpenSheetMusicDisplay) {
-  const sheet = osmd.GraphicSheet.ParentMusicSheet;  // ✔ allowed
-  const notes = [];
-  const bpm = sheet.DefaultStartTempoInBpm || 120;
-  const beatDuration = 60000 / bpm; // ms per beat
+    const sheet = osmd.GraphicSheet.ParentMusicSheet;  // ✔ allowed
+    const notes = [];
+    const bpm = sheet.DefaultStartTempoInBpm || 120;
+    const beatDuration = 60000 / bpm; // ms per beat
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const currentTimeMs = 0;
-  const gs = osmd.GraphicSheet;
-for (let staffIndex = 0; staffIndex < gs.MeasureList.length; staffIndex++) {
-    const staffMeasures = gs.MeasureList[staffIndex];
-
-    for (let measureIndex = 0; measureIndex < staffMeasures.length; measureIndex++) {
-      const gMeasure = staffMeasures[measureIndex];
-
-      for (const staffEntry of gMeasure.staffEntries) {
-        for (const gve of staffEntry.graphicalVoiceEntries) {
-          const startBeats = gve.parentVoiceEntry.Timestamp.RealValue;
-
-          for (const gNote of gve.notes) {
-            const source = gNote.sourceNote;
-
-            const midi = source.halfTone;
-
-            const durationBeats = source.Length.RealValue;
-            const durationMs = durationBeats * beatDuration;
-
-            notes.push({
-              midi,
-              timeMs: startBeats * beatDuration,
-              durationMs,
-              graphic: gNote,
-            });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const currentTimeMs = 0;
+    const gs = osmd.GraphicSheet;
+    for (let staffIndex = 0; staffIndex < gs.MeasureList.length; staffIndex++) {
+        const staffMeasures = gs.MeasureList[staffIndex];
+    
+        for (let measureIndex = 0; measureIndex < staffMeasures.length; measureIndex++) {
+          const gMeasure = staffMeasures[measureIndex];
+        
+          for (const staffEntry of gMeasure.staffEntries) {
+            for (const gve of staffEntry.graphicalVoiceEntries) {
+              const startBeats = gve.parentVoiceEntry.Timestamp.RealValue;
+            
+              for (const gNote of gve.notes) {
+                const source = gNote.sourceNote;
+              
+                const midi = source.halfTone;
+              
+                const durationBeats = source.Length.RealValue;
+                const durationMs = durationBeats * beatDuration;
+              
+                notes.push({
+                  midi,
+                  timeMs: startBeats * beatDuration,
+                  durationMs,
+                  graphic: gNote,
+                });
+              }
+            }
           }
         }
       }
+    
+      console.log("Extracted notes:", notes);
+    
+      return notes;
     }
-  }
-
-  console.log("Extracted notes:", notes);
-
-  return notes;
-}
 
 
 
@@ -394,57 +394,53 @@ for (let staffIndex = 0; staffIndex < gs.MeasureList.length; staffIndex++) {
             }
 
             if (child.nodeType === 1 && (child as Element).tagName === "note") {
-  const noteEl = child as Element;
+              const noteEl = child as Element;
 
-  const isRest = noteEl.querySelector("rest") !== null;
+              const isRest = noteEl.querySelector("rest") !== null;
 
-  const durationEl = noteEl.querySelector("duration");
-  const durationDivs = durationEl ? Number(durationEl.textContent) : null;
+              const durationEl = noteEl.querySelector("duration");
+              const durationDivs = durationEl ? Number(durationEl.textContent) : null;
 
-  const isChord = noteEl.querySelector("chord") !== null;
+              const isChord = noteEl.querySelector("chord") !== null;
 
-  let midi: number | null = null;
-  let noteName: string | null = null;
+              let midi: number | null = null;
+              let noteName: string | null = null;
 
-  const pitchEl = noteEl.querySelector("pitch");
-  if (pitchEl && !isRest) {
-    const stepEl = pitchEl.querySelector("step");
-    const octaveEl = pitchEl.querySelector("octave");
+              const pitchEl = noteEl.querySelector("pitch");
+              if (pitchEl && !isRest) {
+                const stepEl = pitchEl.querySelector("step");
+                const octaveEl = pitchEl.querySelector("octave");
+              
+                if (stepEl && octaveEl) {
+                  const step = stepEl.textContent ?? "C";
+                
+                  const alterEl = pitchEl.querySelector("alter");
+                  const alter = alterEl ? Number(alterEl.textContent) : 0;
+                
+                  const octave = Number(octaveEl.textContent);
+                
+                  const semitoneMap: Record<string, number> = {
+                    C: 0, D: 2, E: 4,
+                    F: 5, G: 7, A: 9, B: 11
+                  };
 
-    if (stepEl && octaveEl) {
-      const step = stepEl.textContent ?? "C";
-
-      const alterEl = pitchEl.querySelector("alter");
-      const alter = alterEl ? Number(alterEl.textContent) : 0;
-
-      const octave = Number(octaveEl.textContent);
-
-      const semitoneMap: Record<string, number> = {
-        C: 0, D: 2, E: 4,
-        F: 5, G: 7, A: 9, B: 11
-      };
-
-      if (step in semitoneMap && !isNaN(octave)) {
-        const midiNumber =
-          (octave + 1) * 12 +
-          semitoneMap[step] +
-          alter;
-
-        if (!isNaN(midiNumber)) {
-          midi = midiNumber;
-          noteName = midiToName(midiNumber);
-        }
-      }
-    }
-  }
-
-
-
+                  if (step in semitoneMap && !isNaN(octave)) {
+                    const midiNumber =
+                      (octave + 1) * 12 +
+                      semitoneMap[step] +
+                      alter;
+                  
+                    if (!isNaN(midiNumber)) {
+                      midi = midiNumber;
+                      noteName = midiToName(midiNumber);
+                    }
+                  }
+                }
+              }
               const divs = localDivisions > 0 ? localDivisions : 1;
               const durBeats = durationDivs !== null ? (durationDivs / divs) : 0;
               const durSeconds = durBeats * (60 / currentTempo);
               const timeSeconds = isChord ? Math.max(0, currentSeconds) : currentSeconds;
-
               if (midi !== null && isFinite(timeSeconds) && isFinite(durSeconds)) {
                 timelineRef.current.push({
                   time: timeSeconds, duration: Math.max(0.01, durSeconds || 0.25), midi, noteName: noteName ?? "", xmlNode: noteEl,
@@ -455,9 +451,7 @@ for (let staffIndex = 0; staffIndex < gs.MeasureList.length; staffIndex++) {
                 });
                 globalLastSecond = Math.max(globalLastSecond, timeSeconds + (durSeconds || 0));
               }
-
               if (!isChord) currentSeconds += (durSeconds || 0);
-
               continue;
             }
 
@@ -483,11 +477,8 @@ for (let staffIndex = 0; staffIndex < gs.MeasureList.length; staffIndex++) {
           }
         }
       }
-
       setDuration(globalLastSecond || 0);
-
       if (timelineRef.current.length === 0) buildHeuristicTimeline();
-
     } catch (e) {
       console.warn("Timeline build failed:", e);
       buildHeuristicTimeline();
@@ -495,40 +486,40 @@ for (let staffIndex = 0; staffIndex < gs.MeasureList.length; staffIndex++) {
   }
 
   function buildHeuristicTimeline() {
-  const raw = containerRef.current
-    ? Array.from(
-        containerRef.current.querySelectorAll(
-          "g.note, g.Note, g.graphicalNote, g.notehead"
+    const raw = containerRef.current
+      ? Array.from(
+          containerRef.current.querySelectorAll(
+            "g.note, g.Note, g.graphicalNote, g.notehead"
+          )
         )
-      )
-    : [];
+      : [];
 
-  // Keep only real SVG graphics elements
-  const svgNotes = raw.filter(
-    (el): el is SVGGraphicsElement => el instanceof SVGGraphicsElement
-  );
+    // Keep only real SVG graphics elements
+    const svgNotes = raw.filter(
+      (el): el is SVGGraphicsElement => el instanceof SVGGraphicsElement
+    );
 
-  const total = svgNotes.length || 60;
-  const totalSeconds = 30;
+    const total = svgNotes.length || 60;
+    const totalSeconds = 30;
 
-  timelineRef.current = [];
+    timelineRef.current = [];
 
-  for (let i = 0; i < total; i++) {
-    timelineRef.current.push({
-      time: (i * totalSeconds) / total,
-      duration: 0.5,
-      midi: 60 + (i % 12),
-      noteName: midiToName(60 + (i % 12)),
-      svgElem: svgNotes[i] ?? null, // ✔ always SVGGraphicsElement | null
-      pitch: "",
-      measureIndex: 0,
-      noteObj: undefined,
-      xmlNode: null
-    });
+    for (let i = 0; i < total; i++) {
+      timelineRef.current.push({
+        time: (i * totalSeconds) / total,
+        duration: 0.5,
+        midi: 60 + (i % 12),
+        noteName: midiToName(60 + (i % 12)),
+        svgElem: svgNotes[i] ?? null, // ✔ always SVGGraphicsElement | null
+        pitch: "",
+        measureIndex: 0,
+        noteObj: undefined,
+        xmlNode: null
+      });
+    }
+
+    setDuration(totalSeconds);
   }
-
-  setDuration(totalSeconds);
-}
 
 
   function mapSvgNoteElementsToTimeline() {
