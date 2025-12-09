@@ -4,6 +4,9 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
+import * as Tone from "tone";
+import { Sampler } from "tone";
+
 
 export default function Test2HybridFull() {
   // ========== NEW: Upload State ==========
@@ -11,6 +14,9 @@ export default function Test2HybridFull() {
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showUploadPanel, setShowUploadPanel] = useState(true);
+  const samplerRef = useRef<Sampler | null>(null); // sampler will replace PolySynth
+  
+  
   
   // Original xml path (fallback)
   const fallbackXml = "/songs/mxl/test000001.mxl";
@@ -260,7 +266,7 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
       return [];
     }
   }
-  
+
   function highlightGraphicalNoteNative(gn: any, ms = 600) {
     const group = gn?.getSVGGElement?.() || gn?.graphicalNotehead?.svgElement || gn?.svgElement;
     if (!group) return;
@@ -480,7 +486,9 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
           const half = n?.sourceNote?.halfTone;
           if (typeof half === "number") {
             const midiNote = half;
+            
             const velocity = 0x50;
+            
             try {
               if (midiOutputs.length > 0) {
                 playbackMidiGuard.current += 1;
@@ -493,6 +501,7 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
                 setTimeout(() => {
                   playbackMidiGuard.current = Math.max(0, playbackMidiGuard.current - 1);
                 }, offDelay + 20);
+                
               }
             } catch (e) {
               console.warn("MIDI send error", e);
@@ -535,6 +544,65 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
     for (let i = 0; i < index; ++i) osmd.cursor.next();
     setPlayIndex(index);
   }
+
+  useEffect(() => {
+      let mounted = true;
+      async function createSampler() {
+        const sampler = new Sampler({
+          urls: {
+            A0: "A0.mp3",
+            C1: "C1.mp3",
+            "D#1": "Ds1.mp3",
+            "F#1": "Fs1.mp3",
+            A1: "A1.mp3",
+            C2: "C2.mp3",
+            "D#2": "Ds2.mp3",
+            "F#2": "Fs2.mp3",
+            A2: "A2.mp3",
+            C3: "C3.mp3",
+            "D#3": "Ds3.mp3",
+            "F#3": "Fs3.mp3",
+            A3: "A3.mp3",
+            C4: "C4.mp3",
+            "D#4": "Ds4.mp3",
+            "F#4": "Fs4.mp3",
+            A4: "A4.mp3",
+            C5: "C5.mp3",
+            "D#5": "Ds5.mp3",
+            "F#5": "Fs5.mp3",
+            A5: "A5.mp3",
+            C6: "C6.mp3",
+            "D#6": "Ds6.mp3",
+            "F#6": "Fs6.mp3",
+            A6: "A6.mp3",
+            C7: "C7.mp3",
+            "D#7": "Ds7.mp3",
+            "F#7": "Fs7.mp3",
+            A7: "A7.mp3",
+            C8: "C8.mp3"
+          },
+          baseUrl: "https://tonejs.github.io/audio/salamander/",
+          release: 1
+        }).toDestination();
+  
+        
+        const waitForLoaded = async () => {
+          for (let i = 0; i < 200; i++) { // wait up to ~10s
+            if (sampler.loaded || sampler.loaded) return;
+            await new Promise(r => setTimeout(r, 50));
+          }
+        };
+  
+        await waitForLoaded();
+  
+        if (!mounted) { try { sampler.dispose(); } catch (e) {console.warn("You have an error ",e)} ; return; }
+        samplerRef.current = sampler;
+      }
+  
+      createSampler();
+      return () => { mounted = false; };
+    }, []);
+  
 
   useEffect(() => {
     if (!("requestMIDIAccess" in navigator)) return;
@@ -607,14 +675,20 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
   }
 
   const progressPercent = totalSteps ? Math.round((playIndex / Math.max(1, totalSteps - 1)) * 100) : 0;
+  
+  function midiToName(num:number) {
+    const octave = Math.floor(num / 12) - 1;
+    const names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    return names[(num % 12 + 12) % 12] + octave;
+  }
 
-  useEffect(() => {
+useEffect(() => {
     const keyToMidi: Record<string, number> = {
       'a': 60, 'w': 61, 's': 62, 'e': 63, 'd': 64, 'f': 65,
       't': 66, 'g': 67, 'y': 68, 'h': 69, 'u': 70, 'j': 71, 'k': 72,
     };
 
-    const onKey = (ev: KeyboardEvent) => {
+    const onKey = async (ev: KeyboardEvent) => {
       if (ev.code === "Space") {
         ev.preventDefault();
         if (isPlaying) pauseCursor();
@@ -623,17 +697,30 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
       }
 
       const midiNote = keyToMidi[ev.key.toLowerCase()];
-      if (midiNote && !ev.repeat && playModeRef.current) {
+      if (midiNote && !ev.repeat) {
         ev.preventDefault();
         
-        const cursorNotes = currentStepNotesRef.current || [];
+        // Play sound using Tone.js sampler
+        if (samplerRef.current && Tone.context.state !== 'running') {
+          await Tone.start();
+        }
+        
+        if (samplerRef.current) {
+          const noteName = midiToName(midiNote);
+          samplerRef.current.triggerAttackRelease(noteName, "8n");
+        }
+        
+        // Only check correctness if in play mode
+        if (playModeRef.current) {
+          const cursorNotes = currentStepNotesRef.current || [];
 
-        if (cursorNotes.some(n => Number(n) === Number(midiNote))) {
-          const matchingNotes = findNotesAtCursorByMidi(osmdRef.current,Number(midiNote));
-          matchingNotes.forEach((gn) => highlightGraphicalNoteNative(gn, 1500));
-        } else {
-          const wrongNotes = findNotesAtCursorByMidi(osmdRef.current,Number(midiNote));
-          wrongNotes.forEach((gn) => highlightGraphicalNoteNative(gn, 800));
+          if (cursorNotes.some(n => Number(n) === Number(midiNote))) {
+            const matchingNotes = findNotesAtCursorByMidi(osmdRef.current,Number(midiNote));
+            matchingNotes.forEach((gn) => highlightGraphicalNoteNative(gn, 1500));
+          } else {
+            const wrongNotes = findNotesAtCursorByMidi(osmdRef.current,Number(midiNote));
+            wrongNotes.forEach((gn) => highlightGraphicalNoteNative(gn, 800));
+          }
         }
       }
     };
@@ -642,6 +729,7 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
     return () => window.removeEventListener("keydown", onKey);
   }, [isPlaying, playIndex]);
 
+  
   // UI
   return (
     <div style={{ padding: 16 }}>

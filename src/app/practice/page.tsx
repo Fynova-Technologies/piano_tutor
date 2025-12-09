@@ -80,18 +80,14 @@ export default function MusicXMLPlayer() {
         },
         baseUrl: "https://tonejs.github.io/audio/salamander/",
         release: 1
-      }).toDestination();
-
-      
+      }).toDestination();  
       const waitForLoaded = async () => {
         for (let i = 0; i < 200; i++) { // wait up to ~10s
           if (sampler.loaded || sampler.loaded) return;
           await new Promise(r => setTimeout(r, 50));
         }
       };
-
       await waitForLoaded();
-
       if (!mounted) { try { sampler.dispose(); } catch (e) {console.warn("You have an error ",e)} ; return; }
       samplerRef.current = sampler;
     }
