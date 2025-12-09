@@ -19,7 +19,7 @@ export default function Test2HybridFull() {
   
   
   // Original xml path (fallback)
-  const fallbackXml = "/songs/mxl/test000001.mxl";
+  const fallbackXml = "/songs/mxl/Johann Sebastian Bach Air.mxl";
   
   // Use uploaded XML if available, otherwise use fallback
   const xml = uploadedMusicXML || fallbackXml;
@@ -729,7 +729,7 @@ useEffect(() => {
     return () => window.removeEventListener("keydown", onKey);
   }, [isPlaying, playIndex]);
 
-  
+
   // UI
   return (
     <div style={{ padding: 16 }}>
