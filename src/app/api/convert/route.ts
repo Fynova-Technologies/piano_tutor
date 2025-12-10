@@ -14,11 +14,8 @@ import AdmZip from 'adm-zip';
 const execAsync = promisify(exec);
 
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+export const dynamic = 'force-dynamic';
+export const bodyParser = false;
 
 // Ensure temp directories exist
 async function ensureTempDirs() {
