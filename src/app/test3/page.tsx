@@ -8,19 +8,27 @@ import * as Tone from "tone";
 import { Sampler } from "tone";
 
 
-export default function Test2HybridFull() {
+export default function Test3HybridFull() {
   // ========== NEW: Upload State ==========
   const [uploadedMusicXML, setUploadedMusicXML] = useState<string | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showUploadPanel, setShowUploadPanel] = useState(true);
   const samplerRef = useRef<Sampler | null>(null); // sampler will replace PolySynth
+  const playedNotesRef = useRef<Set<number>>(new Set()); 
+  
+  
+  
+  
   // Original xml path (fallback)
   const fallbackXml = "/songs/mxl/Johann Sebastian Bach Air.mxl";
+  
   // Use uploaded XML if available, otherwise use fallback
   const xml = uploadedMusicXML || fallbackXml;
+  
   const containerRef = useRef<HTMLDivElement | null>(null);
   const osmdRef = useRef<any>(null);
+
   // playback state
   const [isPlaying, setIsPlaying] = useState(false);
   const [playIndex, setPlayIndex] = useState(0);
@@ -29,8 +37,10 @@ export default function Test2HybridFull() {
   const midiInRef = useRef<MIDIInput | null>(null);
   const [currentStepNotes, setCurrentStepNotes] = useState<number[]>([]);
   const currentStepNotesRef = useRef<number[]>([]);
+
   const playbackMidiGuard = useRef<number>(0);
   const playModeRef = useRef<boolean>(false);
+
   const cursorsOptions = [
     {
       type: 0,
@@ -39,38 +49,45 @@ export default function Test2HybridFull() {
       follow: true,
     },
   ];
+
   // ========== NEW: File Upload Handler ==========
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
     if (!validTypes.includes(file.type)) {
       setUploadError('Please upload a PNG, JPG, or PDF file');
       return;
     }
+
     if (file.size > 10 * 1024 * 1024) {
       setUploadError('File size must be less than 10MB');
       return;
     }
+
     setUploadLoading(true);
     setUploadError(null);
+
     const formData = new FormData();
     formData.append('file', file);
+
     try {
       const response = await fetch('/api/convert', {
         method: 'POST',
         body: formData,
       });
+
       // const data = await response.json();Episode 95
       const raw = await response.text();
-      console.log("RAW RESPONSE:", raw);
+console.log("RAW RESPONSE:", raw);
 
-      let data;
-      try {
-        data = JSON.parse(raw);
-      } catch {
-        throw new Error("API did not return JSON. Raw response:\n" + raw);
-      }
+let data;
+try {
+  data = JSON.parse(raw);
+} catch {
+  throw new Error("API did not return JSON. Raw response:\n" + raw);
+}
 
 
       if (!response.ok) {
@@ -327,6 +344,11 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
         osmdRef.current = osmd;
         replaceOsmdCursor(osmd);
         buildPlaybackStepsAndMaps(osmd);
+        
+        // Initialize cursor notes on load
+        const initialNotes = getNotesAtCursor(osmd);
+        setCurrentStepNotes(initialNotes);
+        currentStepNotesRef.current = initialNotes;
       } catch (e) {
         console.error("OSMD load/render error", e);
       }
@@ -397,8 +419,14 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
     setIsPlaying(false);
     setPlayIndex(0);
     playModeRef.current = false;
+    playedNotesRef.current.clear();
     clearHighlight(osmd);
     document.querySelectorAll(".vf-note-highlight").forEach((el) => el.classList.remove("vf-note-highlight"));
+    
+    // Reset to first position notes
+    const initialNotes = getNotesAtCursor(osmd);
+    setCurrentStepNotes(initialNotes);
+    currentStepNotesRef.current = initialNotes;
   }
 
   function pauseCursor() {
@@ -438,7 +466,7 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
     }
   }
 
-  function playCursor() {
+   function playCursor() {
     const osmd = osmdRef.current;
     if (!osmd) return;
     const steps: number[] = (osmd as any)._playbackDurations ?? [];
@@ -446,78 +474,14 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
       console.warn("No playback steps built");
       return;
     }
-
-    if (osmd._playTimer) {
-      clearTimeout(osmd._playTimer);
-      osmd._playTimer = null;
-    }
-
     osmd.cursor.show();
     setIsPlaying(true);
-    playModeRef.current = true;
-
-    let idx = Math.max(0, playIndex);
-
-    const sendMidiForStep = (index: number) => {
-      const it = osmd.cursor.iterator.clone();
-      let i = 0;
-      while (!it.EndReached && i < index) {
-        it.moveToNext();
-        i++;
-      }
-      const ves = it.CurrentVoiceEntries || [];
-      for (const ve of ves) {
-        for (const n of ve.Notes || []) {
-          const half = n?.sourceNote?.halfTone;
-          if (typeof half === "number") {
-            const midiNote = half;
-            
-            const velocity = 0x50;
-            
-            try {
-              if (midiOutputs.length > 0) {
-                playbackMidiGuard.current += 1;
-                midiOutputs[0].send([0x90, midiNote, velocity]);
-
-                const offDelay = Math.max(100, (osmd as any)._playbackDurations?.[index] ?? 200);
-                const when = window.performance.now() + offDelay;
-                midiOutputs[0].send([0x80, midiNote, 0x40], when);
-
-                setTimeout(() => {
-                  playbackMidiGuard.current = Math.max(0, playbackMidiGuard.current - 1);
-                }, offDelay + 20);
-                
-              }
-            } catch (e) {
-              console.warn("MIDI send error", e);
-              playbackMidiGuard.current = Math.max(0, playbackMidiGuard.current - 1);
-            }
-          }
-        }
-      }
-    };
-
-    function step() {
-      if (idx >= steps.length) {
-        setIsPlaying(false);
-        playModeRef.current = false;
-        return;
-      }
-      
-      const stepNotes = getNotesAtCursor(osmd);
-      setCurrentStepNotes(stepNotes);
-      currentStepNotesRef.current = stepNotes;
-      
-      osmd.cursor.next();
-      setPlayIndex(idx);
-      sendMidiForStep(idx);
-
-      const delay = steps[idx] ?? 200;
-      idx++;
-      osmd._playTimer = setTimeout(step, delay);
-    }
-
-    step();
+    playModeRef.current = true;    
+    // Get current cursor notes
+    const stepNotes = getNotesAtCursor(osmd);
+    setCurrentStepNotes(stepNotes);
+    currentStepNotesRef.current = stepNotes;
+    playedNotesRef.current.clear();
   }
 
   function seekTo(index: number) {
@@ -632,16 +596,53 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
                 samplerRef.current.triggerAttackRelease(noteName, "8n");
               }
               
-              // Visual feedback only in play mode
+              // Check if note is correct and advance cursor when all notes are played
               if (playModeRef.current) {
                 const cursorNotes = currentStepNotesRef.current || [];
 
                 if (cursorNotes.some(n => Number(n) === Number(key))) {
-                  const matchingNotes = findNotesAtCursorByMidi(osmdRef.current,Number(key));
+                  // Correct note!
+                  playedNotesRef.current.add(Number(key));
+                  const matchingNotes = findNotesAtCursorByMidi(osmdRef.current, Number(key));
                   matchingNotes.forEach((gn) => highlightGraphicalNoteNative(gn, 1500));
+                  
+                  console.log(`✅ Correct note: ${midiToName(key)} | Played: ${playedNotesRef.current.size}/${cursorNotes.length}`);
+                  
+                  // Check if all required notes have been played
+                  const allNotesPlayed = cursorNotes.every(n => playedNotesRef.current.has(n));
+                  
+                  if (allNotesPlayed) {
+                    console.log(`🎉 All notes played correctly! Advancing cursor...`);
+                    
+                    // Advance cursor
+                    const osmd = osmdRef.current;
+                    if (!osmd) return;
+                    
+                    osmd.cursor.next();
+                    const newIndex = playIndex + 1;
+                    setPlayIndex(newIndex);
+                    
+                    // Check if we reached the end
+                    if (newIndex >= totalSteps) {
+                      console.log("🏁 Song completed!");
+                      setIsPlaying(false);
+                      playModeRef.current = false;
+                      return;
+                    }
+                    
+                    // Get notes for next step
+                    const nextStepNotes = getNotesAtCursor(osmd);
+                    setCurrentStepNotes(nextStepNotes);
+                    currentStepNotesRef.current = nextStepNotes;
+                    playedNotesRef.current.clear(); // Reset for next step
+                    
+                    console.log(`🎵 Next step notes:`, nextStepNotes.map(n => midiToName(n)));
+                  }
                 } else {
-                  const wrongNotes = findNotesAtCursorByMidi(osmdRef.current,Number(key));
+                  // Wrong note
+                  const wrongNotes = findNotesAtCursorByMidi(osmdRef.current, Number(key));
                   wrongNotes.forEach((gn) => highlightGraphicalNoteNative(gn, 800));
+                  console.log(`❌ Wrong note: ${midiToName(key)} | Expected: ${cursorNotes.map(n => midiToName(n)).join(', ')}`);
                 }
               }
             }
