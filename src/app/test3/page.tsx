@@ -15,20 +15,13 @@ export default function Test3HybridFull() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showUploadPanel, setShowUploadPanel] = useState(true);
   const samplerRef = useRef<Sampler | null>(null); // sampler will replace PolySynth
-  const playedNotesRef = useRef<Set<number>>(new Set()); 
-  
-  
-  
-  
+  const playedNotesRef = useRef<Set<number>>(new Set());         
   // Original xml path (fallback)
-  const fallbackXml = "/songs/mxl/Johann Sebastian Bach Air.mxl";
-  
+  const fallbackXml = "/songs/mxl/Easy.mxl";
   // Use uploaded XML if available, otherwise use fallback
   const xml = uploadedMusicXML || fallbackXml;
-  
   const containerRef = useRef<HTMLDivElement | null>(null);
   const osmdRef = useRef<any>(null);
-
   // playback state
   const [isPlaying, setIsPlaying] = useState(false);
   const [playIndex, setPlayIndex] = useState(0);
@@ -43,7 +36,7 @@ export default function Test3HybridFull() {
 
   const cursorsOptions = [
     {
-      type: 0,
+      type: 1,
       color: "#FF0000",
       alpha: 1,
       follow: true,
@@ -132,75 +125,103 @@ try {
   }, []);
 
   function replaceOsmdCursor(osmd:OpenSheetMusicDisplay) {
+  try {
+    console.log("🔧 replaceOsmdCursor called");
+    const img = osmd.cursor.cursorElement;
+    console.log("📍 Cursor element:", img);
+    
+    if (!img) {
+      console.warn("❌ No cursor element found!");
+      return;
+    }
+
     try {
-      const img = osmd.cursor.cursorElement;
-      if (!img) return;
+      img.style.display = "none";
+      console.log("✅ Original cursor hidden");
+    } catch (e) {
+      console.warn("Failed to hide original cursor:", e);
+    }
+
+    // Remove old custom cursor if it exists
+    const oldCustom = document.getElementById("custom-vertical-cursor");
+    if (oldCustom) {
+      oldCustom.remove();
+      console.log("🗑️ Removed old custom cursor");
+    }
+
+    // Create new custom cursor
+    const custom = document.createElement("div");
+    custom.id = "custom-vertical-cursor";
+    custom.style.position = "absolute";
+    custom.style.background = "rgba(255, 0, 0, 0.2)";
+    custom.style.border = "2px solid rgba(255, 0, 0, 0.7)";
+    custom.style.borderRadius = "4px";
+    custom.style.pointerEvents = "none";
+    custom.style.zIndex = "9999";
+    
+    const parent = img.parentElement;
+    console.log("👪 Parent element:", parent);
+    
+    if (parent) {
+      parent.appendChild(custom);
+      console.log("✅ Custom cursor created and appended");
+    } else {
+      console.warn("❌ No parent element found!");
+    }
+
+    const originalUpdate = osmd.cursor.update?.bind(osmd.cursor);
+    if (!originalUpdate) {
+      console.warn("❌ No cursor.update method found!");
+      return;
+    }
+    
+    console.log("✅ Overriding cursor.update method");
+
+    osmd.cursor.update = function (...args) {
+      originalUpdate(...args);
+
+      const el = osmd.cursor.cursorElement;
+      if (!el) return;
 
       try {
-        img.style.display = "none";
-      } catch {}
+        const rect = el.getBoundingClientRect();
+        const parentRect = img.parentElement?.getBoundingClientRect();
+        if (!parentRect) return;
 
-      let custom = document.getElementById("custom-vertical-cursor");
-      if (!custom) {
-        custom = document.createElement("div");
-        custom.id = "custom-vertical-cursor";
-        custom.style.position = "absolute";
-        custom.style.background = "rgba(255, 0, 0, 0.2)";
-        custom.style.border = "2px solid rgba(255, 0, 0, 0.7)";
-        custom.style.borderRadius = "4px";
-        custom.style.pointerEvents = "none";
-        custom.style.zIndex = "9999";
-        img.parentElement?.appendChild(custom);
-      }
-
-      const originalUpdate = osmd.cursor.update?.bind(osmd.cursor);
-      if (!originalUpdate) return;
-
-      osmd.cursor.update = function (...args) {
-        originalUpdate(...args);
-
-        const el = osmd.cursor.cursorElement;
-        if (!el) return;
-
-        try {
-          const rect = el.getBoundingClientRect();
-          const parentRect = img.parentElement?.getBoundingClientRect();
-          if (!parentRect) return;
-
-          // Get the actual staff lines to determine proper height
-          const staffLines = img.parentElement?.querySelectorAll('.vf-stave, [class*="StaffLine"]');
-          let staffHeight = 100; // Default fallback
-          
-          if (staffLines && staffLines.length > 0) {
-            // Calculate height to cover all staves
-            const firstStaff = staffLines[0].getBoundingClientRect();
-            const lastStaff = staffLines[staffLines.length - 1].getBoundingClientRect();
-            staffHeight = (lastStaff.bottom - firstStaff.top) + 40; // Add padding
-          } else {
-            // Use a larger multiplier if we can't find staff lines
-            staffHeight = rect.height * 3;
-          }
-
-          const left = rect.left - parentRect.left+10;
-          const top = rect.top - parentRect.top;
-
-          // Wide rectangular cursor covering full staff height
-          const cursorWidth = 25;
-          const cursorHeight = Math.max(staffHeight, 250); // Ensure minimum height
-
-          custom.style.left = `${Math.round(left - 8)}px`;
-          custom.style.top = `${Math.round(top - 30)}px`; // Start higher to cover top of staff
-          custom.style.height = `${Math.round(cursorHeight)}px`;
-          custom.style.width = `${cursorWidth}px`;
-          custom.style.display = 'block'; // Ensure it's visible
-        } catch (e) {
-          console.warn("error is ", e);
+        // Get the actual staff lines to determine proper height
+        const staffLines = img.parentElement?.querySelectorAll('.vf-stave, [class*="StaffLine"]');
+        let staffHeight = 100; // Default fallback
+        
+        if (staffLines && staffLines.length > 0) {
+          // Calculate height to cover all staves
+          const firstStaff = staffLines[0].getBoundingClientRect();
+          const lastStaff = staffLines[staffLines.length - 1].getBoundingClientRect();
+          staffHeight = (lastStaff.bottom - firstStaff.top) + 40; // Add padding
+        } else {
+          // Use a larger multiplier if we can't find staff lines
+          staffHeight = rect.height * 3;
         }
-      };
-    } catch (e) {
-      console.warn("replaceOsmdCursor failed", e);
-    }
+
+        const left = rect.left - parentRect.left+10;
+        const top = rect.top - parentRect.top;
+
+        // Wide rectangular cursor covering full staff height
+        const cursorWidth = 25;
+        const cursorHeight = Math.max(staffHeight, 250); // Ensure minimum height
+
+        custom.style.left = `${Math.round(left - 8)}px`;
+        custom.style.top = `${Math.round(top - 30)}px`; // Start higher to cover top of staff
+        custom.style.height = `${Math.round(cursorHeight)}px`;
+        custom.style.width = `${cursorWidth}px`;
+        custom.style.display = 'block'; // Ensure it's visible
+      } catch (e) {
+        console.warn("error is ", e);
+      }
+    };
+  } catch (e) {
+    console.warn("replaceOsmdCursor failed", e);
   }
+}
 
 
 function findNotesAtCursorByMidi(osmd: any, midi: number) {
@@ -330,10 +351,10 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
         osmd.setOptions({
           cursorsOptions: [
             {
-              type: 0,
+              type: 1,
               color: "#FF0000",
-              alpha: 1,
-              follow: true
+              alpha: 0.8,
+              follow: true,
             }
           ]
         });
@@ -341,9 +362,16 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
         osmd.cursor.show();
         osmd.cursor.reset();
 
-        osmdRef.current = osmd;
-        replaceOsmdCursor(osmd);
-        buildPlaybackStepsAndMaps(osmd);
+        if (!cancelled) {
+          osmdRef.current = osmd;
+
+          // Small delay to ensure DOM is ready
+          setTimeout(() => {
+            replaceOsmdCursor(osmd);
+          }, 100);
+
+          buildPlaybackStepsAndMaps(osmd);
+        }
         
         // Initialize cursor notes on load
         const initialNotes = getNotesAtCursor(osmd);
@@ -357,14 +385,23 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
     const onResize = () => {
       try {
         osmd.render();
+        // Reapply custom cursor after resize
+        if (osmdRef.current) {
+          setTimeout(() => replaceOsmdCursor(osmdRef.current), 50);
+        }
       } catch {}
     };
     window.addEventListener("resize", onResize);
 
-    return () => {
-      cancelled = true;
-      window.removeEventListener("resize", onResize);
-    };
+  return () => {
+    cancelled = true;
+    window.removeEventListener("resize", onResize);
+    // Clean up custom cursor
+    const oldCustom = document.getElementById("custom-vertical-cursor");
+    if (oldCustom) {
+      oldCustom.remove();
+    }
+  };
   }, [xml]); // ← IMPORTANT: Re-run when xml changes!
 
   function buildPlaybackStepsAndMaps(osmd: any) {
@@ -492,6 +529,44 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
     osmd.cursor.reset();
     for (let i = 0; i < index; ++i) osmd.cursor.next();
     setPlayIndex(index);
+    
+    // Update current notes after seeking
+    const stepNotes = getNotesAtCursor(osmd);
+    setCurrentStepNotes(stepNotes);
+    currentStepNotesRef.current = stepNotes;
+    playedNotesRef.current.clear();
+  }
+
+  // Function to advance cursor when all notes are played
+  function advanceCursorIfComplete() {
+    const osmd = osmdRef.current;
+    if (!osmd || !playModeRef.current) return;
+    
+    const requiredNotes = currentStepNotesRef.current;
+    const playedNotes = playedNotesRef.current;
+    
+    // Check if all required notes have been played
+    const allPlayed = requiredNotes.every(note => playedNotes.has(note));
+    
+    if (allPlayed && requiredNotes.length > 0) {
+      // Move to next cursor position
+      osmd.cursor.next();
+      const newIndex = playIndex + 1;
+      setPlayIndex(newIndex);
+      
+      // Get new notes at cursor
+      const stepNotes = getNotesAtCursor(osmd);
+      setCurrentStepNotes(stepNotes);
+      currentStepNotesRef.current = stepNotes;
+      playedNotesRef.current.clear();
+      
+      // Check if we reached the end
+      const totalSteps = (osmd as any)._playbackDurations?.length ?? 0;
+      if (newIndex >= totalSteps) {
+        setIsPlaying(false);
+        playModeRef.current = false;
+      }
+    }
   }
 
   useEffect(() => {
@@ -596,53 +671,22 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
                 samplerRef.current.triggerAttackRelease(noteName, "8n");
               }
               
-              // Check if note is correct and advance cursor when all notes are played
+              // Visual feedback only in play mode
               if (playModeRef.current) {
                 const cursorNotes = currentStepNotesRef.current || [];
 
                 if (cursorNotes.some(n => Number(n) === Number(key))) {
-                  // Correct note!
-                  playedNotesRef.current.add(Number(key));
-                  const matchingNotes = findNotesAtCursorByMidi(osmdRef.current, Number(key));
+                  const matchingNotes = findNotesAtCursorByMidi(osmdRef.current,Number(key));
                   matchingNotes.forEach((gn) => highlightGraphicalNoteNative(gn, 1500));
                   
-                  console.log(`✅ Correct note: ${midiToName(key)} | Played: ${playedNotesRef.current.size}/${cursorNotes.length}`);
+                  // Mark note as played
+                  playedNotesRef.current.add(key);
                   
-                  // Check if all required notes have been played
-                  const allNotesPlayed = cursorNotes.every(n => playedNotesRef.current.has(n));
-                  
-                  if (allNotesPlayed) {
-                    console.log(`🎉 All notes played correctly! Advancing cursor...`);
-                    
-                    // Advance cursor
-                    const osmd = osmdRef.current;
-                    if (!osmd) return;
-                    
-                    osmd.cursor.next();
-                    const newIndex = playIndex + 1;
-                    setPlayIndex(newIndex);
-                    
-                    // Check if we reached the end
-                    if (newIndex >= totalSteps) {
-                      console.log("🏁 Song completed!");
-                      setIsPlaying(false);
-                      playModeRef.current = false;
-                      return;
-                    }
-                    
-                    // Get notes for next step
-                    const nextStepNotes = getNotesAtCursor(osmd);
-                    setCurrentStepNotes(nextStepNotes);
-                    currentStepNotesRef.current = nextStepNotes;
-                    playedNotesRef.current.clear(); // Reset for next step
-                    
-                    console.log(`🎵 Next step notes:`, nextStepNotes.map(n => midiToName(n)));
-                  }
+                  // Check if all notes are now played and advance cursor
+                  advanceCursorIfComplete();
                 } else {
-                  // Wrong note
-                  const wrongNotes = findNotesAtCursorByMidi(osmdRef.current, Number(key));
+                  const wrongNotes = findNotesAtCursorByMidi(osmdRef.current,Number(key));
                   wrongNotes.forEach((gn) => highlightGraphicalNoteNative(gn, 800));
-                  console.log(`❌ Wrong note: ${midiToName(key)} | Expected: ${cursorNotes.map(n => midiToName(n)).join(', ')}`);
                 }
               }
             }
@@ -714,6 +758,12 @@ useEffect(() => {
           if (cursorNotes.some(n => Number(n) === Number(midiNote))) {
             const matchingNotes = findNotesAtCursorByMidi(osmdRef.current,Number(midiNote));
             matchingNotes.forEach((gn) => highlightGraphicalNoteNative(gn, 1500));
+            
+            // Mark note as played
+            playedNotesRef.current.add(midiNote);
+            
+            // Check if all notes are now played and advance cursor
+            advanceCursorIfComplete();
           } else {
             const wrongNotes = findNotesAtCursorByMidi(osmdRef.current,Number(midiNote));
             wrongNotes.forEach((gn) => highlightGraphicalNoteNative(gn, 800));

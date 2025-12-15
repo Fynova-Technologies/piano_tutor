@@ -16,7 +16,7 @@ export default function Test2HybridFull() {
   const [showUploadPanel, setShowUploadPanel] = useState(true);
   const samplerRef = useRef<Sampler | null>(null); // sampler will replace PolySynth
   // Original xml path (fallback)
-  const fallbackXml = "/songs/mxl/Johann Sebastian Bach Air.mxl";
+  const fallbackXml = "/songs/mxl/midi2musicxml.musicxml";
   // Use uploaded XML if available, otherwise use fallback
   const xml = uploadedMusicXML || fallbackXml;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -31,6 +31,20 @@ export default function Test2HybridFull() {
   const currentStepNotesRef = useRef<number[]>([]);
   const playbackMidiGuard = useRef<number>(0);
   const playModeRef = useRef<boolean>(false);
+  // ===== SCORING STATE =====
+  const [score, setScore] = useState<number | null>(null);
+  // scoring counters
+  const totalStepsRef = useRef(0);
+  const correctStepsRef = useRef(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [highScore, setHighScore] = useState<number | null>(null);
+  const [lastScore, setLastScore] = useState<number | null>(null);
+
+  
+  // Track which cursor steps were already scored
+  const scoredStepsRef = useRef<Set<number>>(new Set());
+  const currentCursorStepRef = useRef<number>(0);
+
   const cursorsOptions = [
     {
       type: 0,
@@ -90,6 +104,14 @@ export default function Test2HybridFull() {
     }
   };
 
+  useEffect(() => {
+  const hs = Number(localStorage.getItem("highScore"));
+  const ls = Number(localStorage.getItem("lastScore"));
+
+  if (!Number.isNaN(hs)) setHighScore(hs);
+  if (!Number.isNaN(ls)) setLastScore(ls);
+}, []);
+
   // inject highlight CSS once
   useEffect(() => {
     const id = "osmd-midi-highlight-styles";
@@ -115,75 +137,130 @@ export default function Test2HybridFull() {
   }, []);
 
   function replaceOsmdCursor(osmd:OpenSheetMusicDisplay) {
+  try {
+    console.log("🔧 replaceOsmdCursor called");
+    const img = osmd.cursor.cursorElement;
+    console.log("📍 Cursor element:", img);
+    
+    if (!img) {
+      console.warn("❌ No cursor element found!");
+      return;
+    }
+
     try {
-      const img = osmd.cursor.cursorElement;
-      if (!img) return;
+      img.style.display = "none";
+      console.log("✅ Original cursor hidden");
+    } catch (e) {
+      console.warn("Failed to hide original cursor:", e);
+    }
+
+    // Remove old custom cursor if it exists
+    const oldCustom = document.getElementById("custom-vertical-cursor");
+    if (oldCustom) {
+      oldCustom.remove();
+      console.log("🗑️ Removed old custom cursor");
+    }
+
+    // Create new custom cursor
+    const custom = document.createElement("div");
+    custom.id = "custom-vertical-cursor";
+    custom.style.position = "absolute";
+    custom.style.background = "rgba(255, 0, 0, 0.2)";
+    custom.style.border = "2px solid rgba(255, 0, 0, 0.7)";
+    custom.style.borderRadius = "4px";
+    custom.style.pointerEvents = "none";
+    custom.style.zIndex = "9999";
+    img.parentElement?.appendChild(custom);
+    
+    const parent = img.parentElement;
+    console.log("👪 Parent element:", parent);
+    
+    if (parent) {
+      parent.appendChild(custom);
+      console.log("✅ Custom cursor created and appended");
+    } else {
+      console.warn("❌ No parent element found!");
+    }
+
+    const originalUpdate = osmd.cursor.update?.bind(osmd.cursor);
+    if (!originalUpdate) {
+      console.warn("❌ No cursor.update method found!");
+      return;
+    }
+    
+    console.log("✅ Overriding cursor.update method");
+
+    osmd.cursor.update = function (...args) {
+      originalUpdate(...args);
+
+      const el = osmd.cursor.cursorElement;
+      if (!el) return;
 
       try {
-        img.style.display = "none";
-      } catch {}
+        const rect = el.getBoundingClientRect();
+        const parentRect = img.parentElement?.getBoundingClientRect();
+        if (!parentRect) return;
 
-      let custom = document.getElementById("custom-vertical-cursor");
-      if (!custom) {
-        custom = document.createElement("div");
-        custom.id = "custom-vertical-cursor";
-        custom.style.position = "absolute";
-        custom.style.background = "rgba(255, 0, 0, 0.2)";
-        custom.style.border = "2px solid rgba(255, 0, 0, 0.7)";
-        custom.style.borderRadius = "4px";
-        custom.style.pointerEvents = "none";
-        custom.style.zIndex = "9999";
-        img.parentElement?.appendChild(custom);
-      }
-
-      const originalUpdate = osmd.cursor.update?.bind(osmd.cursor);
-      if (!originalUpdate) return;
-
-      osmd.cursor.update = function (...args) {
-        originalUpdate(...args);
-
-        const el = osmd.cursor.cursorElement;
-        if (!el) return;
-
-        try {
-          const rect = el.getBoundingClientRect();
-          const parentRect = img.parentElement?.getBoundingClientRect();
-          if (!parentRect) return;
-
-          // Get the actual staff lines to determine proper height
-          const staffLines = img.parentElement?.querySelectorAll('.vf-stave, [class*="StaffLine"]');
-          let staffHeight = 100; // Default fallback
-          
-          if (staffLines && staffLines.length > 0) {
-            // Calculate height to cover all staves
-            const firstStaff = staffLines[0].getBoundingClientRect();
-            const lastStaff = staffLines[staffLines.length - 1].getBoundingClientRect();
-            staffHeight = (lastStaff.bottom - firstStaff.top) + 40; // Add padding
-          } else {
-            // Use a larger multiplier if we can't find staff lines
-            staffHeight = rect.height * 3;
-          }
-
-          const left = rect.left - parentRect.left+10;
-          const top = rect.top - parentRect.top;
-
-          // Wide rectangular cursor covering full staff height
-          const cursorWidth = 25;
-          const cursorHeight = Math.max(staffHeight, 250); // Ensure minimum height
-
-          custom.style.left = `${Math.round(left - 8)}px`;
-          custom.style.top = `${Math.round(top - 30)}px`; // Start higher to cover top of staff
-          custom.style.height = `${Math.round(cursorHeight)}px`;
-          custom.style.width = `${cursorWidth}px`;
-          custom.style.display = 'block'; // Ensure it's visible
-        } catch (e) {
-          console.warn("error is ", e);
+        // Get the actual staff lines to determine proper height
+        const staffLines = img.parentElement?.querySelectorAll('.vf-stave, [class*="StaffLine"]');
+        let staffHeight = 100; // Default fallback
+        
+        if (staffLines && staffLines.length > 0) {
+          // Calculate height to cover all staves
+          const firstStaff = staffLines[0].getBoundingClientRect();
+          const lastStaff = staffLines[staffLines.length - 1].getBoundingClientRect();
+          staffHeight = (lastStaff.bottom - firstStaff.top) + 40; // Add padding
+        } else {
+          // Use a larger multiplier if we can't find staff lines
+          staffHeight = rect.height * 3;
         }
-      };
-    } catch (e) {
-      console.warn("replaceOsmdCursor failed", e);
-    }
+
+        const left = rect.left - parentRect.left+10;
+        const top = rect.top - parentRect.top;
+
+        // Wide rectangular cursor covering full staff height
+        const cursorWidth = 25;
+        const cursorHeight = Math.max(staffHeight, 250); // Ensure minimum height
+
+        custom.style.left = `${Math.round(left - 8)}px`;
+        custom.style.top = `${Math.round(top - 30)}px`; // Start higher to cover top of staff
+        custom.style.height = `${Math.round(cursorHeight)}px`;
+        custom.style.width = `${cursorWidth}px`;
+        custom.style.display = 'block'; // Ensure it's visible
+      } catch (e) {
+        console.warn("error is ", e);
+      }
+    };
+  } catch (e) {
+    console.warn("replaceOsmdCursor failed", e);
   }
+}
+
+function scoreNotePlayed(midiNote: number) {
+  if (!playModeRef.current) return;
+
+  const step = currentCursorStepRef.current;
+  if (scoredStepsRef.current.has(step)) return;
+
+  const expected = currentStepNotesRef.current || [];
+
+  if (expected.includes(midiNote)) {
+    correctStepsRef.current += 1;
+  }
+
+  // lock this step (right or wrong)
+  scoredStepsRef.current.add(step);
+}
+
+function finalizeScore() {
+  const total = totalStepsRef.current;
+  const correct = correctStepsRef.current;
+
+  if (total === 0) return 0;
+
+  return Math.round((correct / total) * 100);
+}
+
 
 
 function findNotesAtCursorByMidi(osmd: any, midi: number) {
@@ -324,25 +401,41 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
         osmd.cursor.show();
         osmd.cursor.reset();
 
-        osmdRef.current = osmd;
-        replaceOsmdCursor(osmd);
-        buildPlaybackStepsAndMaps(osmd);
+        if (!cancelled) {
+          osmdRef.current = osmd;
+
+          // Small delay to ensure DOM is ready
+          setTimeout(() => {
+            replaceOsmdCursor(osmd);
+          }, 100);
+
+          buildPlaybackStepsAndMaps(osmd);
+        }
       } catch (e) {
         console.error("OSMD load/render error", e);
       }
     })();
 
     const onResize = () => {
-      try {
-        osmd.render();
-      } catch {}
-    };
+  try {
+    osmd.render();
+    // Reapply custom cursor after resize
+    if (osmdRef.current) {
+      setTimeout(() => replaceOsmdCursor(osmdRef.current), 50);
+    }
+  } catch {}
+};
     window.addEventListener("resize", onResize);
 
     return () => {
-      cancelled = true;
-      window.removeEventListener("resize", onResize);
-    };
+  cancelled = true;
+  window.removeEventListener("resize", onResize);
+  // Clean up custom cursor
+  const oldCustom = document.getElementById("custom-vertical-cursor");
+  if (oldCustom) {
+    oldCustom.remove();
+  }
+};
   }, [xml]); // ← IMPORTANT: Re-run when xml changes!
 
   function buildPlaybackStepsAndMaps(osmd: any) {
@@ -386,21 +479,6 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
     setPlayIndex(0);
   }
 
-  function stopCursor() {
-    const osmd = osmdRef.current;
-    if (!osmd) return;
-    if (osmd._playTimer) {
-      clearTimeout(osmd._playTimer);
-      osmd._playTimer = null;
-    }
-    osmd.cursor.reset();
-    setIsPlaying(false);
-    setPlayIndex(0);
-    playModeRef.current = false;
-    clearHighlight(osmd);
-    document.querySelectorAll(".vf-note-highlight").forEach((el) => el.classList.remove("vf-note-highlight"));
-  }
-
   function pauseCursor() {
     const osmd = osmdRef.current;
     if (!osmd) return;
@@ -438,6 +516,43 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
     }
   }
 
+  function endPlayback() {
+  const osmd = osmdRef.current;
+  if (!osmd) return;
+
+  if (osmd._playTimer) {
+    clearTimeout(osmd._playTimer);
+    osmd._playTimer = null;
+  }
+  // finalize score
+  const finalScore = finalizeScore();
+  setScore(finalScore);
+
+  setLastScore(finalScore);
+  localStorage.setItem("lastScore", String(finalScore));
+
+  setHighScore(prev => {
+    const best = Math.max(prev ?? 0, finalScore);
+    localStorage.setItem("highScore", String(best));
+    return best;
+  });
+
+    setIsPlaying(false);
+    setPlayIndex(0);
+    osmd.cursor.reset();
+    playModeRef.current = false;
+    
+    // Re-apply custom cursor after reset
+    setTimeout(() => {
+      replaceOsmdCursor(osmd);
+    }, 100);
+    clearHighlight(osmd);
+    document.querySelectorAll(".vf-note-highlight").forEach((el) => el.classList.remove("vf-note-highlight"));
+
+  console.log("🏁 Playback finished. Final score:", finalScore);
+}
+
+
   function playCursor() {
     const osmd = osmdRef.current;
     if (!osmd) return;
@@ -452,11 +567,37 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
       osmd._playTimer = null;
     }
 
+      // Reset cursor and show FIRST position
+    osmd.cursor.reset();
     osmd.cursor.show();
-    setIsPlaying(true);
+    setCountdown(3);
+    const countdownInterval = setInterval(() => {
+  setCountdown(prev => {
+    if (prev === null || prev <= 1) {
+      clearInterval(countdownInterval);
+      return null;
+    }
+    return prev - 1;
+  });
+}, 1000);
+  
     playModeRef.current = true;
+    setTimeout(() => {
+      setIsPlaying(true);
+      playModeRef.current = true;
+      totalStepsRef.current = 0;
+      correctStepsRef.current = 0;
+      scoredStepsRef.current.clear();
+      setScore(null);
 
-    let idx = Math.max(0, playIndex);
+      const idx = 0; // Always start from 0 after countdown
+      startActualPlayback(idx, steps);
+    }, 3000); // 3 second countdown
+
+    function startActualPlayback(startIdx: number, steps: number[]) {
+      const osmd = osmdRef.current;
+      if (!osmd) return;
+      let idx = startIdx;
 
     const sendMidiForStep = (index: number) => {
       const it = osmd.cursor.iterator.clone();
@@ -495,30 +636,44 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
           }
         }
       }
+  
+      
     };
+
 
     function step() {
       if (idx >= steps.length) {
-        setIsPlaying(false);
-        playModeRef.current = false;
+          endPlayback();
         return;
       }
-      
+      currentCursorStepRef.current = idx;
+      // 👇 count this step as a question
+      totalStepsRef.current += 1;
+      // allow scoring for this step
+      scoredStepsRef.current.delete(idx);
       const stepNotes = getNotesAtCursor(osmd);
       setCurrentStepNotes(stepNotes);
       currentStepNotesRef.current = stepNotes;
-      
-      osmd.cursor.next();
-      setPlayIndex(idx);
+
+      scoredStepsRef.current.delete(idx);
+      sendMidiForStep(idx);
       sendMidiForStep(idx);
 
       const delay = steps[idx] ?? 200;
+      setPlayIndex(idx);
+
       idx++;
-      osmd._playTimer = setTimeout(step, delay);
+
+      // Move cursor AFTER the delay, not before
+      osmd._playTimer = setTimeout(() => {
+        osmd.cursor.next();
+        step();
+      }, delay);
     }
 
     step();
   }
+}
 
   function seekTo(index: number) {
     const osmd = osmdRef.current;
@@ -631,10 +786,16 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
                 const noteName = midiToName(key);
                 samplerRef.current.triggerAttackRelease(noteName, "8n");
               }
+
+              if (playModeRef.current) {
+                scoreNotePlayed(key);
+              }
+
               
               // Visual feedback only in play mode
               if (playModeRef.current) {
                 const cursorNotes = currentStepNotesRef.current || [];
+
 
                 if (cursorNotes.some(n => Number(n) === Number(key))) {
                   const matchingNotes = findNotesAtCursorByMidi(osmdRef.current,Number(key));
@@ -713,6 +874,7 @@ useEffect(() => {
           if (cursorNotes.some(n => Number(n) === Number(midiNote))) {
             const matchingNotes = findNotesAtCursorByMidi(osmdRef.current,Number(midiNote));
             matchingNotes.forEach((gn) => highlightGraphicalNoteNative(gn, 1500));
+            scoreNotePlayed(midiNote);
           } else {
             const wrongNotes = findNotesAtCursorByMidi(osmdRef.current,Number(midiNote));
             wrongNotes.forEach((gn) => highlightGraphicalNoteNative(gn, 800));
@@ -777,6 +939,13 @@ useEffect(() => {
             >
               Use Default Song
             </button>
+            <div style={{ display: "flex", gap: 16, fontSize: 16, marginBottom: 12 }}>
+  <div>🎯 Score: <strong>{score}</strong></div>
+  <div>🕘 Last: {lastScore ?? "-"}</div>
+  <div>🏆 High: {highScore}</div>
+</div>
+
+
           </div>
         </div>
       )}
@@ -827,7 +996,7 @@ useEffect(() => {
           {isPlaying ? "⏸ Pause" : "▶ Play"}
         </button>
 
-        <button
+        {/* <button
           onClick={() => stopCursor()}
           style={{
             padding: "8px 12px",
@@ -839,7 +1008,7 @@ useEffect(() => {
           }}
         >
           ⏹ Stop
-        </button>
+        </button> */}
 
         <button
           onClick={() => {
@@ -882,6 +1051,25 @@ useEffect(() => {
         id="osmd-container"
         style={{ width: "100%", minHeight: "70vh", background: "white", border: "1px solid #ddd" }}
       />
+      {countdown !== null && (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.4)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 96,
+      color: "white",
+      zIndex: 99999,
+      fontWeight: "bold",
+    }}
+  >
+    {countdown === 0 ? "GO!" : countdown}
+  </div>
+)}
+
     </div>
   );
 }
