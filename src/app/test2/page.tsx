@@ -6,7 +6,16 @@ import React, { useEffect, useRef, useState } from "react";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import * as Tone from "tone";
 import { Sampler } from "tone";
-
+import replaceOsmdCursor from "@/features/utils/replaceOsmdCursor";
+import scoreNotePlayed from "@/features/scores/scorenoteplayed";
+import findNotesAtCursorByMidi from "@/features/notes/findNotesatcursor";
+import highlightGraphicalNoteNative from "@/features/notes/highlightgraphicalnotes";
+import buildPlaybackStepsAndMaps from "@/features/playback/buildplaybacksetpsandmaps";
+import pauseCursor from "@/features/playback/pausecursor";
+import playCursor from "@/features/playback/playcursor";
+import clearHighlight from "@/features/notes/clearhighlight";
+import { onProgressClick } from "@/features/utils/onProgressclick";
+import RenderOpenMusicSheet from "@/features/components/renderopenmusicsheet";
 
 export default function Test2HybridFull() {
   // ========== NEW: Upload State ==========
@@ -39,71 +48,17 @@ export default function Test2HybridFull() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [highScore, setHighScore] = useState<number | null>(null);
   const [lastScore, setLastScore] = useState<number | null>(null);
-
-  
   // Track which cursor steps were already scored
   const scoredStepsRef = useRef<Set<number>>(new Set());
   const currentCursorStepRef = useRef<number>(0);
-
   const cursorsOptions = [
     {
-      type: 0,
+      type: 3,
       color: "#FF0000",
       alpha: 1,
       follow: true,
     },
   ];
-  // ========== NEW: File Upload Handler ==========
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
-    if (!validTypes.includes(file.type)) {
-      setUploadError('Please upload a PNG, JPG, or PDF file');
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setUploadError('File size must be less than 10MB');
-      return;
-    }
-    setUploadLoading(true);
-    setUploadError(null);
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-      const response = await fetch('/api/convert', {
-        method: 'POST',
-        body: formData,
-      });
-      // const data = await response.json();Episode 95
-      const raw = await response.text();
-      console.log("RAW RESPONSE:", raw);
-
-      let data;
-      try {
-        data = JSON.parse(raw);
-      } catch {
-        throw new Error("API did not return JSON. Raw response:\n" + raw);
-      }
-
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Conversion failed');
-      }
-
-      // Store the MusicXML content
-      setUploadedMusicXML(data.musicxml);
-      setShowUploadPanel(false); // Hide upload panel after success
-      
-      console.log('✅ MusicXML uploaded successfully');
-    } catch (err: any) {
-      setUploadError(err.message || 'Failed to convert sheet music');
-      console.error('Upload error:', err);
-    } finally {
-      setUploadLoading(false);
-    }
-  };
-
   useEffect(() => {
   const hs = Number(localStorage.getItem("highScore"));
   const ls = Number(localStorage.getItem("lastScore"));
@@ -111,7 +66,6 @@ export default function Test2HybridFull() {
   if (!Number.isNaN(hs)) setHighScore(hs);
   if (!Number.isNaN(ls)) setLastScore(ls);
 }, []);
-
   // inject highlight CSS once
   useEffect(() => {
     const id = "osmd-midi-highlight-styles";
@@ -135,240 +89,6 @@ export default function Test2HybridFull() {
     `;
     document.head.appendChild(style);
   }, []);
-
-  function replaceOsmdCursor(osmd:OpenSheetMusicDisplay) {
-  try {
-    console.log("🔧 replaceOsmdCursor called");
-    const img = osmd.cursor.cursorElement;
-    console.log("📍 Cursor element:", img);
-    
-    if (!img) {
-      console.warn("❌ No cursor element found!");
-      return;
-    }
-
-    try {
-      img.style.display = "none";
-      console.log("✅ Original cursor hidden");
-    } catch (e) {
-      console.warn("Failed to hide original cursor:", e);
-    }
-
-    // Remove old custom cursor if it exists
-    const oldCustom = document.getElementById("custom-vertical-cursor");
-    if (oldCustom) {
-      oldCustom.remove();
-      console.log("🗑️ Removed old custom cursor");
-    }
-
-    // Create new custom cursor
-    const custom = document.createElement("div");
-    custom.id = "custom-vertical-cursor";
-    custom.style.position = "absolute";
-    custom.style.background = "rgba(255, 0, 0, 0.2)";
-    custom.style.border = "2px solid rgba(255, 0, 0, 0.7)";
-    custom.style.borderRadius = "4px";
-    custom.style.pointerEvents = "none";
-    custom.style.zIndex = "9999";
-    img.parentElement?.appendChild(custom);
-    
-    const parent = img.parentElement;
-    console.log("👪 Parent element:", parent);
-    
-    if (parent) {
-      parent.appendChild(custom);
-      console.log("✅ Custom cursor created and appended");
-    } else {
-      console.warn("❌ No parent element found!");
-    }
-
-    const originalUpdate = osmd.cursor.update?.bind(osmd.cursor);
-    if (!originalUpdate) {
-      console.warn("❌ No cursor.update method found!");
-      return;
-    }
-    
-    console.log("✅ Overriding cursor.update method");
-
-    osmd.cursor.update = function (...args) {
-      originalUpdate(...args);
-
-      const el = osmd.cursor.cursorElement;
-      if (!el) return;
-
-      try {
-        const rect = el.getBoundingClientRect();
-        const parentRect = img.parentElement?.getBoundingClientRect();
-        if (!parentRect) return;
-
-        // Get the actual staff lines to determine proper height
-        const staffLines = img.parentElement?.querySelectorAll('.vf-stave, [class*="StaffLine"]');
-        let staffHeight = 100; // Default fallback
-        
-        if (staffLines && staffLines.length > 0) {
-          // Calculate height to cover all staves
-          const firstStaff = staffLines[0].getBoundingClientRect();
-          const lastStaff = staffLines[staffLines.length - 1].getBoundingClientRect();
-          staffHeight = (lastStaff.bottom - firstStaff.top) + 40; // Add padding
-        } else {
-          // Use a larger multiplier if we can't find staff lines
-          staffHeight = rect.height * 3;
-        }
-
-        const left = rect.left - parentRect.left+10;
-        const top = rect.top - parentRect.top;
-
-        // Wide rectangular cursor covering full staff height
-        const cursorWidth = 25;
-        const cursorHeight = Math.max(staffHeight, 250); // Ensure minimum height
-
-        custom.style.left = `${Math.round(left - 8)}px`;
-        custom.style.top = `${Math.round(top - 30)}px`; // Start higher to cover top of staff
-        custom.style.height = `${Math.round(cursorHeight)}px`;
-        custom.style.width = `${cursorWidth}px`;
-        custom.style.display = 'block'; // Ensure it's visible
-      } catch (e) {
-        console.warn("error is ", e);
-      }
-    };
-  } catch (e) {
-    console.warn("replaceOsmdCursor failed", e);
-  }
-}
-
-function scoreNotePlayed(midiNote: number) {
-  if (!playModeRef.current) return;
-
-  const step = currentCursorStepRef.current;
-  if (scoredStepsRef.current.has(step)) return;
-
-  const expected = currentStepNotesRef.current || [];
-
-  if (expected.includes(midiNote)) {
-    correctStepsRef.current += 1;
-  }
-
-  // lock this step (right or wrong)
-  scoredStepsRef.current.add(step);
-}
-
-function finalizeScore() {
-  const total = totalStepsRef.current;
-  const correct = correctStepsRef.current;
-
-  if (total === 0) return 0;
-
-  return Math.round((correct / total) * 100);
-}
-
-
-
-function findNotesAtCursorByMidi(osmd: any, midi: number) {
-    try {
-      const it = osmd.cursor.iterator;
-      if (!it) {
-        console.warn("No iterator found");
-        return [];
-      }
-      
-      const matches: any[] = [];
-      
-      // Get the exact timestamp of the cursor position
-      const currentTimestamp = it.CurrentSourceTimestamp;
-      
-      console.log(`Looking for MIDI ${midi} at timestamp`, currentTimestamp);
-      
-      // Get current voice entries to find the exact source notes at cursor
-      const ves = it.CurrentVoiceEntries || [];
-      const sourceNotesAtCursor: any[] = [];
-      
-      for (const ve of ves) {
-        const veNotes = ve.Notes || [];
-        for (const n of veNotes) {
-          const halfTone = n?.sourceNote?.halfTone ?? n?.halfTone;
-          if (Number(halfTone) === Number(midi) && !n?.isRestFlag) {
-            sourceNotesAtCursor.push(n.sourceNote || n);
-          }
-        }
-      }
-      
-      console.log(`  Found ${sourceNotesAtCursor.length} source notes at cursor with MIDI ${midi}`);
-      
-      if (sourceNotesAtCursor.length === 0) return [];
-      
-      // Now find the graphical representations of these exact source notes
-      if (!osmd?.GraphicSheet?.MeasureList) return [];
-      
-      const measureList = osmd.GraphicSheet.MeasureList;
-      
-      for (const system of measureList) {
-        if (!Array.isArray(system)) continue;
-        
-        for (const gMeasure of system) {
-          if (!gMeasure?.staffEntries) continue;
-          
-          for (const staffEntry of gMeasure.staffEntries) {
-            for (const gve of staffEntry.graphicalVoiceEntries || []) {
-              for (const gn of gve.notes || []) {
-                // Check if this graphical note's source is one of our cursor notes
-                if (sourceNotesAtCursor.includes(gn?.sourceNote)) {
-                  matches.push(gn);
-                  console.log(`    ✓ Found matching graphical note`);
-                }
-              }
-            }
-          }
-        }
-      }
-      
-      console.log(`Total found: ${matches.length} graphical notes for MIDI ${midi}`);
-      return matches;
-    } catch (e) {
-      console.warn("findNotesAtCursorByMidi error", e);
-      return [];
-    }
-  }
-
-  function highlightGraphicalNoteNative(gn: any, ms = 600) {
-    const group = gn?.getSVGGElement?.() || gn?.graphicalNotehead?.svgElement || gn?.svgElement;
-    if (!group) return;
-    group.classList.add("vf-note-highlight");
-    setTimeout(() => group.classList.remove("vf-note-highlight"), ms);
-  }
-
-  function getNotesAtCursor(osmd: any) {
-    try {
-      const it = osmd.cursor.iterator;
-      if (!it) {
-        console.warn("[getNotesAtCursor] No iterator found");
-        return [];
-      }
-      
-      const ves = it.CurrentVoiceEntries || [];
-      const notes: number[] = [];
-      
-      for (const ve of ves) {
-        const veNotes = ve.Notes || [];
-        
-        for (const n of veNotes) {
-          const halfTone = n?.sourceNote?.halfTone ?? 
-                          n?.sourceNote?.Pitch?.halfTone ??
-                          n?.pitch?.Midi ?? 
-                          n?.Pitch?.Midi ??
-                          n?.halfTone;
-          
-          if (typeof halfTone === "number" && !n?.isRestFlag) {
-            notes.push(halfTone);
-          }
-        }
-      }
-      
-      return notes;
-    } catch (e) {
-      console.warn("getNotesAtCursor error", e);
-      return [];
-    }
-  }
 
   // ========== OSMD setup (now reacts to xml changes) ==========
   useEffect(() => {
@@ -409,7 +129,7 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
             replaceOsmdCursor(osmd);
           }, 100);
 
-          buildPlaybackStepsAndMaps(osmd);
+          buildPlaybackStepsAndMaps(osmd,setTotalSteps,setPlayIndex);
         }
       } catch (e) {
         console.error("OSMD load/render error", e);
@@ -436,254 +156,9 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
     oldCustom.remove();
   }
 };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [xml]); // ← IMPORTANT: Re-run when xml changes!
 
-  function buildPlaybackStepsAndMaps(osmd: any) {
-    const it = osmd.cursor.iterator.clone();
-    const durations: number[] = [];
-    const midiToIndex = new Map<number, number>();
-    let idx = 0;
-
-    while (!it.EndReached) {
-      const measure = it.CurrentMeasure;
-      const bpm =
-        typeof measure?.TempoInBPM === "number"
-          ? measure.TempoInBPM
-          : osmd.Sheet?.Rules?.DefaultTempoBPM ?? 120;
-
-      const quarterMs = (60 / bpm) * 1000;
-
-      const ves = it.CurrentVoiceEntries || [];
-      const realVals = ves.map((ve: any) => ve?.Duration?.RealValue ?? 0.25);
-      const smallest = realVals.length ? Math.min(...realVals) : 0.25;
-      const delayMs = Math.max(50, smallest * 4 * quarterMs);
-      durations.push(delayMs);
-
-      for (const ve of ves) {
-        for (const note of ve.Notes || []) {
-          const half = note?.sourceNote?.halfTone ?? note?.pitch?.Midi ?? note?.midi;
-          if (typeof half === "number" && !midiToIndex.has(half)) {
-            midiToIndex.set(half, idx);
-          }
-        }
-      }
-
-      idx++;
-      it.moveToNext();
-    }
-
-    (osmd as any)._playbackDurations = durations;
-    (osmd as any)._playbackMidiMap = midiToIndex;
-    (osmd as any)._playbackTotal = durations.length;
-    setTotalSteps(durations.length);
-    setPlayIndex(0);
-  }
-
-  function pauseCursor() {
-    const osmd = osmdRef.current;
-    if (!osmd) return;
-    if (osmd._playTimer) {
-      clearTimeout(osmd._playTimer);
-      osmd._playTimer = null;
-    }
-    setIsPlaying(false);
-    playModeRef.current = false;
-  }
-
-  function clearHighlight(osmd: any) {
-    if (!osmd?.GraphicSheet?.MeasureList) return;
-    const measureList = osmd.GraphicSheet.MeasureList;
-
-    for (const system of measureList) {
-      if (!Array.isArray(system)) continue;
-      for (const gMeasure of system) {
-        if (!gMeasure?.staffEntries) continue;
-        for (const entry of gMeasure.staffEntries) {
-          const gNotes = entry.graphicalNotes || [];
-          for (const gn of gNotes) {
-            try {
-              if (gn.sourceNote && gn.sourceNote.noteheadColor) gn.sourceNote.noteheadColor = undefined;
-            } catch {}
-          }
-        }
-      }
-    }
-
-    try {
-      osmd.render();
-    } catch (e) {
-      console.warn("osmd.render failed when clearing highlights:", e);
-    }
-  }
-
-  function endPlayback() {
-  const osmd = osmdRef.current;
-  if (!osmd) return;
-
-  if (osmd._playTimer) {
-    clearTimeout(osmd._playTimer);
-    osmd._playTimer = null;
-  }
-  // finalize score
-  const finalScore = finalizeScore();
-  setScore(finalScore);
-
-  setLastScore(finalScore);
-  localStorage.setItem("lastScore", String(finalScore));
-
-  setHighScore(prev => {
-    const best = Math.max(prev ?? 0, finalScore);
-    localStorage.setItem("highScore", String(best));
-    return best;
-  });
-
-    setIsPlaying(false);
-    setPlayIndex(0);
-    osmd.cursor.reset();
-    playModeRef.current = false;
-    
-    // Re-apply custom cursor after reset
-    setTimeout(() => {
-      replaceOsmdCursor(osmd);
-    }, 100);
-    clearHighlight(osmd);
-    document.querySelectorAll(".vf-note-highlight").forEach((el) => el.classList.remove("vf-note-highlight"));
-
-  console.log("🏁 Playback finished. Final score:", finalScore);
-}
-
-
-  function playCursor() {
-    const osmd = osmdRef.current;
-    if (!osmd) return;
-    const steps: number[] = (osmd as any)._playbackDurations ?? [];
-    if (!steps.length) {
-      console.warn("No playback steps built");
-      return;
-    }
-
-    if (osmd._playTimer) {
-      clearTimeout(osmd._playTimer);
-      osmd._playTimer = null;
-    }
-
-      // Reset cursor and show FIRST position
-    osmd.cursor.reset();
-    osmd.cursor.show();
-    setCountdown(3);
-    const countdownInterval = setInterval(() => {
-  setCountdown(prev => {
-    if (prev === null || prev <= 1) {
-      clearInterval(countdownInterval);
-      return null;
-    }
-    return prev - 1;
-  });
-}, 1000);
-  
-    playModeRef.current = true;
-    setTimeout(() => {
-      setIsPlaying(true);
-      playModeRef.current = true;
-      totalStepsRef.current = 0;
-      correctStepsRef.current = 0;
-      scoredStepsRef.current.clear();
-      setScore(null);
-
-      const idx = 0; // Always start from 0 after countdown
-      startActualPlayback(idx, steps);
-    }, 3000); // 3 second countdown
-
-    function startActualPlayback(startIdx: number, steps: number[]) {
-      const osmd = osmdRef.current;
-      if (!osmd) return;
-      let idx = startIdx;
-
-    const sendMidiForStep = (index: number) => {
-      const it = osmd.cursor.iterator.clone();
-      let i = 0;
-      while (!it.EndReached && i < index) {
-        it.moveToNext();
-        i++;
-      }
-      const ves = it.CurrentVoiceEntries || [];
-      for (const ve of ves) {
-        for (const n of ve.Notes || []) {
-          const half = n?.sourceNote?.halfTone;
-          if (typeof half === "number") {
-            const midiNote = half;
-            
-            const velocity = 0x50;
-            
-            try {
-              if (midiOutputs.length > 0) {
-                playbackMidiGuard.current += 1;
-                midiOutputs[0].send([0x90, midiNote, velocity]);
-
-                const offDelay = Math.max(100, (osmd as any)._playbackDurations?.[index] ?? 200);
-                const when = window.performance.now() + offDelay;
-                midiOutputs[0].send([0x80, midiNote, 0x40], when);
-
-                setTimeout(() => {
-                  playbackMidiGuard.current = Math.max(0, playbackMidiGuard.current - 1);
-                }, offDelay + 20);
-                
-              }
-            } catch (e) {
-              console.warn("MIDI send error", e);
-              playbackMidiGuard.current = Math.max(0, playbackMidiGuard.current - 1);
-            }
-          }
-        }
-      }
-  
-      
-    };
-
-
-    function step() {
-      if (idx >= steps.length) {
-          endPlayback();
-        return;
-      }
-      currentCursorStepRef.current = idx;
-      // 👇 count this step as a question
-      totalStepsRef.current += 1;
-      // allow scoring for this step
-      scoredStepsRef.current.delete(idx);
-      const stepNotes = getNotesAtCursor(osmd);
-      setCurrentStepNotes(stepNotes);
-      currentStepNotesRef.current = stepNotes;
-
-      scoredStepsRef.current.delete(idx);
-      sendMidiForStep(idx);
-      sendMidiForStep(idx);
-
-      const delay = steps[idx] ?? 200;
-      setPlayIndex(idx);
-
-      idx++;
-
-      // Move cursor AFTER the delay, not before
-      osmd._playTimer = setTimeout(() => {
-        osmd.cursor.next();
-        step();
-      }, delay);
-    }
-
-    step();
-  }
-}
-
-  function seekTo(index: number) {
-    const osmd = osmdRef.current;
-    if (!osmd) return;
-    if (!((osmd as any)._playbackDurations?.length)) return;
-    index = Math.max(0, Math.min(index, (osmd as any)._playbackDurations.length - 1));
-    osmd.cursor.reset();
-    for (let i = 0; i < index; ++i) osmd.cursor.next();
-    setPlayIndex(index);
-  }
 
   useEffect(() => {
       let mounted = true;
@@ -788,7 +263,7 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
               }
 
               if (playModeRef.current) {
-                scoreNotePlayed(key);
+                scoreNotePlayed(key,playModeRef,currentCursorStepRef,scoredStepsRef,currentStepNotesRef,correctStepsRef);
               }
 
               
@@ -819,17 +294,6 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
     };
   }, []);
 
-  function onProgressClick(e: React.MouseEvent<HTMLDivElement>) {
-    const osmd = osmdRef.current;
-    if (!osmd) return;
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const pct = x / rect.width;
-    const total = (osmd as any)._playbackDurations?.length ?? 0;
-    if (!total) return;
-    const idx = Math.floor(pct * total);
-    seekTo(idx);
-  }
 
   const progressPercent = totalSteps ? Math.round((playIndex / Math.max(1, totalSteps - 1)) * 100) : 0;
   
@@ -848,8 +312,27 @@ useEffect(() => {
     const onKey = async (ev: KeyboardEvent) => {
       if (ev.code === "Space") {
         ev.preventDefault();
-        if (isPlaying) pauseCursor();
-        else playCursor();
+        if (isPlaying) pauseCursor(osmdRef,setIsPlaying,playModeRef);
+        else playCursor({
+          osmdRef,
+          setIsPlaying,
+          playModeRef,
+          totalStepsRef,
+          correctStepsRef,
+          scoredStepsRef,
+          currentCursorStepRef,
+          currentStepNotesRef,
+          setPlayIndex,
+          setCurrentStepNotes,
+          setScore,
+          midiOutputs: midiOutputs as any,
+          playbackMidiGuard,
+          setCountdown,
+          setHighScore,
+          setLastScore,
+          clearHighlight,
+          replaceOsmdCursor
+        });
         return;
       }
 
@@ -874,7 +357,7 @@ useEffect(() => {
           if (cursorNotes.some(n => Number(n) === Number(midiNote))) {
             const matchingNotes = findNotesAtCursorByMidi(osmdRef.current,Number(midiNote));
             matchingNotes.forEach((gn) => highlightGraphicalNoteNative(gn, 1500));
-            scoreNotePlayed(midiNote);
+            scoreNotePlayed(midiNote,playModeRef,currentCursorStepRef,scoredStepsRef,currentStepNotesRef,correctStepsRef);
           } else {
             const wrongNotes = findNotesAtCursorByMidi(osmdRef.current,Number(midiNote));
             wrongNotes.forEach((gn) => highlightGraphicalNoteNative(gn, 800));
@@ -885,191 +368,50 @@ useEffect(() => {
     
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, playIndex]);
 
 
   // UI
   return (
-    <div style={{ padding: 16 }}>
-      {/* ========== NEW: Upload Panel ========== */}
-      {showUploadPanel && (
-        <div className="upload-panel">
-          <h2 style={{ marginTop: 0 }}>Upload Sheet Music Image</h2>
-          <p style={{ color: '#666', marginBottom: 16 }}>
-            Convert your sheet music image to MusicXML and play it
-          </p>
-          
-          <label className="upload-btn">
-            {uploadLoading ? '⏳ Converting...' : '📁 Choose Image (PNG/JPG/PDF)'}
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/jpg,application/pdf"
-              onChange={handleFileUpload}
-              disabled={uploadLoading}
-              style={{ display: 'none' }}
-            />
-          </label>
-
-          {uploadError && (
-            <div className="error-box">
-              <strong>❌ Error:</strong> {uploadError}
-            </div>
-          )}
-
-          {uploadedMusicXML && (
-            <div className="success-box">
-              <strong>✅ Success!</strong> Sheet music loaded and ready to play
-            </div>
-          )}
-
-          <div style={{ marginTop: 16, fontSize: 13, color: '#666' }}>
-            <strong>Or continue with default song</strong>
-            <button
-              onClick={() => setShowUploadPanel(false)}
-              style={{
-                display: 'block',
-                margin: '8px auto 0',
-                padding: '8px 16px',
-                background: '#2196F3',
-                color: 'white',
-                border: 'none',
-                borderRadius: 4,
-                cursor: 'pointer'
-              }}
-            >
-              Use Default Song
-            </button>
-            <div style={{ display: "flex", gap: 16, fontSize: 16, marginBottom: 12 }}>
-  <div>🎯 Score: <strong>{score}</strong></div>
-  <div>🕘 Last: {lastScore ?? "-"}</div>
-  <div>🏆 High: {highScore}</div>
-</div>
-
-
-          </div>
-        </div>
-      )}
-
-      {!showUploadPanel && (
-        <div style={{ marginBottom: 12, display: 'flex', gap: 4, alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: '#666' }}>
-            {uploadedMusicXML ? '📄 Uploaded Sheet' : '📄 Default Song'}
-          </span>
-          <button
-            onClick={() => {
-              setShowUploadPanel(true);
-              setUploadError(null);
-            }}
-            style={{
-              padding: '4px 8px',
-              background: '#f5f5f5',
-              border: '1px solid #ddd',
-              borderRadius: 4,
-              cursor: 'pointer',
-              fontSize: 12
-            }}
-          >
-            🔄 Upload New
-          </button>
-        </div>
-      )}
-
-      {/* ========== Original Controls ========== */}
-      <div style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <button
-          onClick={() => {
-            if (isPlaying) {
-              pauseCursor();
-            } else {
-              playCursor();
-            }
-          }}
-          style={{
-            padding: "8px 12px",
-            background: isPlaying ? "#f0a500" : "#4caf50",
-            color: "white",
-            border: "none",
-            borderRadius: 6,
-            cursor: "pointer",
-          }}
-        >
-          {isPlaying ? "⏸ Pause" : "▶ Play"}
-        </button>
-
-        {/* <button
-          onClick={() => stopCursor()}
-          style={{
-            padding: "8px 12px",
-            background: "#f44336",
-            color: "white",
-            border: "none",
-            borderRadius: 6,
-            cursor: "pointer",
-          }}
-        >
-          ⏹ Stop
-        </button> */}
-
-        <button
-          onClick={() => {
-            console.log("=== MIDI TEST ===");
-            console.log("MIDI Input connected:", midiInRef.current?.name || "none");
-            console.log("Play mode active:", playModeRef.current);
-            console.log("Current expected notes:", currentStepNotesRef.current);
-          }}
-          style={{
-            padding: "8px 12px",
-            background: "#2196F3",
-            color: "white",
-            border: "none",
-            borderRadius: 6,
-            cursor: "pointer",
-          }}
-        >
-          🔍 Test MIDI
-        </button>
-
-        <div style={{ minWidth: 180 }}>
-          <div style={{ fontSize: 12, color: "#333" }}>Progress: {playIndex} / {totalSteps}</div>
-        </div>
-
-        <div style={{ marginLeft: "auto", fontSize: 13 }}>
-          MIDI In: {midiInRef.current?.name || "none"} | Out: {midiOutputs.length > 0 ? midiOutputs[0].name : "none"}
-        </div>
-      </div>
-
-      <div style={{ marginBottom: 12, padding: 8, background: "#f5f5f5", borderRadius: 6, fontSize: 12 }}>
-        <strong>Keyboard Controls:</strong> Space = Play/Pause | Piano keys: A W S E D F T G Y H U J K (C to C, white & black keys)
-      </div>
-
-      <div className="progress-bar" onClick={onProgressClick} style={{ marginBottom: 12 }}>
-        <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
-      </div>
-
-      <div
-        ref={containerRef}
-        id="osmd-container"
-        style={{ width: "100%", minHeight: "70vh", background: "white", border: "1px solid #ddd" }}
-      />
-      {countdown !== null && (
-  <div
-    style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(0,0,0,0.4)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: 96,
-      color: "white",
-      zIndex: 99999,
-      fontWeight: "bold",
-    }}
-  >
-    {countdown === 0 ? "GO!" : countdown}
-  </div>
-)}
-
-    </div>
+  <>
+    <RenderOpenMusicSheet
+      showUploadPanel={showUploadPanel}
+      setShowUploadPanel={setShowUploadPanel}
+      uploadError={uploadError}
+      setUploadError={setUploadError}
+      uploadLoading={uploadLoading}
+      setUploadLoading={setUploadLoading}
+      uploadedMusicXML={uploadedMusicXML}
+      setUploadedMusicXML={setUploadedMusicXML}
+      isPlaying={isPlaying}
+      setIsPlaying={setIsPlaying}
+      osmdRef={osmdRef}
+      playModeRef={playModeRef}
+      totalStepsRef={totalStepsRef}
+      correctStepsRef={correctStepsRef}
+      scoredStepsRef={scoredStepsRef}
+      currentCursorStepRef={currentCursorStepRef}
+      currentStepNotesRef={currentStepNotesRef}
+      setPlayIndex={setPlayIndex}
+      playIndex={playIndex}
+      totalSteps={totalSteps}
+      midiOutputs={midiOutputs as any}
+      midiInRef={midiInRef}
+      playbackMidiGuard={playbackMidiGuard}
+      setCountdown={setCountdown}
+      setHighScore={setHighScore}
+      setLastScore={setLastScore}
+      score={score ?? 0}
+      highScore={highScore??0}
+      lastScore={lastScore}
+      setCurrentStepNotes={setCurrentStepNotes}
+      setScore={setScore}
+      onProgressClick={onProgressClick}
+      containerRef={containerRef}
+      countdown={countdown}
+      progressPercent={progressPercent}
+    />  
+  </>
   );
 }

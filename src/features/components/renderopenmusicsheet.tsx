@@ -1,0 +1,276 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import handleFileUpload from "../utils/fileupload";
+import playCursor from "../playback/playcursor";
+import pauseCursor from "../playback/pausecursor";
+import clearHighlight from "../notes/clearhighlight";
+import replaceOsmdCursor  from "../utils/replaceOsmdCursor";
+import React from "react";
+
+
+type RenderOpenMusicSheetProps = {
+    showUploadPanel: boolean;
+    setShowUploadPanel: React.Dispatch<React.SetStateAction<boolean>>;
+    uploadError: string | null;
+    setUploadError: React.Dispatch<React.SetStateAction<string | null>>;
+    uploadLoading: boolean;
+    setUploadLoading: React.Dispatch<React.SetStateAction<boolean>>;
+    uploadedMusicXML: string | null;
+    setUploadedMusicXML: React.Dispatch<React.SetStateAction<string | null>>;
+    isPlaying: boolean;
+    setIsPlaying: (playing: boolean) => void;
+    osmdRef: React.MutableRefObject<any>;
+    playModeRef: React.MutableRefObject<boolean>;
+    totalStepsRef: React.MutableRefObject<number>;
+    correctStepsRef: React.MutableRefObject<number>;
+    scoredStepsRef: React.MutableRefObject<Set<number>>;
+    currentCursorStepRef: React.MutableRefObject<number>;
+    currentStepNotesRef: React.MutableRefObject<number[]>;
+    setPlayIndex: (index: number) => void;
+    playIndex: number;
+    totalSteps: number;
+    midiOutputs: WebMidi.MIDIOutput[];
+    midiInRef: React.RefObject<MIDIInput | null>;
+    setCountdown: (countdown: number | null) => void;
+    setHighScore: React.Dispatch<React.SetStateAction<number | null>>;
+    setLastScore:  React.Dispatch<React.SetStateAction<number | null>>;
+    score: number;
+    highScore: number;
+    lastScore: number | null,
+    setCurrentStepNotes: (notes: number[]) => void,
+    setScore: (score: number | null) => void,
+    playbackMidiGuard: React.MutableRefObject<number>,
+    onProgressClick: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, osmdRef: React.MutableRefObject<any>, setPlayIndex: (n: number) => void) => void,
+    containerRef: React.RefObject<HTMLDivElement | null>,
+    countdown: number | null,
+    progressPercent: number
+    ;
+};
+export default function RenderOpenMusicSheet(props: RenderOpenMusicSheetProps) {
+    const {
+        showUploadPanel,
+        setShowUploadPanel,
+        uploadError,
+        setUploadError,
+        uploadLoading,
+        setUploadLoading,
+        uploadedMusicXML,
+        setUploadedMusicXML,
+        isPlaying,
+        setIsPlaying,
+        osmdRef,
+        playModeRef,
+        totalStepsRef,
+        correctStepsRef,
+        scoredStepsRef,
+        currentCursorStepRef,
+        currentStepNotesRef,
+        setPlayIndex,
+        playIndex,
+        totalSteps,
+        midiOutputs,
+        midiInRef,
+        playbackMidiGuard,
+        setCountdown,
+        setHighScore,
+        setLastScore,
+        score,
+        highScore,
+        lastScore,
+        setCurrentStepNotes,
+        setScore,
+        onProgressClick,
+        containerRef,
+        countdown,
+        progressPercent
+    } = props;
+    return(
+        <>
+            <div style={{ padding: 16 }}>
+      {/* ========== NEW: Upload Panel ========== */}
+      {showUploadPanel && (
+        <div className="upload-panel">
+          <h2 style={{ marginTop: 0 }}>Upload Sheet Music Image</h2>
+          <p style={{ color: '#666', marginBottom: 16 }}>
+            Convert your sheet music image to MusicXML and play it
+          </p>
+          
+          <label className="upload-btn">
+            {uploadLoading ? '⏳ Converting...' : '📁 Choose Image (PNG/JPG/PDF)'}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,application/pdf"
+              onChange={e => handleFileUpload(e, setUploadError, setUploadLoading, setUploadedMusicXML, setShowUploadPanel)}
+              disabled={uploadLoading}
+              style={{ display: 'none' }}
+            />
+          </label>
+
+          {uploadError && (
+            <div className="error-box">
+              <strong>❌ Error:</strong> {uploadError}
+            </div>
+          )}
+
+          {uploadedMusicXML && (
+            <div className="success-box">
+              <strong>✅ Success!</strong> Sheet music loaded and ready to play
+            </div>
+          )}
+
+          <div style={{ marginTop: 16, fontSize: 13, color: '#666' }}>
+            <strong>Or continue with default song</strong>
+            <button
+              onClick={() => setShowUploadPanel(false)}
+              style={{
+                display: 'block',
+                margin: '8px auto 0',
+                padding: '8px 16px',
+                background: '#2196F3',
+                color: 'white',
+                border: 'none',
+                borderRadius: 4,
+                cursor: 'pointer'
+              }}
+            >
+              Use Default Song
+            </button>
+            <div style={{ display: "flex", gap: 16, fontSize: 16, marginBottom: 12 }}>
+  <div>🎯 Score: <strong>{score}</strong></div>
+  <div>🕘 Last: {lastScore ?? "-"}</div>
+  <div>🏆 High: {highScore}</div>
+</div>
+
+
+          </div>
+        </div>
+      )}
+
+      {!showUploadPanel && (
+        <div style={{ marginBottom: 12, display: 'flex', gap: 4, alignItems: 'center' }}>
+          <span style={{ fontSize: 13, color: '#666' }}>
+            {uploadedMusicXML ? '📄 Uploaded Sheet' : '📄 Default Song'}
+          </span>
+          <button
+            onClick={() => {
+              setShowUploadPanel(true);
+              setUploadError(null);
+            }}
+            style={{
+              padding: '4px 8px',
+              background: '#f5f5f5',
+              border: '1px solid #ddd',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontSize: 12
+            }}
+          >
+            🔄 Upload New
+          </button>
+        </div>
+      )}
+
+      {/* ========== Original Controls ========== */}
+      <div style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <button
+          onClick={() => {
+            if (isPlaying) {
+              pauseCursor(osmdRef,setIsPlaying,playModeRef);
+            } else {
+              playCursor({
+          osmdRef,
+          setIsPlaying,
+          playModeRef,
+          totalStepsRef,
+          correctStepsRef,
+          scoredStepsRef,
+          currentCursorStepRef,
+          currentStepNotesRef,
+          setPlayIndex,
+          setCurrentStepNotes,
+          setScore,
+          midiOutputs: midiOutputs as any,
+          playbackMidiGuard,
+          setCountdown,
+          setHighScore,
+          setLastScore,
+          clearHighlight,
+          replaceOsmdCursor
+        });
+            }
+          }}
+          style={{
+            padding: "8px 12px",
+            background: isPlaying ? "#f0a500" : "#4caf50",
+            color: "white",
+            border: "none",
+            borderRadius: 6,
+            cursor: "pointer",
+          }}
+        >
+          {isPlaying ? "⏸ Pause" : "▶ Play"}
+        </button>
+
+        <button
+          onClick={() => {
+            console.log("=== MIDI TEST ===");
+            console.log("MIDI Input connected:", midiInRef.current?.name || "none");
+            console.log("Play mode active:", playModeRef.current);
+            console.log("Current expected notes:", currentStepNotesRef.current);
+          }}
+          style={{
+            padding: "8px 12px",
+            background: "#2196F3",
+            color: "white",
+            border: "none",
+            borderRadius: 6,
+            cursor: "pointer",
+          }}
+        >
+          🔍 Test MIDI
+        </button>
+
+        <div style={{ minWidth: 180 }}>
+          <div style={{ fontSize: 12, color: "#333" }}>Progress: {playIndex} / {totalSteps}</div>
+        </div>
+
+        <div style={{ marginLeft: "auto", fontSize: 13 }}>
+          MIDI In: {midiInRef.current?.name || "none"} | Out: {midiOutputs.length > 0 ? midiOutputs[0].name : "none"}
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 12, padding: 8, background: "#f5f5f5", borderRadius: 6, fontSize: 12 }}>
+        <strong>Keyboard Controls:</strong> Space = Play/Pause | Piano keys: A W S E D F T G Y H U J K (C to C, white & black keys)
+      </div>
+
+      <div className="progress-bar" onClick={e => onProgressClick(e,osmdRef,setPlayIndex)} style={{ marginBottom: 12 }}>
+        <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
+      </div>
+
+      <div
+        ref={containerRef}
+        id="osmd-container"
+        style={{ width: "100%", minHeight: "70vh", background: "white", border: "1px solid #ddd" }}
+      />
+      {countdown !== null && (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.4)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 96,
+      color: "white",
+      zIndex: 99999,
+      fontWeight: "bold",
+    }}
+  >
+    {countdown === 0 ? "GO!" : countdown}
+  </div>
+)}
+    </div>
+ 
+        </>
+    )
+}

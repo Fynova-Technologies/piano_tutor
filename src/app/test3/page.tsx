@@ -6,7 +6,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import * as Tone from "tone";
 import { Sampler } from "tone";
-
+import replaceOsmdCursor from "@/features/utils/replaceOsmdCursor";
+import handleFileUpload from "@/features/utils/fileupload";
+import findNotesAtCursorByMidi from "@/features/notes/findNotesatcursor";
+import highlightGraphicalNoteNative from "@/features/notes/highlightgraphicalnotes";
+import getNotesAtCursor from "@/features/notes/getNotesatcursor";
+import buildPlaybackStepsAndMaps from "@/features/playback/buildplaybacksetpsandmaps";
+import pauseCursor from "@/features/playback/pausecursor";
 
 export default function Test3HybridFull() {
   // ========== NEW: Upload State ==========
@@ -17,7 +23,7 @@ export default function Test3HybridFull() {
   const samplerRef = useRef<Sampler | null>(null); // sampler will replace PolySynth
   const playedNotesRef = useRef<Set<number>>(new Set());         
   // Original xml path (fallback)
-  const fallbackXml = "/songs/mxl/Easy.mxl";
+  const fallbackXml = "/songs/mxl/EasyC.mxl";
   // Use uploaded XML if available, otherwise use fallback
   const xml = uploadedMusicXML || fallbackXml;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -43,63 +49,6 @@ export default function Test3HybridFull() {
     },
   ];
 
-  // ========== NEW: File Upload Handler ==========
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
-    if (!validTypes.includes(file.type)) {
-      setUploadError('Please upload a PNG, JPG, or PDF file');
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      setUploadError('File size must be less than 10MB');
-      return;
-    }
-
-    setUploadLoading(true);
-    setUploadError(null);
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const response = await fetch('/api/convert', {
-        method: 'POST',
-        body: formData,
-      });
-
-      // const data = await response.json();Episode 95
-      const raw = await response.text();
-console.log("RAW RESPONSE:", raw);
-
-let data;
-try {
-  data = JSON.parse(raw);
-} catch {
-  throw new Error("API did not return JSON. Raw response:\n" + raw);
-}
-
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Conversion failed');
-      }
-
-      // Store the MusicXML content
-      setUploadedMusicXML(data.musicxml);
-      setShowUploadPanel(false); // Hide upload panel after success
-      
-      console.log('✅ MusicXML uploaded successfully');
-    } catch (err: any) {
-      setUploadError(err.message || 'Failed to convert sheet music');
-      console.error('Upload error:', err);
-    } finally {
-      setUploadLoading(false);
-    }
-  };
-
   // inject highlight CSS once
   useEffect(() => {
     const id = "osmd-midi-highlight-styles";
@@ -123,213 +72,6 @@ try {
     `;
     document.head.appendChild(style);
   }, []);
-
-  function replaceOsmdCursor(osmd:OpenSheetMusicDisplay) {
-  try {
-    console.log("🔧 replaceOsmdCursor called");
-    const img = osmd.cursor.cursorElement;
-    console.log("📍 Cursor element:", img);
-    
-    if (!img) {
-      console.warn("❌ No cursor element found!");
-      return;
-    }
-
-    try {
-      img.style.display = "none";
-      console.log("✅ Original cursor hidden");
-    } catch (e) {
-      console.warn("Failed to hide original cursor:", e);
-    }
-
-    // Remove old custom cursor if it exists
-    const oldCustom = document.getElementById("custom-vertical-cursor");
-    if (oldCustom) {
-      oldCustom.remove();
-      console.log("🗑️ Removed old custom cursor");
-    }
-
-    // Create new custom cursor
-    const custom = document.createElement("div");
-    custom.id = "custom-vertical-cursor";
-    custom.style.position = "absolute";
-    custom.style.background = "rgba(255, 0, 0, 0.2)";
-    custom.style.border = "2px solid rgba(255, 0, 0, 0.7)";
-    custom.style.borderRadius = "4px";
-    custom.style.pointerEvents = "none";
-    custom.style.zIndex = "9999";
-    
-    const parent = img.parentElement;
-    console.log("👪 Parent element:", parent);
-    
-    if (parent) {
-      parent.appendChild(custom);
-      console.log("✅ Custom cursor created and appended");
-    } else {
-      console.warn("❌ No parent element found!");
-    }
-
-    const originalUpdate = osmd.cursor.update?.bind(osmd.cursor);
-    if (!originalUpdate) {
-      console.warn("❌ No cursor.update method found!");
-      return;
-    }
-    
-    console.log("✅ Overriding cursor.update method");
-
-    osmd.cursor.update = function (...args) {
-      originalUpdate(...args);
-
-      const el = osmd.cursor.cursorElement;
-      if (!el) return;
-
-      try {
-        const rect = el.getBoundingClientRect();
-        const parentRect = img.parentElement?.getBoundingClientRect();
-        if (!parentRect) return;
-
-        // Get the actual staff lines to determine proper height
-        const staffLines = img.parentElement?.querySelectorAll('.vf-stave, [class*="StaffLine"]');
-        let staffHeight = 100; // Default fallback
-        
-        if (staffLines && staffLines.length > 0) {
-          // Calculate height to cover all staves
-          const firstStaff = staffLines[0].getBoundingClientRect();
-          const lastStaff = staffLines[staffLines.length - 1].getBoundingClientRect();
-          staffHeight = (lastStaff.bottom - firstStaff.top) + 40; // Add padding
-        } else {
-          // Use a larger multiplier if we can't find staff lines
-          staffHeight = rect.height * 3;
-        }
-
-        const left = rect.left - parentRect.left+10;
-        const top = rect.top - parentRect.top;
-
-        // Wide rectangular cursor covering full staff height
-        const cursorWidth = 25;
-        const cursorHeight = Math.max(staffHeight, 250); // Ensure minimum height
-
-        custom.style.left = `${Math.round(left - 8)}px`;
-        custom.style.top = `${Math.round(top - 30)}px`; // Start higher to cover top of staff
-        custom.style.height = `${Math.round(cursorHeight)}px`;
-        custom.style.width = `${cursorWidth}px`;
-        custom.style.display = 'block'; // Ensure it's visible
-      } catch (e) {
-        console.warn("error is ", e);
-      }
-    };
-  } catch (e) {
-    console.warn("replaceOsmdCursor failed", e);
-  }
-}
-
-
-function findNotesAtCursorByMidi(osmd: any, midi: number) {
-    try {
-      const it = osmd.cursor.iterator;
-      if (!it) {
-        console.warn("No iterator found");
-        return [];
-      }
-      
-      const matches: any[] = [];
-      
-      // Get the exact timestamp of the cursor position
-      const currentTimestamp = it.CurrentSourceTimestamp;
-      
-      console.log(`Looking for MIDI ${midi} at timestamp`, currentTimestamp);
-      
-      // Get current voice entries to find the exact source notes at cursor
-      const ves = it.CurrentVoiceEntries || [];
-      const sourceNotesAtCursor: any[] = [];
-      
-      for (const ve of ves) {
-        const veNotes = ve.Notes || [];
-        for (const n of veNotes) {
-          const halfTone = n?.sourceNote?.halfTone ?? n?.halfTone;
-          if (Number(halfTone) === Number(midi) && !n?.isRestFlag) {
-            sourceNotesAtCursor.push(n.sourceNote || n);
-          }
-        }
-      }
-      
-      console.log(`  Found ${sourceNotesAtCursor.length} source notes at cursor with MIDI ${midi}`);
-      
-      if (sourceNotesAtCursor.length === 0) return [];
-      
-      // Now find the graphical representations of these exact source notes
-      if (!osmd?.GraphicSheet?.MeasureList) return [];
-      
-      const measureList = osmd.GraphicSheet.MeasureList;
-      
-      for (const system of measureList) {
-        if (!Array.isArray(system)) continue;
-        
-        for (const gMeasure of system) {
-          if (!gMeasure?.staffEntries) continue;
-          
-          for (const staffEntry of gMeasure.staffEntries) {
-            for (const gve of staffEntry.graphicalVoiceEntries || []) {
-              for (const gn of gve.notes || []) {
-                // Check if this graphical note's source is one of our cursor notes
-                if (sourceNotesAtCursor.includes(gn?.sourceNote)) {
-                  matches.push(gn);
-                  console.log(`    ✓ Found matching graphical note`);
-                }
-              }
-            }
-          }
-        }
-      }
-      
-      console.log(`Total found: ${matches.length} graphical notes for MIDI ${midi}`);
-      return matches;
-    } catch (e) {
-      console.warn("findNotesAtCursorByMidi error", e);
-      return [];
-    }
-  }
-
-  function highlightGraphicalNoteNative(gn: any, ms = 600) {
-    const group = gn?.getSVGGElement?.() || gn?.graphicalNotehead?.svgElement || gn?.svgElement;
-    if (!group) return;
-    group.classList.add("vf-note-highlight");
-    setTimeout(() => group.classList.remove("vf-note-highlight"), ms);
-  }
-
-  function getNotesAtCursor(osmd: any) {
-    try {
-      const it = osmd.cursor.iterator;
-      if (!it) {
-        console.warn("[getNotesAtCursor] No iterator found");
-        return [];
-      }
-      
-      const ves = it.CurrentVoiceEntries || [];
-      const notes: number[] = [];
-      
-      for (const ve of ves) {
-        const veNotes = ve.Notes || [];
-        
-        for (const n of veNotes) {
-          const halfTone = n?.sourceNote?.halfTone ?? 
-                          n?.sourceNote?.Pitch?.halfTone ??
-                          n?.pitch?.Midi ?? 
-                          n?.Pitch?.Midi ??
-                          n?.halfTone;
-          
-          if (typeof halfTone === "number" && !n?.isRestFlag) {
-            notes.push(halfTone);
-          }
-        }
-      }
-      
-      return notes;
-    } catch (e) {
-      console.warn("getNotesAtCursor error", e);
-      return [];
-    }
-  }
 
   // ========== OSMD setup (now reacts to xml changes) ==========
   useEffect(() => {
@@ -370,7 +112,7 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
             replaceOsmdCursor(osmd);
           }, 100);
 
-          buildPlaybackStepsAndMaps(osmd);
+          buildPlaybackStepsAndMaps(osmd,setTotalSteps,setPlayIndex);
         }
         
         // Initialize cursor notes on load
@@ -404,47 +146,6 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
   };
   }, [xml]); // ← IMPORTANT: Re-run when xml changes!
 
-  function buildPlaybackStepsAndMaps(osmd: any) {
-    const it = osmd.cursor.iterator.clone();
-    const durations: number[] = [];
-    const midiToIndex = new Map<number, number>();
-    let idx = 0;
-
-    while (!it.EndReached) {
-      const measure = it.CurrentMeasure;
-      const bpm =
-        typeof measure?.TempoInBPM === "number"
-          ? measure.TempoInBPM
-          : osmd.Sheet?.Rules?.DefaultTempoBPM ?? 120;
-
-      const quarterMs = (60 / bpm) * 1000;
-
-      const ves = it.CurrentVoiceEntries || [];
-      const realVals = ves.map((ve: any) => ve?.Duration?.RealValue ?? 0.25);
-      const smallest = realVals.length ? Math.min(...realVals) : 0.25;
-      const delayMs = Math.max(50, smallest * 4 * quarterMs);
-      durations.push(delayMs);
-
-      for (const ve of ves) {
-        for (const note of ve.Notes || []) {
-          const half = note?.sourceNote?.halfTone ?? note?.pitch?.Midi ?? note?.midi;
-          if (typeof half === "number" && !midiToIndex.has(half)) {
-            midiToIndex.set(half, idx);
-          }
-        }
-      }
-
-      idx++;
-      it.moveToNext();
-    }
-
-    (osmd as any)._playbackDurations = durations;
-    (osmd as any)._playbackMidiMap = midiToIndex;
-    (osmd as any)._playbackTotal = durations.length;
-    setTotalSteps(durations.length);
-    setPlayIndex(0);
-  }
-
   function stopCursor() {
     const osmd = osmdRef.current;
     if (!osmd) return;
@@ -464,17 +165,6 @@ function findNotesAtCursorByMidi(osmd: any, midi: number) {
     const initialNotes = getNotesAtCursor(osmd);
     setCurrentStepNotes(initialNotes);
     currentStepNotesRef.current = initialNotes;
-  }
-
-  function pauseCursor() {
-    const osmd = osmdRef.current;
-    if (!osmd) return;
-    if (osmd._playTimer) {
-      clearTimeout(osmd._playTimer);
-      osmd._playTimer = null;
-    }
-    setIsPlaying(false);
-    playModeRef.current = false;
   }
 
   function clearHighlight(osmd: any) {
@@ -732,7 +422,7 @@ useEffect(() => {
     const onKey = async (ev: KeyboardEvent) => {
       if (ev.code === "Space") {
         ev.preventDefault();
-        if (isPlaying) pauseCursor();
+        if (isPlaying) pauseCursor(osmdRef, setIsPlaying,playModeRef);
         else playCursor();
         return;
       }
@@ -793,7 +483,7 @@ useEffect(() => {
             <input
               type="file"
               accept="image/png,image/jpeg,image/jpg,application/pdf"
-              onChange={handleFileUpload}
+              onChange={e =>handleFileUpload(e, setUploadError, setUploadLoading, setUploadedMusicXML, setShowUploadPanel)}
               disabled={uploadLoading}
               style={{ display: 'none' }}
             />
@@ -861,7 +551,7 @@ useEffect(() => {
         <button
           onClick={() => {
             if (isPlaying) {
-              pauseCursor();
+              pauseCursor(osmdRef, setIsPlaying,playModeRef);
             } else {
               playCursor();
             }
