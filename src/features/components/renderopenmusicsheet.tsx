@@ -1,9 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import handleFileUpload from "../utils/fileupload";
-import playCursor from "../playback/playcursor";
-import pauseCursor from "../playback/pausecursor";
-import clearHighlight from "../notes/clearhighlight";
-import replaceOsmdCursor  from "../utils/replaceOsmdCursor";
 import React from "react";
 
 
@@ -55,33 +51,7 @@ export default function RenderOpenMusicSheet(props: RenderOpenMusicSheetProps) {
         setUploadLoading,
         uploadedMusicXML,
         setUploadedMusicXML,
-        isPlaying,
-        setIsPlaying,
-        osmdRef,
-        playModeRef,
-        totalStepsRef,
-        correctStepsRef,
-        scoredStepsRef,
-        currentCursorStepRef,
-        currentStepNotesRef,
-        setPlayIndex,
-        playIndex,
-        totalSteps,
-        midiOutputs,
-        midiInRef,
-        playbackMidiGuard,
-        setCountdown,
-        setHighScore,
-        setLastScore,
-        score,
-        highScore,
-        lastScore,
-        setCurrentStepNotes,
-        setScore,
-        onProgressClick,
-        containerRef,
-        countdown,
-        progressPercent
+
     } = props;
     return(
         <>
@@ -134,13 +104,6 @@ export default function RenderOpenMusicSheet(props: RenderOpenMusicSheetProps) {
             >
               Use Default Song
             </button>
-            <div style={{ display: "flex", gap: 16, fontSize: 16, marginBottom: 12 }}>
-  <div>🎯 Score: <strong>{score}</strong></div>
-  <div>🕘 Last: {lastScore ?? "-"}</div>
-  <div>🏆 High: {highScore}</div>
-</div>
-
-
           </div>
         </div>
       )}
@@ -168,107 +131,6 @@ export default function RenderOpenMusicSheet(props: RenderOpenMusicSheetProps) {
           </button>
         </div>
       )}
-
-      {/* ========== Original Controls ========== */}
-      <div style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <button
-          onClick={() => {
-            if (isPlaying) {
-              pauseCursor(osmdRef,setIsPlaying,playModeRef);
-            } else {
-              playCursor({
-          osmdRef,
-          setIsPlaying,
-          playModeRef,
-          totalStepsRef,
-          correctStepsRef,
-          scoredStepsRef,
-          currentCursorStepRef,
-          currentStepNotesRef,
-          setPlayIndex,
-          setCurrentStepNotes,
-          setScore,
-          midiOutputs: midiOutputs as any,
-          playbackMidiGuard,
-          setCountdown,
-          setHighScore,
-          setLastScore,
-          clearHighlight,
-          replaceOsmdCursor
-        });
-            }
-          }}
-          style={{
-            padding: "8px 12px",
-            background: isPlaying ? "#f0a500" : "#4caf50",
-            color: "white",
-            border: "none",
-            borderRadius: 6,
-            cursor: "pointer",
-          }}
-        >
-          {isPlaying ? "⏸ Pause" : "▶ Play"}
-        </button>
-
-        <button
-          onClick={() => {
-            console.log("=== MIDI TEST ===");
-            console.log("MIDI Input connected:", midiInRef.current?.name || "none");
-            console.log("Play mode active:", playModeRef.current);
-            console.log("Current expected notes:", currentStepNotesRef.current);
-          }}
-          style={{
-            padding: "8px 12px",
-            background: "#2196F3",
-            color: "white",
-            border: "none",
-            borderRadius: 6,
-            cursor: "pointer",
-          }}
-        >
-          🔍 Test MIDI
-        </button>
-
-        <div style={{ minWidth: 180 }}>
-          <div style={{ fontSize: 12, color: "#333" }}>Progress: {playIndex} / {totalSteps}</div>
-        </div>
-
-        <div style={{ marginLeft: "auto", fontSize: 13 }}>
-          MIDI In: {midiInRef.current?.name || "none"} | Out: {midiOutputs.length > 0 ? midiOutputs[0].name : "none"}
-        </div>
-      </div>
-
-      <div style={{ marginBottom: 12, padding: 8, background: "#f5f5f5", borderRadius: 6, fontSize: 12 }}>
-        <strong>Keyboard Controls:</strong> Space = Play/Pause | Piano keys: A W S E D F T G Y H U J K (C to C, white & black keys)
-      </div>
-
-      <div className="progress-bar" onClick={e => onProgressClick(e,osmdRef,setPlayIndex)} style={{ marginBottom: 12 }}>
-        <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
-      </div>
-
-      <div
-        ref={containerRef}
-        id="osmd-container"
-        style={{ width: "100%", minHeight: "70vh", background: "white", border: "1px solid #ddd" }}
-      />
-      {countdown !== null && (
-  <div
-    style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(0,0,0,0.4)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: 96,
-      color: "white",
-      zIndex: 99999,
-      fontWeight: "bold",
-    }}
-  >
-    {countdown === 0 ? "GO!" : countdown}
-  </div>
-)}
     </div>
  
         </>

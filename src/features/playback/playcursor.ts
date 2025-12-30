@@ -20,7 +20,7 @@ type PlayCursorArgs = {
   setHighScore: React.Dispatch<React.SetStateAction<number | null>>;
   setLastScore: React.Dispatch<React.SetStateAction<number | null>>;
   clearHighlight: (osmd: any) => void;
-  replaceOsmdCursor: (osmd: any) => void;
+  // replaceOsmdCursor: (osmd: any) => void;
 };
 
   export default function playCursor(args: PlayCursorArgs) {
@@ -42,7 +42,7 @@ type PlayCursorArgs = {
     setHighScore,
     setLastScore,
     clearHighlight,
-    replaceOsmdCursor
+    // replaceOsmdCursor
     }   = args;
 
     const osmd = osmdRef.current;
@@ -146,7 +146,7 @@ type PlayCursorArgs = {
     setHighScore,
     setLastScore,
     clearHighlight,
-    replaceOsmdCursor,
+    // replaceOsmdCursor,
     setScore,
     
     );

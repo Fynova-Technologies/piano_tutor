@@ -6,7 +6,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import * as Tone from "tone";
 import { Sampler } from "tone";
-import replaceOsmdCursor from "@/features/utils/replaceOsmdCursor";
 import handleFileUpload from "@/features/utils/fileupload";
 import findNotesAtCursorByMidi from "@/features/notes/findNotesatcursor";
 import highlightGraphicalNoteNative from "@/features/notes/highlightgraphicalnotes";
@@ -23,7 +22,7 @@ export default function Test3HybridFull() {
   const samplerRef = useRef<Sampler | null>(null); // sampler will replace PolySynth
   const playedNotesRef = useRef<Set<number>>(new Set());         
   // Original xml path (fallback)
-  const fallbackXml = "/songs/mxl/EasyC.mxl";
+  const fallbackXml = "/songs/mxl/happybirthday2.mxl";
   // Use uploaded XML if available, otherwise use fallback
   const xml = uploadedMusicXML || fallbackXml;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -42,7 +41,7 @@ export default function Test3HybridFull() {
 
   const cursorsOptions = [
     {
-      type: 1,
+      type: 0,
       color: "#FF0000",
       alpha: 1,
       follow: true,
@@ -93,9 +92,9 @@ export default function Test3HybridFull() {
         osmd.setOptions({
           cursorsOptions: [
             {
-              type: 1,
+              type: 0,
               color: "#FF0000",
-              alpha: 0.8,
+              alpha: 1,
               follow: true,
             }
           ]
@@ -106,12 +105,6 @@ export default function Test3HybridFull() {
 
         if (!cancelled) {
           osmdRef.current = osmd;
-
-          // Small delay to ensure DOM is ready
-          setTimeout(() => {
-            replaceOsmdCursor(osmd);
-          }, 100);
-
           buildPlaybackStepsAndMaps(osmd,setTotalSteps,setPlayIndex);
         }
         
@@ -127,10 +120,6 @@ export default function Test3HybridFull() {
     const onResize = () => {
       try {
         osmd.render();
-        // Reapply custom cursor after resize
-        if (osmdRef.current) {
-          setTimeout(() => replaceOsmdCursor(osmdRef.current), 50);
-        }
       } catch {}
     };
     window.addEventListener("resize", onResize);

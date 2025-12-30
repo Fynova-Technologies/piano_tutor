@@ -10,7 +10,7 @@
     setHighScore: React.Dispatch<React.SetStateAction<number | null>>,
     setLastScore: React.Dispatch<React.SetStateAction<number | null>>,
     clearHighlight: (osmd: any) => void,
-    replaceOsmdCursor: (osmd: any) => void,
+    // replaceOsmdCursor: (osmd: any) => void,
     setScore: (score: number | null) => void
   )  {
     const osmd = osmdRef.current;
@@ -38,9 +38,9 @@
     playModeRef.current = false;
     
     // Re-apply custom cursor after reset
-    setTimeout(() => {
-      replaceOsmdCursor(osmd);
-    }, 100);
+    // setTimeout(() => {
+    //   replaceOsmdCursor(osmd);
+    // }, 100);
     clearHighlight(osmd);
     document.querySelectorAll(".vf-note-highlight").forEach((el) => el.classList.remove("vf-note-highlight"));
 
