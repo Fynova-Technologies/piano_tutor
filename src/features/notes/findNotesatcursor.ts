@@ -13,6 +13,7 @@ export default function findNotesAtCursorByMidi(osmd: OpenSheetMusicDisplay, mid
       
       // Get the exact timestamp of the cursor position
       const currentTimestamp = it.CurrentSourceTimestamp;
+      console.log("the timestamp at cursor is", currentTimestamp);
       
       console.log(`Looking for MIDI ${midi} at timestamp`, currentTimestamp);
       
