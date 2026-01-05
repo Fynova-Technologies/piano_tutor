@@ -16,6 +16,7 @@ import clearHighlight from "@/features/notes/clearhighlight";
 import { onProgressClick } from "@/features/utils/onProgressclick";
 import RenderOpenMusicSheet from "@/features/components/renderopenmusicsheet";
 import CursorControls from "@/features/components/cursorcontrols";
+import { useSearchParams } from "next/navigation";
 
 // ========== NEW: Note tracking types ==========
 interface PlayedNote {
@@ -33,8 +34,10 @@ export default function Test2HybridFull() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showUploadPanel, setShowUploadPanel] = useState(true);
   const samplerRef = useRef<Sampler | null>(null);
+  const courseTitle = useSearchParams().get("title") || "Lesson";
+  const fileName = useSearchParams().get("file") || "Csong.mxl";
   
-  const fallbackXml = "/songs/mxl/happybirthday2.mxl";
+  const fallbackXml = "/songs/mxl/" + fileName;
   const xml = uploadedMusicXML || fallbackXml;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const osmdRef = useRef<any>(null);
@@ -863,6 +866,7 @@ function getActualMidiFromVisualPosition(osmd: any, graphicalNote: any): number 
         containerRef={containerRef}
         countdown={countdown}
         progressPercent={progressPercent}
+        courseTitle={courseTitle}
       />
       
       {/* Debug button to clear highlights manually */}

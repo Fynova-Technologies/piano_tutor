@@ -12,6 +12,13 @@ type UnitLesson = {
   ]
 };
 
+type UniteLesson2 = {
+  fkid: string,
+  unitlessons: [
+    { id: string, lessontitle: string, link: string,file?:string }
+  ]
+}
+
 
 // Main component
 export default function PianoLesson() {
@@ -19,7 +26,9 @@ export default function PianoLesson() {
   const router = useRouter();
   const [methodName, setMethodName] = useState("1A");
   const isMobile = useMediaQuery("(max-width: 768px)");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [unitLessonsData, setUnitLessonsData] = useState<UnitLesson[]>([]);
+  const [unitLessonsData2, setUnitLessonsData2] = useState<UniteLesson2[]>([]);
   
 
   
@@ -33,9 +42,15 @@ export default function PianoLesson() {
       });
   }, []);
 
-  
-
-
+   useEffect(() => {
+    fetch("/unitLessonsData2.json")
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Data", data.Lessons);
+        setUnitLessonsData2(data.Lessons);
+        setClassId(data.Lessons[0].fkid)
+      });
+  }, []);
 
   // Static lesson selectors (first row)
   const topLessons = [
@@ -67,7 +82,7 @@ export default function PianoLesson() {
       const [activeLesson, setActiveLesson] = useState<string | null>(null);
 
       
-    const unit = unitLessonsData.find((u) => u.fkid === classId);
+    const unit = unitLessonsData2.find((u) => u.fkid === classId);
     useEffect(() => {
         if (unit && unit.unitlessons.length > 0) {
           setActiveLesson(unit.unitlessons[0].id);
@@ -92,8 +107,10 @@ export default function PianoLesson() {
                   const params = new URLSearchParams({
                     id: classId,
                     title: lesson.lessontitle,
-                    pattern: lesson.pattern??"",
-                    patternkey: lesson.patternkey??"",
+                    file: lesson.file??"",
+                    // pattern: lesson.pattern??"",
+                    // patternkey: lesson.patternkey??"",
+                    
                     unitId:lesson.id??""
                   });
                   router.push(`${lesson.link}?${params.toString()}`);

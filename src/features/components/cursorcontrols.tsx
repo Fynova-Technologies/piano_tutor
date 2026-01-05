@@ -35,7 +35,8 @@ type CursorControlsProps = {
     onProgressClick: (e: React.MouseEvent<HTMLDivElement, MouseEvent>, osmdRef: React.MutableRefObject<any>, setPlayIndex: (n: number) => void) => void,
     containerRef: React.RefObject<HTMLDivElement | null>,
     countdown: number | null,
-    progressPercent: number
+    progressPercent: number,
+    courseTitle: string,
 }
 
 
@@ -67,7 +68,8 @@ export default function curosrControls (props: CursorControlsProps) {
             onProgressClick,
             containerRef,
             countdown,
-            progressPercent
+            progressPercent,
+            courseTitle
         } =  props;
     return(
         <>
@@ -101,7 +103,7 @@ export default function curosrControls (props: CursorControlsProps) {
               boxShadow: '0 10px 30px rgba(50, 50, 93, 0.25)' // or use your own shadow
             }}>
                       <div className="p-5 flex-2">
-                        <span className="text-[#0A0A0B] font-medium text-[24px] ml-10">courseTitle</span>
+                        <span className="text-[#0A0A0B] font-medium text-[24px] ml-10">{courseTitle}</span>
                       </div>
                       <div className="p-4 mr-12">
                         <div className="flex space-x-8 items-center">
