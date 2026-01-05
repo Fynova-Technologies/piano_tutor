@@ -8,9 +8,11 @@ import LogoutButton from '@/app/logout/page';
 import { supabase } from '@/lib/supabaseClient';
 
 const navItems = [
-  { name: 'Methods', href: '/method' },
-  {name: 'Library',href:"/library"},
   { name: 'Dashboard', href: '/' },
+  {name: 'Library',href:"/library"},
+  { name: 'Methods', href: '/method' },
+
+  
   // { name: 'Projects', href: '/musicsheet' },
   {name: 'Techniques', href: '/techniques' },
   {name:'SASR', href:'/sasr' },
@@ -49,7 +51,7 @@ export default function Navbar() {
                 <a
                   key={item.name}
                   href={item.href}
-                  className={`font-medium px-6 py-4 rounded-full transition-all duration-200
+                  className={`font-medium px-6 py-4 rounded-full transition-all duration-200 no-underline
                     ${isActive ? 'bg-[#D4AF37] text-[#0a0a0a]' : 'text-white'}
                   `}
                 >
@@ -57,19 +59,17 @@ export default function Navbar() {
                 </a>
             )})}
         </div>
-
-
         {/* Right Side */}
         <div className="flex items-center space-x-4 mr-10">
           {/* Notification */}
-          <button className="relative text-gray-600 hover:text-blue-600">
+          <button className="relative text-gray-600 hover:text-blue-600 bg-transparent border-none">
             <Image src={"/assets/Icon.svg" } width={26} height={30} alt='bell'/>
             <span className="absolute top-0 right-0 inline-block w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
 
           {/* Profile */}
-          <div className="w-8 h-8 rounded-full overflow-hidden">
-            <Image src="/assets/user.png" alt="User" width={1000} height={500} />
+          <div className=" rounded-full overflow-hidden bg-transparent border-none">
+            <Image src="/assets/user.png" alt="User" width={50} height={50} />
           </div>
           <div>
             {userLoggedIn ? <LogoutButton /> : <a href="/login" className="bg-gray-200 text-black px-4 py-2 rounded-lg hover:bg-gray-300"
