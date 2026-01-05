@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import * as Tone from "tone";
 import { Sampler } from "tone";
@@ -27,15 +27,16 @@ interface PlayedNote {
   graphicalNotes?: any[]; // reference to OSMD graphical notes if found
 }
 
-export default function Test2HybridFull() {
+function Test2HybridFullContent() {
   // ========== NEW: Upload State ==========
   const [uploadedMusicXML, setUploadedMusicXML] = useState<string | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showUploadPanel, setShowUploadPanel] = useState(true);
   const samplerRef = useRef<Sampler | null>(null);
-  const courseTitle = useSearchParams().get("title") || "Lesson";
-  const fileName = useSearchParams().get("file") || "Csong.mxl";
+  const searchparams = useSearchParams();
+  const courseTitle = searchparams.get("title") || "Lesson";
+  const fileName = searchparams.get("file") || "Csong.mxl";
   
   const fallbackXml = "/songs/mxl/" + fileName;
   const xml = uploadedMusicXML || fallbackXml;
@@ -887,5 +888,13 @@ function getActualMidiFromVisualPosition(osmd: any, graphicalNote: any): number 
         Clear Highlights
       </button>
     </>
+  );
+}
+
+export default function Test2HybridFull() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <Test2HybridFullContent />
+    </Suspense>
   );
 }
