@@ -45,7 +45,7 @@ export default function Page() {
                
                <div className="flex items-center">
                     <Image src="assets/Star.svg" alt="star" width={24} height={24} className="inline-block mr-2"/>
-                    <p className="text-2xl font-bold text-[#FFA801]">{lastScore}</p>
+                    <p className="text-2xl font-bold text-[#FFA801] m-0 p-0">{lastScore}</p>
                </div>
                 
                 <p className="font-semibold text-[12px] text-[#0A0A0B"> Last Score</p>
@@ -53,15 +53,16 @@ export default function Page() {
               <div className="text-gray-600">
                 <div className="flex items-center">
                     <Image src="Frame.svg" alt="star" width={24} height={24} className="inline-block mr-2"/>
-                    <p className="text-2xl font-bold text-[#FFA801]">{highScore}</p>
+                    <p className="text-2xl font-bold text-[#FFA801] m-0 p-0">{highScore}</p>
                </div>
                 
                 <p className="font-semibold text-[12px] text-[#0A0A0B"> High Score</p>
               </div>
             </div>
 
-            <button className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] ... text-[#151517] text-[16px] px-4 py-2 rounded-lg font-normal transition">
-              Start new test ➜
+            <button className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] ... text-[#151517] text-[16px] px-6 py-3 rounded-2xl font-medium transition">
+              Start new test
+              <Image src="Union.svg" alt="arrow" width={20} height={12} className="inline-block ml-2"/>
             </button>
           </div>
 
@@ -69,9 +70,9 @@ export default function Page() {
           <div className="mt-4 bg-white p-6 rounded-2xl shadow-md h-[686px]">
             <div className="flex justify-between items-center">
                 <h2 className=" mb-2 text-[#0A0A0B] text-2xl font-bold">Your SASR Scores</h2>
-                <button className="flex bg-[#581845] text-white text-[14px] px-[8px] py-[16px] rounded-[16px] w-[180px] items-center justify-center">
+                <button className="flex bg-[#581845] text-white text-[14px] px-[16px] py-[8px] font-medium rounded-[16px] items-center justify-center">
                     View full history
-                    <Image src="autoplay.svg" alt="arrow" width={20} height={12} className="inline-block ml-2"/>
+                    <Image src="frame2.svg" alt="arrow" width={30} height={30} className="inline-block ml-2"/>
                 </button>
             </div>
             

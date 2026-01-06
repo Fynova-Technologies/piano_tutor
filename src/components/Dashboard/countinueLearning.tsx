@@ -41,58 +41,58 @@ export default function ContinueLearning() {
 ];
 
     return(
-        <div className=" justify-center bg-[#F8F6F1] px-1 py-16 overflow-y-visible">
-            <div className="w-[90%] ml-24">
-                <h1 className="text-black text-2xl font-bold ">Continue Learning</h1>
-                <div className={`${isMobile?"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 p-6 justify-center":"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 p-4"}`}>
+        <div className="flex justify-center bg-[#F8F6F1] px-1 pb-4">
+          <div className="max-w-[90%]">
+            <h1 className="text-black text-2xl font-bold">
+              Continue Learning
+            </h1>
+                <div className={`${isMobile?"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 p-6 justify-center":"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 py-4"}`}>
                   {courses.map((course, index) => (
-                    <div key={index} className={`${isMobile?"w-[90%] h-[20%] my-4":"w-[80%] mx-auto"}`}>
-          
+                    <div key={index} className={`${isMobile?"w-[90%] h-[20%] my-4":"w-[90%] "}`}>
+                      {/* Card */}
+                      <div className="relative rounded-2xl overflow-hidden shadow-lg group">
+                        {/* Image */}
+                        <Image
+                          src={course.imageUrl}
+                          alt={course.title}
+                          width={400}
+                          height={400}
+                          className="object-cover w-full h-[300px] transition-transform duration-300"
+                        />
 
-          {/* Card */}
-          <div className="relative rounded-2xl overflow-hidden shadow-lg group">
-            {/* Image */}
-            <Image
-              src={course.imageUrl}
-              alt={course.title}
-              width={400}
-              height={400}
-              className="object-cover w-full h-[300px] transition-transform duration-300"
-            />
-
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-black opacity-40"></div>
+                        {/* Overlay */}
+                        <div className="absolute inset-0 bg-black opacity-40"></div>
 
 
-            <div className="absolute bottom-0 left-2 right-2">
-              <h1 className="text-sm">Your Progress</h1>  
-              <div className=" flex text-[#D4AF37] font-bold text-lg mt-1">
-                {course.percentageCompleted}% Completed
-                <div className=" text-white text-sm mx-auto bg-black bg-opacity-50 px-2 py-1 rounded">
-              {course.timeToComplete}
-            </div>
+                        <div className="absolute bottom-0 left-2 right-2">
+                          <h1 className="text-[8px]  ">Your Progress</h1>  
+                          <div className=" flex text-[#D4AF37] font-bold text-lg mt-1">
+                            {course.percentageCompleted}% to Complete
+                            <div className=" text-white text-[8px] mx-auto bg-opacity-50 px-2 mt-2 rounded">
+                              {course.timeToComplete}
+                            </div>
+                          </div>
+                          {/* <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={course.percentageCompleted}
+                            className="w-full accent-yellow-400 "
+                            disabled
+                          /> */}
+                            <div className="w-full max-w-xl bg-gray-200 rounded-full h-3 mb-6 shadow-inner">
+                              <div className="bg-gradient-to-r from-yellow-300 to-yellow-500 h-3 rounded-full transition-all duration-500" style={{ width: `${40}%` }}/>
+                            </div>
+
+                        </div>                
+                      </div>
+                      <div className="mb-2">
+                        <h2 className="text-xl text-gray-900 p-1 m-0">{course.title}</h2>
+                        <p className="text-sm text-gray-600 p-0 m-0">{course.chapter}</p>
+                      </div>
+                    </div>
+                  ))}
               </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={course.percentageCompleted}
-                className="w-full accent-yellow-400 "
-                disabled
-              />
-              
-            </div>
-
-         
-          
-          </div>
-          <div className="mb-2">
-            <h2 className="text-xl text-gray-900">{course.title}</h2>
-            <p className="text-sm text-gray-600">{course.chapter}</p>
-          </div>
-        </div>
-      ))}
-    </div>
 
 
             </div>
