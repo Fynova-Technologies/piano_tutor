@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import { useState } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, Legend, CartesianGrid } from "recharts";
 import Image from "next/image";
+import SASRReport from "@/features/components/sasrreport";
+import { useRouter } from "next/navigation";
 
 const data = [
   { date: "05/22/2025", score: 90 },
@@ -16,6 +18,7 @@ const data = [
 ];
 
 export default function Page() {
+  const router = useRouter();
   const [lastScore] = useState(200);
   const [highScore] = useState(800);
   const imagePath = "/piano.jpg";
@@ -71,7 +74,7 @@ export default function Page() {
           <div className="mt-4 bg-white p-6 rounded-2xl shadow-md h-[686px]">
             <div className="flex justify-between items-center">
                 <h2 className=" mb-2 text-[#0A0A0B] text-2xl font-bold">Your SASR Scores</h2>
-                <button className="flex bg-[#581845] text-white text-[14px] px-[16px] py-[8px] font-medium rounded-[16px] items-center justify-center">
+                <button onClick={() => router.push("/reports/sasr")} className="flex bg-[#581845] text-white text-[14px] px-[16px] py-[8px] font-medium rounded-[16px] items-center justify-center">
                     View full history
                     <Image src="frame2.svg" alt="arrow" width={30} height={30} className="inline-block ml-2"/>
                 </button>
@@ -80,20 +83,8 @@ export default function Page() {
             <div className="bg-[#faf7f0] rounded-xl p-4 relative mt-4 border-4 border-[#BCBCBC] ">
               
               <div className="h-96">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={data}>
-                    <defs>
-                      <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8b6d3b" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#8b6d3b" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                    <YAxis domain={[0, 100]} hide />
-                    <Tooltip />
-                    <Area type="monotone" dataKey="score" stroke="#8b6d3b" fill="url(#colorScore)" strokeWidth={2}/>
-                  </AreaChart>
-                </ResponsiveContainer>
+                <SASRReport />
+                
               </div>
             </div>
           </div>

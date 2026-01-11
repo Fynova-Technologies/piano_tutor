@@ -1,7 +1,10 @@
 "use client";
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
+import { BarChart, Bar, XAxis, ResponsiveContainer, CartesianGrid,YAxis, Cell } from "recharts";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import Image from "next/image";
+import SasrReport from "@/features/components/sasrreport";
+import { useRouter } from "next/navigation";
 
 const activityData = [
   { day: "Sunday", minutes: 15 },
@@ -13,18 +16,55 @@ const activityData = [
   { day: "Saturday", minutes: 60 },
 ];
 
-const sasrData = [
-  { date: "05/22", score: 90 },
-  { date: "05/23", score: 60 },
-  { date: "05/24", score: 10 },
-  { date: "05/25", score: 25 },
-  { date: "05/26", score: 70 },
-  { date: "05/27", score: 55 },
-  { date: "05/28", score: 45 },
-  { date: "05/29", score: 20 },
-];
+// const sasrData = [
+//   { date: "05/22", score: 90 },
+//   { date: "05/23", score: 60 },
+//   { date: "05/24", score: 10 },
+//   { date: "05/25", score: 25 },
+//   { date: "05/26", score: 70 },
+//   { date: "05/27", score: 55 },
+//   { date: "05/28", score: 45 },
+//   { date: "05/29", score: 20 },
+// ];
+
+
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const CustomLabel = (props: { x: any; y: any; width: any; value: any; }) => {
+    const { x, y, width, value } = props;
+    return (
+      <text 
+        x={x + width / 2} 
+        y={y - 5} 
+        fill="#151517" 
+        textAnchor="middle" 
+        fontSize="8"
+      >
+        {value} min
+      </text>
+    );
+  };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const CustomBackground = (props: { x: any; y: any; width: any; height: any; index: any; }) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { x, y, width, height, index } = props;
+    const bgColor = '#D6DBED66'; 
+    return (
+      <g>
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill={bgColor}
+      />
+      </g>
+    );
+  }
 
 export default function Reports() {
+  const router = useRouter();
   const [month] = useState("June 2025");
   const [attempts] = useState(15);
   const [highestScore] = useState(240);
@@ -33,72 +73,88 @@ export default function Reports() {
   return (
     <div className="min-h-screen bg-[#f8f5ef] p-8 flex flex-col items-center gap-8">
       {/* Top Charts */}
-      <div className="grid md:grid-cols-2 gap-6 w-full max-w-6xl">
+      <div className="grid md:grid-cols-2 gap-8 w-full p-8">
         
         {/* Activity Chart */}
-        <div className="bg-white shadow-md rounded-xl p-4 border border-[#e3dfd6]">
+        <div className="bg-white shadow-[2px_4px_8px_1px_#0000003B] rounded-2xl p-4 border-4 border-[#C0BABA] border-r-[#BCBCBC]">
+          
           <div className="flex justify-between items-center mb-2">
-            <h2 className="font-semibold text-gray-700">Activity Chart</h2>
-            <div className="bg-[#f8f5ef] rounded-md px-3 py-1 text-sm text-gray-600 cursor-pointer">
-              Week ▼
+            <h2 className=" text-[#151517] text-[16px] font-medium">Activity Chart</h2>
+            <div className="bg-[#E4E4E4] rounded-lg px-4 py-2 text-sm text-[#151517] cursor-pointer">
+              Week <Image src="/Icon3.svg" alt="dropdown" width={12} height={12} className="inline-block ml-2"/>
             </div>
           </div>
-          <div className="h-60">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={activityData}>
-                <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="minutes" fill="#5b2c75" radius={[6,6,0,0]}>
-                  {/* Custom label */}
-                  {activityData.map((entry, index) => (
-                    <text
-                      key={`label-${index}`}
-                      x={index * 80 + 35}
-                      y={180 - entry.minutes * 1.3}
-                      textAnchor="middle"
-                      fontSize={10}
-                      fill="#5b2c75"
-                    >
-                      {entry.minutes} min
-                    </text>
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="text-center mt-4">
-            <button className="bg-yellow-400 hover:bg-yellow-500 px-5 py-2 rounded-lg font-semibold text-black flex items-center justify-center gap-2 mx-auto">
-              View Reports ➜
+          <div className="h-60 mt-8">
+            <ResponsiveContainer width="100%" height={300}>
+               <BarChart 
+                 data={activityData}
+                 margin={{ top: 20, right: 10, left: -20, bottom: 5 }}
+               >
+                 <defs>
+                   <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">
+                     <stop offset="0%" stopColor="#a855f7" />
+                     <stop offset="100%" stopColor="#7c3aed" />
+                   </linearGradient>
+                 </defs>
+
+                 <CartesianGrid 
+                   strokeDasharray="0" 
+                   stroke="#e5e7eb" 
+                   vertical={true}
+                   horizontal={true}
+                   
+                 />
+
+                 <XAxis 
+                   dataKey="day" 
+                   axisLine={false}
+                   tickLine={false}
+                   tick={{ fill: '#000000',fillOpacity:"0.8", fontSize: 12 }}
+                 />
+
+                 <YAxis 
+                   axisLine={false}
+                   tickLine={false}
+                   tick={{ fill: '#6b7280', fontSize: 12 }}
+                   domain={[0, 100]}
+                   ticks={[0, 20, 40, 60, 80, 100]}
+                 />
+
+                 <Bar 
+                   dataKey="minutes" 
+                   radius={[16, 16, 0, 0]}
+                   maxBarSize={53}
+                   label={<CustomLabel x={undefined} y={undefined} width={undefined} value={undefined} />}
+                   background={<CustomBackground x={undefined} y={undefined} width={undefined} height={undefined} index={undefined} />}
+                 >
+                   {activityData.map((entry, index) => (
+                     <Cell key={`cell-${index}`} fill="#581845" />
+                   ))}
+                 </Bar>
+               </BarChart>
+             </ResponsiveContainer>          
+       </div>
+          <div className="text-center mt-20">
+            <button onClick={()=>router.push("/reports/activity")} className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] ... text-[#151517] font-medium text-[14px] px-6 py-3 rounded-2xl  transition flex items-center justify-center gap-2 mx-auto">
+              View Reports <Image src="icon2.svg" alt="arrow" width={16} height={16} className="inline-block ml-2"/>
             </button>
           </div>
         </div>
 
         {/* SASR Growth Report */}
-        <div className="bg-white shadow-md rounded-xl p-4 border border-[#e3dfd6]">
+        <div className="bg-white shadow-md rounded-xl p-4 border-4 border-[#C0BABA] border-r-[#BCBCBC]">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="font-semibold text-gray-700">SASR Growth Report</h2>
-            <div className="bg-[#f8f5ef] rounded-md px-3 py-1 text-sm text-gray-600 cursor-pointer">
-              Month ▼
+            <h2 className="text-[#151517] text-[16px] font-medium">SASR Growth Report</h2>
+            <div className="bg-[#E4E4E4] rounded-lg px-4 py-2 text-sm text-[#151517] cursor-pointer">
+              Month <Image src="/Icon3.svg" alt="dropdown" width={12} height={12} className="inline-block ml-2"/>
             </div>
           </div>
-          <div className="h-60">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={sasrData}>
-                <defs>
-                  <linearGradient id="colorSasr" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#5b2c75" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#5b2c75" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <Tooltip />
-                <Area type="monotone" dataKey="score" stroke="#5b2c75" fill="url(#colorSasr)" strokeWidth={2}/>
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="h-75 mt-8">
+            <SasrReport />
           </div>
           <div className="text-center mt-4">
-            <button className="bg-yellow-400 hover:bg-yellow-500 px-5 py-2 rounded-lg font-semibold text-black flex items-center justify-center gap-2 mx-auto">
-              View Reports ➜
+            <button onClick={()=>router.push("/reports/sasr")} className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] ... text-[#151517] font-medium text-[14px] px-6 py-3 rounded-2xl  transition flex items-center justify-center gap-2 mx-auto">
+              View Reports <Image src="icon2.svg" alt="arrow" width={16} height={16} className="inline-block ml-2"/>
             </button>
           </div>
         </div>
@@ -106,11 +162,13 @@ export default function Reports() {
       </div>
 
       {/* Bottom Section */}
-      <div className="grid md:grid-cols-2 gap-6 w-full max-w-4xl">
+
+      <div className="flex p-8 w-full h-full">
+        <div className="flex w-full space-x-8 h-full">
         {/* Streak Calendar */}
-        <div className="bg-white shadow-md rounded-xl p-4 border border-[#e3dfd6]">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="font-semibold text-gray-700">Streak</h3>
+        <div className="bg-white shadow-md rounded-xl p-6 border-4 border-[#C0BABA] border-r-[#BCBCBC] h-[345px] w-[360px]">
+          <div className="flex justify-between mb-3">
+            <h3 className="font-medium text-[16px] text-[#151517]">Streak</h3>
             <div className="flex items-center gap-2">
               <ChevronLeft className="w-4 h-4 text-gray-600" />
               <span className="text-gray-700 text-sm font-medium">{month}</span>
@@ -135,32 +193,33 @@ export default function Reports() {
         </div>
 
         {/* Sight Reading */}
-        <div className="bg-white shadow-md rounded-xl p-4 border border-[#e3dfd6]">
+        <div className="bg-white shadow-md rounded-xl p-6 border-4 border-[#C0BABA] border-r-[#BCBCBC] h-[345px] w-[360px]">
           <div className="flex justify-between items-center mb-3">
-            <h3 className="font-semibold text-gray-700">Sight Reading</h3>
-            <div className="bg-[#f8f5ef] px-3 py-1 rounded-md text-gray-600 text-sm font-medium">
+            <h3 className="font-medium text-[16px] text-[#151517]">Sight Reading</h3>
+            <div className="bg-[#E3E3E3] py-[10px] px-[16px] rounded-2xl text-[#151517] text-[16px] font-medium ">
               {attempts} Attempts
             </div>
           </div>
 
-          <div className="flex flex-col gap-4">
-            <div className="bg-[#f8f5ef] rounded-lg p-3">
-              <div className="flex justify-between items-center text-sm text-gray-700">
-                <span>🏆 Highest Score</span>
-                <span className="font-semibold">{highestScore}</span>
+          <div className="flex flex-col gap-4 mt-10">
+            <div className="bg-[#E3E3E3] rounded-lg p-3">
+              <div className="flex justify-between items-center">
+                <div className="flex justify-center space-x-2"><Image src="/Frame.svg" height={18} width={18} alt="award"/><span className="text-[#151517] text-[14px] font-normal text-center"> Highest Score</span></div>
+                <span className="font-semibold text-[#151517] text-[16px] font-medium">{highestScore}</span>
               </div>
-              <div className="flex justify-between items-center text-sm text-gray-700 mt-2">
-                <span>⭐ Last Score</span>
-                <span className="font-semibold">{lastScore}</span>
+              <div className="flex justify-between items-center  mt-2">
+                <div className="flex justify-center space-x-2"><Image src="/assets/Star.svg" className="fill-red-500" height={18} width={18} alt="award"/><span className="text-[#151517] text-[14px] font-normal text-center"> Last Score</span></div>
+                <span className="font-semibold text-[#151517] text-[16px] font-medium">{lastScore}</span>
               </div>
             </div>
 
-            <button className="bg-yellow-400 hover:bg-yellow-500 px-5 py-2 rounded-lg font-semibold text-black flex items-center justify-center gap-2 mx-auto">
-              View Reports ➜
+            <button className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] ... text-[#151517] font-medium text-[14px] px-6 py-3 rounded-2xl  transition flex items-center justify-center gap-2 mx-auto mt-10">
+              View Reports <Image src="icon2.svg" alt="arrow" width={16} height={16} className="inline-block ml-2"/>
             </button>
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

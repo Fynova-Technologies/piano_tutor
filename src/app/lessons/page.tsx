@@ -17,6 +17,8 @@ import { onProgressClick } from "@/features/utils/onProgressclick";
 import RenderOpenMusicSheet from "@/features/components/renderopenmusicsheet";
 import CursorControls from "@/features/components/cursorcontrols";
 import { useSearchParams } from "next/navigation";
+import { CursorType } from "opensheetmusicdisplay";
+
 
 // ========== NEW: Note tracking types ==========
 interface PlayedNote {
@@ -36,7 +38,7 @@ function Test2HybridFullContent() {
   const samplerRef = useRef<Sampler | null>(null);
   const searchparams = useSearchParams();
   const courseTitle = searchparams.get("title") || "Lesson";
-  const fileName = searchparams.get("file") || "Csong.mxl";
+  const fileName = searchparams.get("file") || "Wholenotes.mxl";
   
   const fallbackXml = "/songs/mxl/" + fileName;
   const xml = uploadedMusicXML || fallbackXml;
@@ -76,6 +78,8 @@ function Test2HybridFullContent() {
       follow: true,
     },
   ];
+
+  
   
   useEffect(() => {
     const hs = Number(localStorage.getItem("highScore"));
@@ -127,6 +131,7 @@ function Test2HybridFullContent() {
       try {
         await osmd.load(xml);
         await osmd.render();
+        
         osmd.setOptions({
           cursorsOptions: [
             {
