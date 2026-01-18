@@ -89,6 +89,11 @@ body {
   left: 203.517px !important;
 } */
 
+
+img#cursorImg-0 {
+    top: -5.5px !important;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -107,5 +112,9 @@ a {
 
 h1, h2, h3, h4, h5, h6, p {
   margin: 0;
+}
+
+div#osmd-container {
+    padding-top: 3%;
 }
 

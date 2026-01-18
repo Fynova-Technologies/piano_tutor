@@ -127,7 +127,7 @@ export default function CursorControls (props: CursorControlsProps) {
               }, [unitId]);
     return(
         <>
-          {/* ========== Original Controls ========== */}
+          {/* ========== Original Controls ========== 
           <div className="text-sm text-white mb-4">
             <strong>Keyboard Controls:</strong> Space = Play/Pause | Piano keys: A W S E D F T G Y H U J K (C to C, white & black keys)
           </div>
@@ -140,9 +140,10 @@ export default function CursorControls (props: CursorControlsProps) {
             <div style={{ marginLeft: "auto", fontSize: 13 }}>
               MIDI In: {midiInRef.current?.name || "none"} | Out: {midiOutputs.length > 0 ? midiOutputs[0].name : "none"}
             </div>
-          </div>
+          </div> 
+          */}
 
-          <div className="progress-bar" onClick={e => onProgressClick(e,osmdRef,setPlayIndex)} style={{ marginBottom: 12 }}>
+         {/* <div className="progress-bar" onClick={e => onProgressClick(e,osmdRef,setPlayIndex)} style={{ marginBottom: 12 }}>
             <div className="progress-fill" style={{ width: `${progressPercent}%` }} /></div>
 
             <div>
@@ -150,8 +151,9 @@ export default function CursorControls (props: CursorControlsProps) {
                 <div>🎯 Score: <strong>{score}</strong></div>
                 <div>🕘 Last: {lastScore ?? "-"}</div>
                <div>🏆 High: {highScore}</div>
-              </div> */}
+              </div> 
           </div>
+          */}
 
           <div className={`bg-[#FEFEFE] w-full h-[20%] flex justify-between items-center ${isPlaying ? 'hidden' : ''}`} style={{
               boxShadow: '0 10px 30px rgba(50, 50, 93, 0.25)' // or use your own shadow

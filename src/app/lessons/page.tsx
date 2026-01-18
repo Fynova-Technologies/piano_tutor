@@ -154,20 +154,18 @@ function Test2HybridFullContent() {
         const rules = osmd.EngravingRules;
 
         // Distance between systems (vertical)
-        rules.MinimumDistanceBetweenSystems = 0 ;
-        rules.StaffHeight = 20;
+        rules.MinimumDistanceBetweenSystems = 5 ;
         rules.MeasureLeftMargin = 12;
-        rules.MeasureRightMargin = 8;    
-        rules.ClefLeftMargin = 4;
-        rules.ClefRightMargin = 6;
+        rules.MeasureRightMargin = 12;    
+        rules.ClefLeftMargin = 12;
+        rules.ClefRightMargin = 12;
         rules.PageLeftMargin = 4;
         rules.KeyRightMargin = 6;
         rules.MinNoteDistance = 6;
-        rules.VoiceSpacingMultiplierVexflow = 2.25;
-        rules.StaffHeight = 12; 
-
-        await osmd.render();
-        
+        rules.VoiceSpacingMultiplierVexflow = 7.25;
+        rules.StaffHeight = 12;
+        rules.CursorWidth = 2; // Reduce from default (usually 4)
+        rules.CursorHeight = 100;          // adjust 90–120
         osmd.setOptions({
           cursorsOptions: [
             {
@@ -178,10 +176,10 @@ function Test2HybridFullContent() {
             }
           ]
         });
-        osmd.Zoom = 1.3; // 1.1–1.3 is safe
         await osmd.render();
-        osmd.cursor.show();
         osmd.cursor.reset();
+        osmd.cursor.show();
+        
         if (!cancelled) {
           osmdRef.current = osmd;
           buildPlaybackStepsAndMaps(osmd,setTotalSteps,setPlayIndex);
