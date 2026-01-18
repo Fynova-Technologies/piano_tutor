@@ -154,17 +154,9 @@ function Test2HybridFullContent() {
         const rules = osmd.EngravingRules;
 
         // Distance between systems (vertical)
-        rules.MinimumDistanceBetweenSystems = 250;
-
-        // Distance between treble & bass staff (grand staff)
-        rules.StaffDistance = 140;
-
-        // Extra padding for piano brace area
-
-        // Increase default staff height (controls vertical scale)
+        rules.MinimumDistanceBetweenSystems = 0 ;
         rules.StaffHeight = 20;
-
-        rules.MeasureLeftMargin = 12;          // Space before first note
+        rules.MeasureLeftMargin = 12;
         rules.MeasureRightMargin = 8;    
         rules.ClefLeftMargin = 4;
         rules.ClefRightMargin = 6;
@@ -172,19 +164,7 @@ function Test2HybridFullContent() {
         rules.KeyRightMargin = 6;
         rules.MinNoteDistance = 6;
         rules.VoiceSpacingMultiplierVexflow = 2.25;
-        
-
-
-
-
-
-
-
-
-
-
-
-
+        rules.StaffHeight = 12; 
 
         await osmd.render();
         
@@ -198,6 +178,7 @@ function Test2HybridFullContent() {
             }
           ]
         });
+        osmd.Zoom = 1.3; // 1.1–1.3 is safe
         await osmd.render();
         osmd.cursor.show();
         osmd.cursor.reset();
