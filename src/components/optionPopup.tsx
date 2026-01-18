@@ -107,7 +107,7 @@ export default function OptionPopup({ openDialogue, setOpenDialogue,backgroundVo
       onClick={(e) => e.stopPropagation()} // prevent overlay close when clicking inside
     >
         <div className="w-full rounded-2xl p-4 bg-[#D1D1D1]">
-          <div className="bg-gradient-to-r from-[#FDFDFD] to-[#E5E5E5] w-full rounded-2xl p-6">
+          <div className="bg-gradient-to-r from-[#FFFFFFB2] to-[#FFFFFFB2] border-4 border-l-[#FFFFFFE5] border-r-[#D8D8D8] border-t-[#FFFFFFE5] border-b-[#D8D8D800] w-full rounded-2xl p-6">
             {/* Grid layout for perfect row alignment */}
             <h2 className="w-full text-center text-black font-bold text-xl mb-6">
               Practice Selection
@@ -119,7 +119,7 @@ export default function OptionPopup({ openDialogue, setOpenDialogue,backgroundVo
                     {/* Left cell */}
                     <div className="flex flex-col justify-between bg-gradient-to-r from-[#F2F2F2] to-[#EAEAEA] rounded-2xl p-4">
                       <div className="flex items-center justify-between border-b pb-2">
-                        <span className="capitalize text-xl text-black max-w-[60%]">
+                        <span className="capitalize text-xl font-medium text-black max-w-[60%]">
                           {optKey.replace("_", " ")}
                         </span>
                         <div className="flex items-center gap-2">
@@ -136,7 +136,7 @@ export default function OptionPopup({ openDialogue, setOpenDialogue,backgroundVo
                               height={15}
                             />
                           </button>
-                          <span className="w-8 text-center font-medium text-black">
+                          <span className="w-8 text-center font-medium text-[20px] text-[#000000]">
                             {optValue}
                           </span>
                           <button

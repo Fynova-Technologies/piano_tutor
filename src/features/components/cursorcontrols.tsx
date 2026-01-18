@@ -1,3 +1,5 @@
+'use client';
+import React, { useEffect, useState } from "react";
 import playCursor from "../playback/playcursor";
 import pauseCursor from "../playback/pausecursor";
 import clearHighlight from "../notes/clearhighlight";
@@ -5,6 +7,10 @@ import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faPause } from '@fortawesome/free-solid-svg-icons';
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import OptionPopup from "@/components/optionPopup";
+
 
 
 type CursorControlsProps = {
@@ -38,9 +44,20 @@ type CursorControlsProps = {
     progressPercent: number,
     courseTitle: string,
 }
+type UnitLesson = {
+  id: string, lessontitle: string, link: string, file: string 
+};
 
 
-export default function curosrControls (props: CursorControlsProps) {
+
+export default function CursorControls (props: CursorControlsProps) {
+        const searchParams = useSearchParams();
+        const router = useRouter();
+        const [openDialogue, setOpenDialogue] = useState(false);
+        const [backgroundVolume, setBackgroundVolume] = useState(100);
+        const [metronomeVolume,setMetronomeVolume]=useState(100)
+
+
         const {
             isPlaying,
             setIsPlaying,
@@ -71,6 +88,43 @@ export default function curosrControls (props: CursorControlsProps) {
             progressPercent,
             courseTitle
         } =  props;
+
+        const [unitlessonsData, setUnitLessonsData] = useState<UnitLesson[]>([]);
+        const unitId = searchParams.get("id");      
+        const fileParam = searchParams.get("file");
+        const lessonId = unitlessonsData.find(
+          lesson => lesson.file === fileParam
+        )?.id || searchParams.get("lessonId"); 
+        const currentIndex = unitlessonsData.findIndex(
+          lesson => lesson.id === lessonId
+        );
+        const hasPrevious = currentIndex > 0;
+        const hasNext = currentIndex !== -1 && currentIndex < unitlessonsData.length - 1;
+
+        const goToLesson = (lesson: UnitLesson) => {
+  const params = new URLSearchParams({
+    id: unitId ?? "", // Changed from unitId to id to match your searchParams.get("id")
+    lessonId: lesson.id,
+    title: lesson.lessontitle,
+    file: lesson.file ?? ""
+  });
+
+  router.push(`/lessons?${params.toString()}`);
+};
+
+            useEffect(() => {
+              fetch("/unitLessonsData2.json")
+                .then(res => res.json())
+                .then(data => {
+                  const unit = data.Lessons.find(
+                    (u: { fkid: string }) => u.fkid === unitId
+                  );
+                
+                  if (unit) {
+                    setUnitLessonsData(unit.unitlessons);
+                  }
+                });
+              }, [unitId]);
     return(
         <>
           {/* ========== Original Controls ========== */}
@@ -134,91 +188,77 @@ export default function curosrControls (props: CursorControlsProps) {
       />
     
     <div className="w-full h-20 flex items-center justify-center relative">
+      {openDialogue && <OptionPopup openDialogue={openDialogue} setOpenDialogue={setOpenDialogue} backgroundVolume={backgroundVolume} setBackgroundVolume={setBackgroundVolume} metronomeVolume={metronomeVolume} setMetronomeVolume={setMetronomeVolume}  />}
+      
 
       {/* Left Icon — Far Left */}
-      <button className="absolute left-4 p-3 rounded-full border border-solid shadow bg-white hover:shadow-lg">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6"
-          fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-            d="M15 19l-7-7 7-7" />
-        </svg>
+      <button className="absolute left-4 p-3 rounded-full border border-solid shadow bg-white hover:shadow-lg" onClick={() => hasPrevious && !isPlaying && goToLesson(unitlessonsData[currentIndex - 1])}
+                    disabled={!hasPrevious}>
+                            <Image src="/skip_previous_filled.png" width={45} height={20} alt="skip previous" className="ml-2" />
       </button>
 
-      {/* Center Play Button */}
-        <div className="flex items-center justify-center w-full">
-            <div className="flex items-center justify-center gap-2 w-full ">
-              <button   className="bg-transparent p-0 border-0 outline-none appearance-none"
-                // onClick={() => hasPrevious && !isPlaying && goToLesson(unitLessonsData[currentIndex - 1])}
-                // disabled={!hasPrevious}
-            >
-                <Image src="/skip_previous_filled.svg" alt="skip previous" width={35} height={35} className="" />
-              </button>
-              {/* <audio
-                ref={backgroundSoundRef}
-                src="/songs/jungle-waves.mp3"
-                loop
-              /> */}
-            <button
-                className=" px-5 py-4 text-white rounded-full border border-solid hover:bg-zinc-300 cursor-pointer bg-white"
-                onClick={() => {
-                  if (isPlaying) {
-                    pauseCursor(osmdRef,setIsPlaying,playModeRef);
-                  } else {
-                    playCursor({
-                      osmdRef,
-                      setIsPlaying,
-                      playModeRef,
-                      totalStepsRef,
-                      correctStepsRef,
-                      scoredStepsRef,
-                      currentCursorStepRef,
-                      currentStepNotesRef,
-                      setPlayIndex,
-                      setCurrentStepNotes,
-                      setScore,
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      midiOutputs: midiOutputs as any,
-                      playbackMidiGuard,
-                      setCountdown,
-                      setHighScore,
-                      setLastScore,
-                      clearHighlight,
-                  });
-                  }
-                }}
-                //   style={{
-                //     padding: "8px 12px",
-                //     background: isPlaying ? "#f0a500" : "#4caf50",
-                //     color: "white",
-                //     border: "none",
-                //     borderRadius: 6,
-                //     cursor: "pointer",
-                //   }}
-            >
-                <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} size="lg" color="#0A0A0B" />
-            </button>
 
-            <button className=" text-white rounded bg-transparent border-0 outline-none appearance-none"    
-                // onClick={() => hasNext && goToLesson(unitLessonsData[currentIndex + 1])}
-                // disabled={!hasNext}
-            >
-              <Image src="/skip_next_filled.png" width={35} height={35} alt="skip previous" className="" />
-            </button>
-             <div className="flex mb-5 ml-20 transform -translate-x-1/2">
-              <button className="mt-6 text-white px-6 py-2 bg-black rounded-lg hover:bg-green-700 transition">
-                Play Note 
-                {/* ({5 - (usage?.play_count || 0)}  */}
-                free left
-                {/* ) */}
-              </button>
-            </div>
-            {/* {errMsg && (
-                <div className="bg-red-100 text-red-600 border border-red-300 rounded-lg p-2 mb-3">
-                    {errMsg}
-                </div>
-            )} */}
-            </div>
-        </div>
+{/* Center Play Button */}
+<div className="flex items-center justify-center w-full">
+    <div className="flex items-center justify-center gap-2 w-full ">
+      
+      {/* Previous Button */}
+      <button
+        className="bg-transparent p-0 border-0 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+        onClick={() => hasPrevious && !isPlaying && goToLesson(unitlessonsData[currentIndex - 1])}
+        disabled={!hasPrevious || isPlaying}
+      >
+        <Image src="/skip_previous_filled.svg" alt="skip previous" width={35} height={35} />
+      </button>
+
+      {/* Play/Pause Button */}
+      <button
+        className="px-5 py-4 text-white rounded-full border border-solid hover:bg-zinc-300 cursor-pointer bg-white"
+        onClick={() => {
+          if (isPlaying) {
+            pauseCursor(osmdRef, setIsPlaying, playModeRef);
+          } else {
+            playCursor({
+              osmdRef,
+              setIsPlaying,
+              playModeRef,
+              totalStepsRef,
+              correctStepsRef,
+              scoredStepsRef,
+              currentCursorStepRef,
+              currentStepNotesRef,
+              setPlayIndex,
+              setCurrentStepNotes,
+              setScore,
+              midiOutputs: midiOutputs,
+              playbackMidiGuard,
+              setCountdown,
+              setHighScore,
+              setLastScore,
+              clearHighlight,
+            });
+          }
+        }}
+      >
+        <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} size="lg" color="#0A0A0B" />
+      </button>
+
+      {/* Next Button */}
+      <button
+        className="bg-transparent p-0 border-0 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={!hasNext || isPlaying}
+        onClick={() => hasNext && !isPlaying && goToLesson(unitlessonsData[currentIndex + 1])}
+      >
+        <Image src="/skip_next_filled.png" width={35} height={35} alt="skip next" />
+      </button>
+
+      <div className="flex mb-5 ml-20 transform -translate-x-1/2">
+        <button className="mt-6 text-white px-6 py-2 bg-black rounded-lg hover:bg-green-700 transition">
+          Play Note free left
+        </button>
+      </div>
+    </div>
+</div>
          
       {/* Right Icon — Far Right */}
       <div className="Settings absolute right-4 p-3 gap-4">
@@ -228,7 +268,7 @@ export default function curosrControls (props: CursorControlsProps) {
             </button>
               <Image src="/settings.svg" width={40} height={40} alt="icon" 
               className=" border-gray-300 cursor-pointer p-1"
-                // onClick={()=> setOpenDialogue(!openDialogue)}
+                onClick={()=> setOpenDialogue(!openDialogue)}
               />
         </div>
               

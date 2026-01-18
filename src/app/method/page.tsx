@@ -34,19 +34,21 @@ export default function PianoLesson() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [unitLessonsData, setUnitLessonsData] = useState<UnitLesson[]>([]);
   const [unitLessonsData2, setUnitLessonsData2] = useState<UniteLesson2[]>([]);
+  const unitdataurl ="https://cdn-dataforpiano.netlify.app";
+  console.log("CDN URL:", unitdataurl);
 
   useEffect(() => {
-    fetch("/unitLessonsData.json")
+    fetch( "/unitLessonsData.json")
       .then((res) => res.json())
       .then((data) => {
         console.log("Data", data.Lessons);
         setUnitLessonsData(data.Lessons);
         setClassId(data.Lessons[0].fkid);
       });
-  }, []);
+  }, [unitdataurl]);
 
   useEffect(() => {
-    fetch("/unitLessonsData2.json")
+    fetch(unitdataurl + "/unitLessonsData2.json")
       .then((res) => res.json())
       .then((data) => {
         console.log("Data", data.Lessons);
