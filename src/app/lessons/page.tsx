@@ -164,8 +164,6 @@ function Test2HybridFullContent() {
         rules.MinNoteDistance = 6;
         rules.VoiceSpacingMultiplierVexflow = 7.25;
         rules.StaffHeight = 12;
-        rules.CursorWidth = 2; // Reduce from default (usually 4)
-        rules.CursorHeight = 100;          // adjust 90–120
         osmd.setOptions({
           cursorsOptions: [
             {
@@ -1043,18 +1041,7 @@ function stopPlayback() {
   }
 }
 
-// 6. Update your Space key handler
-// In your useEffect with keyboard handler, change this line:
-//   playCursor({ ... });
-// To:
-//   playWithCustomBeatCursor();
 
-// And for pause:
-//   pauseCursor(osmdRef, setIsPlaying, playModeRef);
-// To:
-//   stopPlayback();
-
-// 7. Add CSS for custom cursor (add to your existing style injection)
 const customCursorStyle = `
   .custom-beat-cursor {
     pointer-events: none;
