@@ -122,29 +122,26 @@ function Test2HybridFullContent() {
   useEffect(() => {
     if (!containerRef.current) return;
     const osmd = new OpenSheetMusicDisplay(containerRef.current, {
-  backend: "svg",
-
-  // ===== UI / Layout =====
-  drawingParameters: "compact",     // "default" | "compact" | "leadsheet"
-  pageFormat: "Endless",             // horizontal scroll (BEST for learning)
-  autoResize: true,
-
-  // ===== Visibility =====
-  drawTitle: false,
-  drawComposer: false,
-  drawCredits: false,
-
-  // ===== Cursor =====
-  followCursor: true,
-  cursorsOptions: [
-    {
-      type: 0,
-      color: "#ef4444", // Tailwind red-500
-      alpha: 1,
-      follow: true,
-    },
-  ],
-});
+      backend: "svg",
+      // ===== UI / Layout =====
+      drawingParameters: "default",     // "default" | "compact" | "leadsheet"
+      pageFormat: "Endless",             // horizontal scroll (BEST for learning)
+      autoResize: true,
+      // ===== Visibility =====
+      drawTitle: false,
+      drawComposer: false,
+      drawCredits: false,
+      // ===== Cursor =====
+      followCursor: true,
+      cursorsOptions: [
+        {
+          type: 0,
+          color: "#ef4444", // Tailwind red-500
+          alpha: 1,
+          follow: true,
+        },
+      ],
+    });
 
     let cancelled = false;
     (async () => {
@@ -152,8 +149,8 @@ function Test2HybridFullContent() {
         await osmd.load(xml);
         // 👇 ADD THIS BLOCK
         const rules = osmd.EngravingRules;
+        console.log("Default engraving rules:", rules);
 
-        // Distance between systems (vertical)
         rules.MinimumDistanceBetweenSystems = 5 ;
         rules.MeasureLeftMargin = 12;
         rules.MeasureRightMargin = 12;    
@@ -164,6 +161,7 @@ function Test2HybridFullContent() {
         rules.MinNoteDistance = 6;
         rules.VoiceSpacingMultiplierVexflow = 7.25;
         rules.StaffHeight = 12;
+
         osmd.setOptions({
           cursorsOptions: [
             {
