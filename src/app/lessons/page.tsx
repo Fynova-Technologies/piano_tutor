@@ -2,22 +2,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { Suspense, useEffect, useRef, useState } from "react";
+import React, { Suspense, use, useEffect, useRef, useState } from "react";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import * as Tone from "tone";
 import { Sampler } from "tone";
 import scoreNotePlayed from "@/features/scores/scorenoteplayed";
 import findNotesAtCursorByMidi from "@/features/notes/findNotesatcursor";
-import highlightGraphicalNoteNative from "@/features/notes/highlightgraphicalnotes";
 import buildPlaybackStepsAndMaps from "@/features/playback/buildplaybacksetpsandmaps";
 import pauseCursor from "@/features/playback/pausecursor";
 import playCursor from "@/features/playback/playcursor";
 import clearHighlight from "@/features/notes/clearhighlight";
 import { onProgressClick } from "@/features/utils/onProgressclick";
-import RenderOpenMusicSheet from "@/features/components/renderopenmusicsheet";
 import CursorControls from "@/features/components/cursorcontrols";
 import { useSearchParams } from "next/navigation";
-import { CursorType } from "opensheetmusicdisplay";
+import { BeatCursor } from "@/features/playback/beatcursor";
 
 
 // ========== NEW: Note tracking types ==========
@@ -71,7 +69,8 @@ function Test2HybridFullContent() {
   // ========== NEW: Tracking all played notes ==========
   const playedNotesRef = useRef<PlayedNote[]>([]);
   const activeHighlightsRef = useRef<Set<any>>(new Set()); // Track active highlight elements
-
+  const beatCursorRef = useRef<BeatCursor | null>(null);
+  const [currentBeatIndex, setCurrentBeatIndex] = useState<number>(0);  
   
   const cursorsOptions = [
     {
@@ -531,217 +530,6 @@ function getCurrentCursorNotes(osmd: any): number[] {
   console.log(`📍 Current cursor expects: ${noteNames} (MIDI: ${midiEquivalents.join(', ')})`);
   
   return halfTones; // Return OSMD halfTones, caller will convert to MIDI
-}
-
-// DIAGNOSTIC: Show all notes in the sheet with their positions
-function showAllNotesInSheet(osmd: any) {
-  if (!osmd?.cursor?.iterator) return;
-  
-  console.log('📊 ALL NOTES IN SHEET:');
-  console.log('═══════════════════════════════════════');
-  
-  const iterator = osmd.cursor.iterator;
-  iterator.reset();
-  
-  let stepIndex = 0;
-  do {
-    const voiceEntries = iterator.currentVoiceEntries || [];
-    const timestamp = iterator.CurrentSourceTimestamp;
-    
-    const notesAtThisStep: number[] = [];
-    for (const ve of voiceEntries) {
-      const notes = ve.Notes || [];
-      for (const n of notes) {
-        const midi = n.halfTone;
-        if (typeof midi === 'number') {
-          notesAtThisStep.push(midi);
-        }
-      }
-    }
-    
-    if (notesAtThisStep.length > 0) {
-      const noteNames = notesAtThisStep.map(m => midiToNoteName(m)).join(', ');
-      console.log(`Step ${stepIndex}: ${noteNames} (MIDI: ${notesAtThisStep.join(', ')}) at time ${timestamp.realValue}`);
-    }
-    
-    stepIndex++;
-  } while (iterator.moveToNext());
-  
-  iterator.reset();
-  console.log('═══════════════════════════════════════');
-}
-
-// REPLACEMENT: More accurate findNotesAtCursorByMidi
-// You should replace your existing findNotesAtCursorByMidi with this version
-function findNotesAtCursorByMidiFixed(osmd: any, targetMidi: number): any[] {
-  if (!osmd?.cursor?.iterator) {
-    console.log('No cursor or iterator');
-    return [];
-  }
-  
-  const iterator = osmd.cursor.iterator;
-  const currentVoiceEntries = iterator.currentVoiceEntries;
-  
-  if (!currentVoiceEntries) {
-    console.log('No current voice entries');
-    return [];
-  }
-  
-  const foundGraphicalNotes: any[] = [];
-  
-  console.log(`🔎 Searching for MIDI ${targetMidi} at cursor position`);
-  
-  // Iterate through all voice entries at current cursor position
-  for (const voiceEntry of currentVoiceEntries) {
-    if (!voiceEntry?.notes) continue;
-    
-    for (const sourceNote of voiceEntry.notes) {
-      const noteMidi = sourceNote.halfTone;
-      
-      console.log(`  - Found source note with MIDI: ${noteMidi}`);
-      
-      // EXACT match only
-      if (noteMidi === targetMidi) {
-        // Find the corresponding graphical note
-        const graphicalNotes = voiceEntry.parentVoiceEntry?.graphicalVoiceEntry?.notes;
-        
-        if (graphicalNotes) {
-          for (const graphicalNote of graphicalNotes) {
-            if (graphicalNote.sourceNote?.halfTone === targetMidi) {
-              foundGraphicalNotes.push(graphicalNote);
-              console.log(`    ✓ Found matching graphical note`);
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  console.log(`Total found: ${foundGraphicalNotes.length} graphical notes for MIDI ${targetMidi}`);
-  return foundGraphicalNotes;
-}
-
-// DIAGNOSTIC: Compare visual position vs stored MIDI
-function diagnoseNoteMismatch(osmd: any) {
-  if (!osmd?.GraphicSheet?.MeasureList) return;
-  
-  console.log('🔬 DIAGNOSING NOTE MISMATCH');
-  console.log('═══════════════════════════════════════');
-  
-  const measureList = osmd.GraphicSheet.MeasureList;
-  
-  for (let measureIndex = 0; measureIndex < measureList.length; measureIndex++) {
-    const system = measureList[measureIndex];
-    if (!Array.isArray(system)) continue;
-    
-    for (let staffIndex = 0; staffIndex < system.length; staffIndex++) {
-      const gMeasure = system[staffIndex];
-      if (!gMeasure?.staffEntries) continue;
-      
-      console.log(`\nMeasure ${measureIndex}, Staff ${staffIndex}:`);
-      console.log(`Clef: ${gMeasure.ParentMusicSystem?.parent?.musicPages?.[0]?.musicSystems?.[0]?.staffLines?.[staffIndex]?.staffLines?.[0]?.clefType || 'unknown'}`);
-      
-      for (const staffEntry of gMeasure.staffEntries) {
-        const timestamp = staffEntry.timestamp?.realValue || 0;
-        
-        for (const gve of staffEntry.graphicalVoiceEntries || []) {
-          for (const gn of gve.notes || []) {
-            const sourceMidi = gn.sourceNote?.halfTone;
-            const isRest = gn.sourceNote?.isRest?.() || false;
-            
-            if (isRest || sourceMidi === undefined) continue;
-            
-            // Get the visual Y position
-            const bounds = gn.PositionAndShape?.BoundingRectangle;
-            const visualY = bounds?.y || gn.PositionAndShape?.RelativePosition?.y || 0;
-            
-            // Calculate what MIDI SHOULD be based on visual position
-            const stave = gMeasure.stave;
-            const staveY = stave?.y || 0;
-            const lineSpacing = 10; // typical staff line spacing
-            
-            // Reference: middle line of treble clef staff is B4 (MIDI 71)
-            // For bass clef, middle line is D3 (MIDI 50)
-            const clef = gMeasure.ParentStaff?.parent?.instrumentClef?.clefType;
-            let expectedMidi;
-            
-            if (clef === 1) { // Treble clef
-              const referenceMidi = 71; // B4 on middle line
-              const referenceY = staveY + (2 * lineSpacing);
-              const diatonicSteps = Math.round((referenceY - visualY) / (lineSpacing / 2));
-              expectedMidi = referenceMidi + diatonicSteps; // rough estimate
-            } else { // Bass clef
-              const referenceMidi = 50; // D3 on middle line
-              const referenceY = staveY + (2 * lineSpacing);
-              const diatonicSteps = Math.round((referenceY - visualY) / (lineSpacing / 2));
-              expectedMidi = referenceMidi + diatonicSteps;
-            }
-            
-            const difference = sourceMidi - expectedMidi;
-            const differenceOctaves = Math.abs(difference) / 12;
-            
-            console.log(`  Time ${timestamp.toFixed(3)}: Visual Y=${visualY.toFixed(1)}, Stored MIDI=${sourceMidi} (${midiToNoteName(sourceMidi)}), Expected≈${expectedMidi} (${midiToNoteName(expectedMidi)}), Diff=${difference} (${differenceOctaves.toFixed(1)} octaves)`);
-            
-            if (Math.abs(difference) >= 12) {
-              console.warn(`    ⚠️ OCTAVE MISMATCH DETECTED!`);
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  console.log('═══════════════════════════════════════');
-}
-
-// FIX: Apply octave correction if we detect systematic transposition
-function getActualMidiFromVisualPosition(osmd: any, graphicalNote: any): number {
-  const sourceMidi = graphicalNote.sourceNote?.halfTone;
-  if (sourceMidi === undefined) return 0;
-  
-  // Check if there's a systematic octave shift by examining the clef
-  const staffIndex = 0; // adjust if needed
-  const measureIndex = osmd.cursor?.iterator?.currentMeasureIndex || 0;
-  const measure = osmd.GraphicSheet?.MeasureList?.[measureIndex]?.[staffIndex];
-  
-  if (!measure) return sourceMidi;
-  
-  // Get visual Y position
-  const bounds = graphicalNote.PositionAndShape?.BoundingRectangle;
-  const visualY = bounds?.y || graphicalNote.PositionAndShape?.RelativePosition?.y || 0;
-  
-  const stave = measure.stave;
-  const staveY = stave?.y || 0;
-  const lineSpacing = 10;
-  
-  // Determine clef
-  const clef = measure.InitiallyActiveClef?.clefType || 0;
-  
-  // Calculate expected MIDI from visual position
-  let expectedMidi;
-  if (clef === 1) { // Treble clef - G clef, G4 on second line from bottom
-    const referenceMidi = 67; // G4
-    const referenceY = staveY + (3 * lineSpacing); // second line from bottom
-    const diatonicSteps = Math.round((referenceY - visualY) / (lineSpacing / 2));
-    // Convert diatonic steps to chromatic
-    const chromaticSteps = Math.round(diatonicSteps * 1.7); // rough approximation
-    expectedMidi = referenceMidi + chromaticSteps;
-  } else { // Bass clef - F clef, F3 on second line from top
-    const referenceMidi = 53; // F3
-    const referenceY = staveY + (1 * lineSpacing); // second line from top
-    const diatonicSteps = Math.round((referenceY - visualY) / (lineSpacing / 2));
-    const chromaticSteps = Math.round(diatonicSteps * 1.7);
-    expectedMidi = referenceMidi + chromaticSteps;
-  }
-  
-  // If there's a systematic 12-note (octave) difference, correct it
-  const difference = sourceMidi - expectedMidi;
-  if (Math.abs(difference) === 12) {
-    console.warn(`🔧 Correcting octave shift: ${sourceMidi} (${midiToNoteName(sourceMidi)}) → ${expectedMidi} (${midiToNoteName(expectedMidi)})`);
-    return expectedMidi;
-  }
-  
-  return sourceMidi;
 }
 
 
