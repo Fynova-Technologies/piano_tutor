@@ -8,13 +8,16 @@ import * as Tone from "tone";
 import { Sampler } from "tone";
 import scoreNotePlayed from "@/features/scores/scorenoteplayed";
 import findNotesAtCursorByMidi from "@/features/notes/findNotesatcursor";
+import highlightGraphicalNoteNative from "@/features/notes/highlightgraphicalnotes";
 import buildPlaybackStepsAndMaps from "@/features/playback/buildplaybacksetpsandmaps";
 import pauseCursor from "@/features/playback/pausecursor";
 import playCursor from "@/features/playback/playcursor";
 import clearHighlight from "@/features/notes/clearhighlight";
 import { onProgressClick } from "@/features/utils/onProgressclick";
+import RenderOpenMusicSheet from "@/features/components/renderopenmusicsheet";
 import CursorControls from "@/features/components/cursorcontrols";
 import { useSearchParams } from "next/navigation";
+import { CursorType } from "opensheetmusicdisplay";
 
 
 // ========== NEW: Note tracking types ==========
@@ -64,8 +67,6 @@ function Test2HybridFullContent() {
   const [lastScore, setLastScore] = useState<number | null>(null);
   const scoredStepsRef = useRef<Set<number>>(new Set());
   const currentCursorStepRef = useRef<number>(0);
-  const backgroundSoundRef = useRef<HTMLAudioElement | null>(null);
-  
   
   // ========== NEW: Tracking all played notes ==========
   const playedNotesRef = useRef<PlayedNote[]>([]);
@@ -123,45 +124,30 @@ function Test2HybridFullContent() {
     if (!containerRef.current) return;
     const osmd = new OpenSheetMusicDisplay(containerRef.current, {
       backend: "svg",
-      // ===== UI / Layout =====
-      drawingParameters: "default",     // "default" | "compact" | "leadsheet"
-      pageFormat: "Endless",             // horizontal scroll (BEST for learning)
       autoResize: true,
-      // ===== Visibility =====
-      drawTitle: false,
-      drawComposer: false,
-      drawCredits: false,
-      // ===== Cursor =====
+      drawingParameters: "default",
       followCursor: true,
-      cursorsOptions: [
-        {
-          type: 0,
-          color: "#ef4444", // Tailwind red-500
-          alpha: 1,
-          follow: true,
-        },
-      ],
+      cursorsOptions: cursorsOptions,
     });
-
     let cancelled = false;
     (async () => {
       try {
         await osmd.load(xml);
-        // 👇 ADD THIS BLOCK
-        const rules = osmd.EngravingRules;
-        console.log("Default engraving rules:", rules);
-
-        rules.MinimumDistanceBetweenSystems = 5 ;
-        rules.MeasureLeftMargin = 12;
-        rules.MeasureRightMargin = 12;    
-        rules.ClefLeftMargin = 12;
-        rules.ClefRightMargin = 12;
-        rules.PageLeftMargin = 4;
-        rules.KeyRightMargin = 6;
-        rules.MinNoteDistance = 6;
-        rules.VoiceSpacingMultiplierVexflow = 7.25;
+        const rules = osmd.EngravingRules; 
+        console.log("Default engraving rules:", rules); 
+        rules.MinimumDistanceBetweenSystems = 5 ; 
+        rules.MeasureLeftMargin = 12; 
+        rules.MeasureRightMargin = 12; 
+        rules.ClefLeftMargin = 12; 
+        rules.ClefRightMargin = 12; 
+        rules.PageLeftMargin = 4; 
+        rules.KeyRightMargin = 6; 
+        rules.MinNoteDistance = 6; 
+        rules.VoiceSpacingMultiplierVexflow = 7.25; 
         rules.StaffHeight = 12;
-
+        
+        await osmd.render();
+        
         osmd.setOptions({
           cursorsOptions: [
             {
@@ -173,9 +159,8 @@ function Test2HybridFullContent() {
           ]
         });
         await osmd.render();
-        osmd.cursor.reset();
         osmd.cursor.show();
-        
+        osmd.cursor.reset();
         if (!cancelled) {
           osmdRef.current = osmd;
           buildPlaybackStepsAndMaps(osmd,setTotalSteps,setPlayIndex);
@@ -861,194 +846,6 @@ function getActualMidiFromVisualPosition(osmd: any, graphicalNote: any): number 
   }
 
   // UI
-  // Add these functions to your Test2HybridFullContent component
-
-// 1. Calculate beat positions from rendered OSMD
-function createBeatPositions(osmd: any, beatsPerMeasure: number = 4) {
-  const positions: any[] = [];
-  
-  if (!osmd?.GraphicSheet?.MeasureList) return positions;
-  
-  const measureList = osmd.GraphicSheet.MeasureList;
-  
-  for (let measureIndex = 0; measureIndex < measureList.length; measureIndex++) {
-    const system = measureList[measureIndex];
-    if (!Array.isArray(system) || system.length === 0) continue;
-    
-    const firstStaff = system[0];
-    if (!firstStaff?.PositionAndShape) continue;
-    
-    const startX = firstStaff.PositionAndShape.RelativePosition?.x || 0;
-    const width = firstStaff.PositionAndShape.Size?.width || 100;
-    const y = firstStaff.PositionAndShape.RelativePosition?.y || 0;
-    
-    // Create position for each beat
-    for (let beat = 0; beat < beatsPerMeasure; beat++) {
-      positions.push({
-        x: startX + (width / beatsPerMeasure) * beat,
-        y: y,
-        measureIndex: measureIndex,
-        beat: beat,
-        absoluteBeat: measureIndex * beatsPerMeasure + beat
-      });
-    }
-  }
-  
-  return positions;
-}
-
-// 2. Draw custom cursor at position
-function drawCustomBeatCursor(osmd: any, position: any) {
-  if (!osmd?.drawer?.backend?.getSvgElement) return;
-  
-  const svg = osmd.drawer.backend.getSvgElement();
-  
-  // Remove old cursor
-  const oldCursor = svg.querySelector('.custom-beat-cursor');
-  if (oldCursor) oldCursor.remove();
-  
-  // Create cursor line
-  const cursor = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  cursor.setAttribute('class', 'custom-beat-cursor');
-  cursor.setAttribute('x1', position.x.toString());
-  cursor.setAttribute('y1', (position.y - 50).toString());
-  cursor.setAttribute('x2', position.x.toString());
-  cursor.setAttribute('y2', (position.y + 50).toString());
-  cursor.setAttribute('stroke', '#FF0000');
-  cursor.setAttribute('stroke-width', '3');
-  cursor.setAttribute('opacity', '0.9');
-  cursor.setAttribute('stroke-linecap', 'round');
-  
-  svg.appendChild(cursor);
-}
-
-// 3. Add this ref to your component state
-const beatAnimationRef = useRef<number | null>(null);
-const beatPositionsRef = useRef<any[]>([]);
-
-// 4. Replace your playCursor call with this function
-function playWithCustomBeatCursor() {
-  const osmd = osmdRef.current;
-  if (!osmd) return;
-  
-  // Hide OSMD's built-in cursor
-  osmd.cursor.hide();
-  
-  // Get tempo
-  const tempo = osmd.sheet?.DefaultStartTempoInBpm || 120;
-  const beatDuration = 60 / tempo; // seconds per beat
-  
-  // Get time signature (assume 4/4 for now)
-  const beatsPerMeasure = 4;
-  
-  // Calculate all beat positions
-  beatPositionsRef.current = createBeatPositions(osmd, beatsPerMeasure);
-  
-  console.log(`Created ${beatPositionsRef.current.length} beat positions`);
-  
-  if (beatPositionsRef.current.length === 0) {
-    console.error('No beat positions found!');
-    return;
-  }
-  
-  // Setup playback
-  setIsPlaying(true);
-  playModeRef.current = true;
-  clearAllTracking();
-  
-  // Reset scoring
-  totalStepsRef.current = beatPositionsRef.current.length;
-  correctStepsRef.current = 0;
-  scoredStepsRef.current.clear();
-  currentCursorStepRef.current = 0;
-  
-  const startTime = performance.now() / 1000;
-  
-  // Animation loop
-  function animate() {
-    const currentTime = performance.now() / 1000;
-    const elapsed = currentTime - startTime;
-    const beatIndex = Math.floor(elapsed / beatDuration);
-    
-    if (beatIndex < beatPositionsRef.current.length) {
-      const position = beatPositionsRef.current[beatIndex];
-      
-      // Draw cursor at this beat
-      drawCustomBeatCursor(osmd, position);
-      
-      // Update play index
-      setPlayIndex(beatIndex);
-      currentCursorStepRef.current = beatIndex;
-      
-      // Get expected notes at this beat (using OSMD's cursor for note detection)
-      // Move OSMD's hidden cursor to track notes
-      if (beatIndex > 0 && beatIndex < beatPositionsRef.current.length) {
-        // Try to sync OSMD cursor to correct position
-        osmd.cursor.reset();
-        for (let i = 0; i < beatIndex && !osmd.cursor.iterator.EndReached; i++) {
-          osmd.cursor.next();
-        }
-      }
-      
-      const cursorNotesOSMD = getCurrentCursorNotes(osmd);
-      const cursorNotesMIDI = cursorNotesOSMD.map(osmdToMidi);
-      currentStepNotesRef.current = cursorNotesMIDI;
-      setCurrentStepNotes(cursorNotesMIDI);
-      
-      // Continue animation
-      beatAnimationRef.current = requestAnimationFrame(animate);
-    } else {
-      // End of score
-      stopPlayback();
-    }
-  }
-  
-  // Start animation
-  animate();
-}
-
-// 5. Stop playback function
-function stopPlayback() {
-  if (beatAnimationRef.current) {
-    cancelAnimationFrame(beatAnimationRef.current);
-    beatAnimationRef.current = null;
-  }
-  
-  setIsPlaying(false);
-  playModeRef.current = false;
-  
-  // Calculate final score
-  const finalScore = totalStepsRef.current > 0 
-    ? Math.round((correctStepsRef.current / totalStepsRef.current) * 100)
-    : 0;
-  setScore(finalScore);
-  
-  // Update high score
-  const currentHigh = Number(localStorage.getItem("highScore")) || 0;
-  if (finalScore > currentHigh) {
-    localStorage.setItem("highScore", finalScore.toString());
-    setHighScore(finalScore);
-  }
-  localStorage.setItem("lastScore", finalScore.toString());
-  setLastScore(finalScore);
-  
-  // Show OSMD cursor again
-  if (osmdRef.current) {
-    osmdRef.current.cursor.show();
-    osmdRef.current.cursor.reset();
-  }
-}
-
-
-const customCursorStyle = `
-  .custom-beat-cursor {
-    pointer-events: none;
-    filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.5));
-  }
-`;
-
-// Add this to your existing style.innerHTML in the useEffect that injects CSS
-
   return (
     <>
       <CursorControls

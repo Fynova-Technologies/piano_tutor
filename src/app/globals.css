@@ -65,21 +65,6 @@ body {
   fill: #3b82f6 !important;
 }
 
-  .cursor {
-    stroke: none !important;
-    fill: rgba(255, 0, 0, 0.35) !important; /* rectangle fill color */
-  }
-
-  .cursor-line {
-    stroke: none !important; /* disable the default horizontal line */
-  }
-
-  /* Make the rectangle tall enough to cover staff height */
-  .cursor-rect {
-    fill: rgba(255, 0, 0, 0.6) !important;
-    width: 3px !important;   /* cursor width */
-  }
-
 
 /* img[id^="cursorImg"] {
   all: unset !important;
@@ -88,11 +73,6 @@ body {
   top: 166.5px !important;
   left: 203.517px !important;
 } */
-
-
-img#cursorImg-0 {
-    top: -5.5px !important;
-}
 
 *, *::before, *::after {
   box-sizing: border-box;
