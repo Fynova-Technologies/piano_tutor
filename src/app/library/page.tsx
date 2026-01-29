@@ -10,9 +10,14 @@ export default function library(){
             </div>
             <div className="mt-10">
                 <Favorite/>
+                <div className="mt-16"></div>
                 <Favorite/>
+                <div className="mt-16"></div>
                 <Favorite/>
+                <div className="mt-16"></div>
                 <Favorite/>
+                <div className="mt-16"></div>
+                
             </div>
         </div>
     )

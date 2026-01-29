@@ -7,7 +7,7 @@ import {useMediaQuery} from "../MediaQuery/useMediaQueryHook";
 export default function MusicCategories() {
     const router = useRouter();
     const isMobile = useMediaQuery("(max-width: 768px)");
-    const radius = 50;
+    const radius = 45;
       const stroke = 10;
       const normalizedRadius = radius - stroke / 2;
       const circumference = 2 * Math.PI * normalizedRadius;
@@ -22,7 +22,7 @@ export default function MusicCategories() {
             <div className={`${isMobile? "flex flex-col justify-center items-center space-y-5": "flex justify-center space-x-8"} `}>
                   <div
                         onClick={() => router.push("/musiclibrary")}
-                        className="bg-[#FEFEFE] rounded-2xl w-[90%] shadow-md hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-2xl  transition duration-300  cursor-pointer group hover:scale-[1.03]"
+                        className="bg-[#FEFEFE] rounded-2xl w-[90%]  hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-[0_5px_10px_0px_#505050]  transition duration-300  cursor-pointer group hover:scale-[1.03]"
                       >
                         <div className="relative flex ">
                           <div className="relative flex items-center overflow-hidden w-full z-10 rounded-3xl">
@@ -54,7 +54,7 @@ export default function MusicCategories() {
                       </div>
                       <div
                         onClick={() => router.push("/musiclibrary")}
-                        className="bg-[#FEFEFE] rounded-2xl w-[90%] shadow-md hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-2xl  transition duration-300  cursor-pointer group hover:scale-[1.03]"
+                        className="bg-[#FEFEFE] rounded-2xl w-[90%]  hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-[0_5px_10px_0px_#505050]   transition duration-300  cursor-pointer group hover:scale-[1.03]"
                       >
                         <div className="relative flex ">
         
@@ -72,7 +72,7 @@ export default function MusicCategories() {
                               </div>
                           </div>
         
-                          <div className="flex flex-col items-center p-6 rounded-2xl shadow-[inset_0px_0px_10px_#D4AF37] bg-[#FEFEFE]">
+                          <div className="flex flex-col items-center p-6 rounded-2xl shadow-[0_5px_10px_0px_#505050]  bg-[#FEFEFE]">
         
                             <div className="flex flex-col items-center gap-2 w-full">
                               <div className="flex gap-4">
@@ -90,7 +90,7 @@ export default function MusicCategories() {
                     <div className={`${isMobile?"flex flex-col justify-center items-center mt-10 space-y-10":"flex justify-center space-x-8 items-stretch mt-4"  }`}>
                                   <div
                                     onClick={() => router.push("/musiclibrary")}
-                                    className="bg-[#FEFEFE] rounded-2xl w-[90%] shadow-md hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-2xl  transition duration-300  cursor-pointer group hover:scale-[1.03]"
+                                    className="bg-[#FEFEFE] rounded-2xl w-[90%] hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-[0_5px_10px_0px_#505050]   transition duration-300  cursor-pointer group hover:scale-[1.03]"
                                   >
                                     <div className="relative flex">
                                       <div className="relative flex items-center justify-between space-x-4 overflow-hidden w-full z-10 rounded-3xl">
@@ -105,7 +105,7 @@ export default function MusicCategories() {
                     
                                       <div className="flex flex-col items-center ml-auto space-y-4 p-6">
                     
-                                        <div className="flex items-center gap-2 rounded-full border-2 ">
+                                        <div className="flex items-center gap-2 rounded-full ">
                                            <div className="flex items-center justify-center">
                                             <svg
                                               height={radius * 3}
@@ -134,9 +134,9 @@ export default function MusicCategories() {
                                             </svg>
                                             {/* Center Text */}
                                             <div className="absolute">
-                                              <div className="flex flex-col">
-                                                <span className="text-[#535356]">Completed</span>
-                                                <span className= "text-[#272728] text-xl">{progress}%</span>
+                                              <div className="flex flex-col space-y-2">
+                                                <span className="text-[#535356] text-[12px] font-medium">Completed</span>
+                                                <span className= "text-[#272728] text-[16px] font-medium">{progress}%</span>
                                               </div>
                                             </div>
                                           </div>
@@ -148,7 +148,7 @@ export default function MusicCategories() {
                                   
                                   <div
                                     onClick={() => router.push("/musiclibrary")}
-                                    className="bg-[#FEFEFE] rounded-2xl lg:w-[60%] w-[90%] shadow-md hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-2xl  transition duration-300  cursor-pointer group hover:scale-[1.03]"
+                                    className="bg-[#FEFEFE] rounded-2xl lg:w-[60%] w-[90%] hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-[0_5px_10px_0px_#505050]   transition duration-300  cursor-pointer group hover:scale-[1.03]"
                                   >
                                     <div className="relative flex ">
                     
@@ -161,7 +161,7 @@ export default function MusicCategories() {
                     
                                       <div className="flex flex-col items-center ml-auto space-y-4 p-6 transition-transform duration-1000 ease-in-out">
                     
-                                        <div className="flex items-center gap-2 rounded-full border-2 ">
+                                        <div className="flex items-center gap-2 rounded-full">
                                            <div className="flex items-center justify-center">
                                             <svg
                                               height={radius * 3}
@@ -190,9 +190,9 @@ export default function MusicCategories() {
                                             </svg>
                                             {/* Center Text */}
                                             <div className="absolute">
-                                              <div className="flex flex-col">
-                                                <span className="text-[#535356]">Completed</span>
-                                                <span className= "text-[#272728] text-xl">{progress}%</span>
+                                              <div className="flex flex-col space-y-2">
+                                                <span className="text-[#535356] text-[12px] font-medium">Completed</span>
+                                                <span className= "text-[#272728] text-[16px] font-medium">{progress}%</span>
                                         </div>
                                     </div>
                                 </div>

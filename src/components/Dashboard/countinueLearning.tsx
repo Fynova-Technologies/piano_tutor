@@ -46,18 +46,18 @@ export default function ContinueLearning() {
             <h1 className="text-black text-2xl font-bold">
               Continue Learning
             </h1>
-                <div className={`${isMobile?"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 p-6 justify-center":"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 py-4"}`}>
+                <div className={`flex justify-between py-4 gap-16`}>
                   {courses.map((course, index) => (
-                    <div key={index} className={`${isMobile?"w-[90%] h-[20%] my-4":"w-[90%] "}`}>
+                    <div key={index} className={`${isMobile?"w-[90%] h-[15%] my-4":"w-[90%]"}`}>
                       {/* Card */}
-                      <div className="relative rounded-2xl overflow-hidden shadow-lg group">
+                      <div className="relative rounded-2xl overflow-hidden shadow-lg group w-full max-h-[290px]">
                         {/* Image */}
                         <Image
                           src={course.imageUrl}
                           alt={course.title}
                           width={400}
                           height={400}
-                          className="object-cover w-full h-[300px] transition-transform duration-300"
+                          className="object-cover w-full h-[300px] transition-transform duration-300 float-rightz"
                         />
 
                         {/* Overlay */}
@@ -86,13 +86,13 @@ export default function ContinueLearning() {
 
                         </div>                
                       </div>
-                      <div className="mb-2">
-                        <h2 className="text-xl text-gray-900 p-1 m-0">{course.title}</h2>
-                        <p className="text-sm text-gray-600 p-0 m-0">{course.chapter}</p>
+                      <div className="mb-2 mt-4">
+                        <h2 className="text-[16px] font-medium text-[#151517] p m-0">{course.title}</h2>
+                        <p className="text-[16px] font-medium text-[#6E6E73] p m-0">{course.chapter}</p>
                       </div>
                     </div>
                   ))}
-              </div>
+              </div>``
 
 
             </div>

@@ -19,6 +19,15 @@ interface PlayedNote {
   graphicalNotes?: any[];
 }
 
+interface MistakeRecord {
+  beatIndex: number;
+  timestamp: number;
+  expectedNotes: number[];
+  playedNote: number;
+  measure: number;
+  beatInMeasure: number;
+}
+
 function Test2HybridFullContent() {
   const [uploadedMusicXML, setUploadedMusicXML] = useState<string | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
@@ -55,6 +64,13 @@ function Test2HybridFullContent() {
   const scoredStepsRef = useRef<Set<number>>(new Set());
   const currentCursorStepRef = useRef<number>(0);
   
+  // ===== MISTAKE TRACKING STATE =====
+  const [mistakeCount, setMistakeCount] = useState(0);
+  const mistakeCountRef = useRef(0);
+  const mistakesRef = useRef<MistakeRecord[]>([]);
+  const [showMistakeLimit, setShowMistakeLimit] = useState(false);
+  const MAX_MISTAKES = 3;
+  
   const playedNotesRef = useRef<PlayedNote[]>([]);
   const activeHighlightsRef = useRef<Set<any>>(new Set());
   const beatCursorRef = useRef<BeatCursor | null>(null);
@@ -83,6 +99,14 @@ function Test2HybridFullContent() {
       .measure-border-highlight { stroke: rgba(255, 165, 0, 0.8); stroke-width: 2px; fill: none; }
       .progress-bar { width: 100%; height: 10px; background: #eee; border-radius: 6px; overflow: hidden; cursor: pointer; }
       .progress-fill { height: 100%; background: linear-gradient(90deg,#4caf50,#8bc34a); width: 0%; }
+      .mistake-indicator {
+        animation: shake 0.5s;
+      }
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-10px); }
+        75% { transform: translateX(10px); }
+      }
     `;
     document.head.appendChild(style);
   }, []);
@@ -154,7 +178,7 @@ function Test2HybridFullContent() {
           } catch (error) {
             console.error("❌ Failed to create beat cursor:", error);
           }
-        }, 200); // Increased delay to ensure full render
+        }, 200);
         
       } catch (e) {
         console.error("OSMD load/render error:", e);
@@ -166,12 +190,10 @@ function Test2HybridFullContent() {
         if (!osmdRef.current) return;
         osmd.render();
         
-        // Don't recreate cursor during active playback - just refresh positions
         setTimeout(() => {
           if (beatCursorRef.current && osmdRef.current) {
             const currentIndex = beatCursorRef.current.getCurrentIndex();
             
-            // Only recreate if not playing, otherwise just refresh
             if (!playModeRef.current) {
               beatCursorRef.current.destroy();
               const newCursor = new BeatCursor(osmdRef.current);
@@ -179,7 +201,6 @@ function Test2HybridFullContent() {
               beatCursorRef.current = newCursor;
               console.log("Cursor recreated after resize at position", currentIndex);
             } else {
-              // Just refresh positions without recreating
               beatCursorRef.current.refreshPositions();
               console.log("Cursor positions refreshed during playback");
             }
@@ -356,6 +377,12 @@ function Test2HybridFullContent() {
     setIsPlaying(true);
     playModeRef.current = true;
     
+    // Reset mistake tracking
+    setMistakeCount(0);
+    mistakeCountRef.current = 0;
+    mistakesRef.current = [];
+    setShowMistakeLimit(false);
+    
     totalStepsRef.current = beatCursorRef.current.getTotalBeats();
     correctStepsRef.current = 0;
     scoredStepsRef.current.clear();
@@ -376,17 +403,15 @@ function Test2HybridFullContent() {
         clearInterval(countdownInterval);
         setCountdown(null);
         
-        // Tell cursor that playback is starting
         if (beatCursorRef.current) {
           beatCursorRef.current.startPlayback();
         }
         
-        // Start automatic beat advancement
         startAutomaticPlayback();
       }
     }, 1000);
     
-    console.log("🎵 Playback started");
+    console.log("🎵 Playback started with 3-mistake limit");
   }
 
   function startAutomaticPlayback() {
@@ -394,12 +419,18 @@ function Test2HybridFullContent() {
       clearInterval(playbackIntervalRef.current);
     }
     
-    // Calculate beat duration in milliseconds
     const beatDuration = (60 / tempo) * 1000;
     
     console.log(`🎵 Starting automatic playback at ${tempo} BPM (${beatDuration}ms per beat)`);
     
     playbackIntervalRef.current = setInterval(() => {
+      // Check if we've hit the mistake limit
+      if (mistakeCountRef.current >= MAX_MISTAKES) {
+        console.log('🛑 Mistake limit reached - stopping playback');
+        handleMistakeLimitReached();
+        return;
+      }
+      
       if (!playModeRef.current || !beatCursorRef.current) {
         if (playbackIntervalRef.current) {
           clearInterval(playbackIntervalRef.current);
@@ -411,12 +442,10 @@ function Test2HybridFullContent() {
       const currentIdx = beatCursorRef.current.getCurrentIndex();
       console.log(`⏱️ Auto-advance from beat ${currentIdx}`);
       
-      // Advance cursor automatically
       const moved = beatCursorRef.current.next();
       if (moved) {
         const newIndex = beatCursorRef.current.getCurrentIndex();
         
-        // Sanity check: make sure we're moving forward
         if (newIndex <= currentIdx) {
           console.error(`❌ Cursor moved backwards! ${currentIdx} -> ${newIndex}`);
           return;
@@ -432,7 +461,6 @@ function Test2HybridFullContent() {
         
         console.log(`⏭️ Auto-advanced to beat ${newIndex}`);
       } else {
-        // End of piece
         console.log('🏁 Reached end of piece');
         if (playbackIntervalRef.current) {
           clearInterval(playbackIntervalRef.current);
@@ -447,13 +475,11 @@ function Test2HybridFullContent() {
     setIsPlaying(false);
     playModeRef.current = false;
     
-    // Stop automatic playback
     if (playbackIntervalRef.current) {
       clearInterval(playbackIntervalRef.current);
       playbackIntervalRef.current = null;
     }
     
-    // Tell cursor that playback stopped
     if (beatCursorRef.current) {
       beatCursorRef.current.stopPlayback();
     }
@@ -461,17 +487,47 @@ function Test2HybridFullContent() {
     console.log("⏸️ Playback paused");
   }
 
-  function handleEndOfPiece() {
+  function handleMistakeLimitReached() {
     setIsPlaying(false);
     playModeRef.current = false;
+    setShowMistakeLimit(true);
     
-    // Stop automatic playback
     if (playbackIntervalRef.current) {
       clearInterval(playbackIntervalRef.current);
       playbackIntervalRef.current = null;
     }
     
-    // Tell cursor that playback stopped
+    if (beatCursorRef.current) {
+      beatCursorRef.current.stopPlayback();
+    }
+    
+    // Calculate score based on performance so far
+    const beatsPlayed = currentBeatIndex + 1; // +1 because index is 0-based
+    const finalScore = beatsPlayed > 0
+      ? Math.round((correctStepsRef.current / beatsPlayed) * 100)
+      : 0;
+    
+    setScore(finalScore);
+    setLastScore(finalScore);
+    localStorage.setItem("lastScore", finalScore.toString());
+    
+    console.log('🛑 Stopped due to 3 mistakes:', {
+      beatsPlayed,
+      correctBeats: correctStepsRef.current,
+      mistakes: mistakesRef.current,
+      score: finalScore
+    });
+  }
+
+  function handleEndOfPiece() {
+    setIsPlaying(false);
+    playModeRef.current = false;
+    
+    if (playbackIntervalRef.current) {
+      clearInterval(playbackIntervalRef.current);
+      playbackIntervalRef.current = null;
+    }
+    
     if (beatCursorRef.current) {
       beatCursorRef.current.stopPlayback();
     }
@@ -492,7 +548,6 @@ function Test2HybridFullContent() {
     console.log(`🎉 Piece complete! Score: ${finalScore}%`);
   }
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (playbackIntervalRef.current) {
@@ -501,7 +556,7 @@ function Test2HybridFullContent() {
     };
   }, []);
 
-  // ========== NOTE TRACKING ==========
+  // ========== NOTE TRACKING WITH MISTAKE DETECTION ==========
   function trackAndHighlightNote(midi: number) {
     if (!beatCursorRef.current || !playModeRef.current) return;
 
@@ -532,6 +587,30 @@ function Test2HybridFullContent() {
     
     playedNotesRef.current.push(playedNote);
     
+    // Track mistakes
+    if (!isCorrect && expectedMIDI.length > 0) { // Only count as mistake if not a rest
+      mistakeCountRef.current++;
+      setMistakeCount(mistakeCountRef.current);
+      
+      const mistakeRecord: MistakeRecord = {
+        beatIndex: currentBeatIndex,
+        timestamp: Date.now(),
+        expectedNotes: expectedMIDI,
+        playedNote: midi,
+        measure: currentBeat?.measureIndex ? currentBeat.measureIndex + 1 : 0,
+        beatInMeasure: currentBeat?.beatInMeasure ? currentBeat.beatInMeasure + 1 : 0
+      };
+      
+      mistakesRef.current.push(mistakeRecord);
+      
+      console.log(`❌ Mistake ${mistakeCountRef.current}/${MAX_MISTAKES}:`, {
+        expected: expectedNames,
+        played: noteName,
+        measure: mistakeRecord.measure,
+        beat: mistakeRecord.beatInMeasure
+      });
+    }
+    
     if (matchingNotes.length > 0) {
       console.log(`${isCorrect ? '✅' : '❌'} Highlighting ${matchingNotes.length} note(s)`);
       matchingNotes.forEach((gn) => {
@@ -542,8 +621,6 @@ function Test2HybridFullContent() {
       drawGhostNote(osmdRef.current, midi, false);
     }
     
-    // Note: We don't advance cursor here anymore - it moves automatically
-    // Just track if the note was correct for scoring
     if (isCorrect) {
       console.log('✅ Correct note played!');
     } else {
@@ -559,7 +636,7 @@ function Test2HybridFullContent() {
       const newIndex = beatCursorRef.current.getCurrentIndex();
       setCurrentBeatIndex(newIndex);
       currentCursorStepRef.current = newIndex;
-      setPlayIndex(newIndex); // ADD THIS - updates progress bar and triggers re-render
+      setPlayIndex(newIndex);
       
       const expectedMIDI = beatCursorRef.current.getCurrentExpectedMIDI();
       setCurrentStepNotes(expectedMIDI);
@@ -611,7 +688,6 @@ function Test2HybridFullContent() {
 
     const lineSpacing = 10;
     
-    // Get unit conversion
     const unitInPixels = osmd.drawer?.backend?.getInnerElement?.()?.offsetWidth 
       ? osmd.drawer.backend.getInnerElement().offsetWidth / graphicSheet.ParentMusicSheet.pageWidth
       : 10;
@@ -629,10 +705,10 @@ function Test2HybridFullContent() {
     const clef = measure.InitiallyActiveClef?.clefType;
     let referenceDiatonic, referenceY;
     
-    if (clef === 1) { // Treble
+    if (clef === 1) {
       referenceDiatonic = midiToDiatonic(50);
       referenceY = measureY + (2 * lineSpacing);
-    } else { // Bass
+    } else {
       referenceDiatonic = midiToDiatonic(71);
       referenceY = measureY + (2 * lineSpacing);
     }
@@ -681,6 +757,13 @@ function Test2HybridFullContent() {
         .map(m => midiToNoteName(m))
         .join(', ')
     };
+  }
+
+  function getMistakeColor() {
+    if (mistakeCount === 0) return '#4caf50';
+    if (mistakeCount === 1) return '#ff9800';
+    if (mistakeCount === 2) return '#ff5722';
+    return '#f44336';
   }
 
   // ========== UI ==========
@@ -732,6 +815,150 @@ function Test2HybridFullContent() {
         courseTitle={courseTitle}
       />
       
+      {/* Mistake Limit Modal */}
+      {showMistakeLimit && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10001
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '30px',
+            borderRadius: '12px',
+            maxWidth: '500px',
+            width: '90%',
+            textAlign: 'center'
+          }}>
+            <h2 style={{color: '#f44336', marginBottom: '20px'}}>
+              ⚠️ Practice Session Stopped
+            </h2>
+            <p style={{fontSize: '18px', marginBottom: '15px'}}>
+              Youve made {MAX_MISTAKES} mistakes
+            </p>
+            <p style={{marginBottom: '20px', color: '#666'}}>
+              Lets review what happened and try again!
+            </p>
+            
+            <div style={{
+              background: '#f5f5f5',
+              padding: '15px',
+              borderRadius: '8px',
+              marginBottom: '20px'
+            }}>
+              <div style={{fontSize: '16px', marginBottom: '10px'}}>
+                <strong>Your Performance:</strong>
+              </div>
+              <div style={{fontSize: '14px', color: '#666'}}>
+                Beats Played: {currentBeatIndex + 1} / {totalSteps}
+              </div>
+              <div style={{fontSize: '14px', color: '#666'}}>
+                Correct: {correctStepsRef.current}
+              </div>
+              <div style={{fontSize: '14px', color: '#666'}}>
+                Mistakes: {mistakeCount}
+              </div>
+              <div style={{fontSize: '24px', marginTop: '10px', color: '#4caf50'}}>
+                Score: {score}%
+              </div>
+            </div>
+            
+            <div style={{marginBottom: '20px', textAlign: 'left'}}>
+              <strong>Mistakes Made:</strong>
+              <div style={{
+                maxHeight: '150px',
+                overflowY: 'auto',
+                marginTop: '10px',
+                fontSize: '13px'
+              }}>
+                {mistakesRef.current.map((mistake, idx) => (
+                  <div key={idx} style={{
+                    padding: '8px',
+                    background: idx % 2 === 0 ? '#fafafa' : 'white',
+                    borderRadius: '4px',
+                    marginBottom: '4px'
+                  }}>
+                    <div>
+                      <strong>Mistake {idx + 1}:</strong> Measure {mistake.measure}, Beat {mistake.beatInMeasure}
+                    </div>
+                    <div style={{color: '#666', fontSize: '12px'}}>
+                      Expected: {mistake.expectedNotes.map(m => midiToNoteName(m)).join(', ')}
+                    </div>
+                    <div style={{color: '#f44336', fontSize: '12px'}}>
+                      Played: {midiToNoteName(mistake.playedNote)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <button
+              onClick={() => {
+                setShowMistakeLimit(false);
+                clearAllTracking();
+                if (beatCursorRef.current) {
+                  beatCursorRef.current.reset();
+                  setCurrentBeatIndex(0);
+                }
+              }}
+              style={{
+                background: '#4caf50',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '6px',
+                fontSize: '16px',
+                cursor: 'pointer',
+                marginRight: '10px'
+              }}
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => setShowMistakeLimit(false)}
+              style={{
+                background: '#666',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '6px',
+                fontSize: '16px',
+                cursor: 'pointer'
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Mistake Counter - Top Left */}
+      <div style={{
+        position: 'fixed',
+        top: '10px',
+        left: '10px',
+        background: getMistakeColor(),
+        color: 'white',
+        padding: '12px 20px',
+        borderRadius: '8px',
+        fontSize: '16px',
+        fontWeight: 'bold',
+        zIndex: 10000,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+        transition: 'all 0.3s ease'
+      }}
+      className={mistakeCount > 0 ? 'mistake-indicator' : ''}
+      >
+        Mistakes: {mistakeCount}/{MAX_MISTAKES}
+      </div>
+      
       {/* Debug info */}
       <div style={{
         position: 'fixed',
@@ -754,6 +981,9 @@ function Test2HybridFullContent() {
               <div>Expected: {info.expectedNotes || 'Rest'}</div>
               <div style={{marginTop: '5px', borderTop: '1px solid #444', paddingTop: '5px'}}>
                 Cursor X: {beatCursorRef.current?.getCurrentBeat()?.staffEntryX?.toFixed(1)}
+              </div>
+              <div style={{marginTop: '5px', borderTop: '1px solid #444', paddingTop: '5px'}}>
+                Correct: {correctStepsRef.current} / {currentBeatIndex + 1}
               </div>
               <div style={{marginTop: '5px', borderTop: '1px solid #444', paddingTop: '5px'}}>
                 <label style={{display: 'block', marginBottom: '4px'}}>Tempo: {tempo} BPM</label>

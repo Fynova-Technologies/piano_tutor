@@ -44,7 +44,7 @@ export default function HeartIcon({ isLiked }: HeartIconProps) {
     <motion.img
       src={displayFilledHeart ? "/hearfilled.png" : "/HeartStart.png"}
       alt="Heart Icon"
-      className="w-5 h-5 cursor-pointer"
+      className="w-4 h-4 cursor-pointer"
       initial={{ rotate: 0, scale: 1, y: 0 }}
       animate={controls}
     />

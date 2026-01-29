@@ -50,16 +50,16 @@ export default function Favorite(){
     if (!favorites) return <p>Loading favorites...</p>;
 
     return(
-        <div className=''>
-            <div className="flex items-center justify-center bg-[#F8F6F1]">
-                <div className="max-w-[90%]">
+        <div className=' '>
+            
+                <div className="">
                     <h1 className="text-2xl font-bold mb-4 text-[#151517]">Favorites</h1>
-                    <div className="song-card grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 py-4">
+                    <div className="flex justify-between py-4 gap-16 ">
                       {favorites?.map((song, index) =>
-                        <div key={index} className="w-[90%]">
+                        <div key={index} className="w-[90%] max-h-[251.61px]">
                           {/* Add shadow-lg for the 3D effect and transition for smooth hover */}
-                          <div className="shadow-[0_5px_10px_0px_#505050] rounded-2xl ">
-                            <div className="relative rounded-t-2xl overflow-hidden group">
+                          <div className="shadow-[0_5px_10px_0px_#505050] rounded-2xl h-[251px] ">
+                            <div className="relative rounded-t-2xl overflow-hidden group w-[200px] h-[200px]">
                               <Image
                                 src={song.imageUrl || "/songs/s1.jpg"}
                                 alt={song.title}
@@ -68,7 +68,7 @@ export default function Favorite(){
                                 className="object-cover w-full h-[300px] rounded-t-2xl transition-transform duration-300 hover:scale-105 cursor-pointer"
                                 onClick={() => { setOpenDialogue(!openDialogue); setDialogueSong(song); }}
                               />
-                              <div className="absolute bottom-2 left-7 flex flex-row gap-1">
+                              <div className="absolute bottom-2 left-7 flex flex-row gap-1 ">
                                 {[...Array(5)].map((_, i) => (
                                   <svg
                                     key={i}
@@ -83,12 +83,12 @@ export default function Favorite(){
                                 ))}
                               </div>
                               <div>
-                                <div className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-md" onClick={() => handleClick(song.id)}>
+                                <div className="absolute top-2 right-2 bg-[#F8F6F1] rounded-full p-2 shadow-md w-8 h-8 " onClick={() => handleClick(song.id)}>
                                   <HeartIcon isLiked={liked[song.id]} />
                                 </div>
                               </div>
                             </div>
-                            <div className="bg-white flex flex-col rounded-b-2xl text-[#151517] p-4">
+                            <div className="bg-white flex flex-col rounded-b-2xl text-[#151517] p-4 w-[200px]">
                               <span className="font-semibold">{song.title}</span>
                               <span>{song.artist}</span>
                             </div>
@@ -100,9 +100,8 @@ export default function Favorite(){
                             )}
                             
                         </div>
-                    </div>
-                
+                    </div>               
             </div>
-        </div>
+      // 
     )
 }

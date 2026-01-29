@@ -8,15 +8,20 @@ export default function ComingSoon() {
   
   return (
     <div className="overflow-y-auto">
-      <div className="flex  justify-center bg-[#F8F6F1] px-1 py-16">
-        <div className="max-w-[90%] w-full text-center">
-          <MusicCategories/>
-        </div>
-
-      </div>
-      <ContinueLearning />
-      <Favorite/>
-
+  <div className="flex justify-center bg-[#F8F6F1] px-1 py-16">
+    <div className="max-w-[90%] w-full text-center">
+      <MusicCategories/>
     </div>
+  </div>
+
+  {/* Add this wrapper */}
+  <div className="flex justify-center bg-[#F8F6F1] px-1 pb-4">
+    <div className="max-w-[90%] w-full">
+      <ContinueLearning />
+      <Favorite />
+    </div>
+  </div>
+</div>
+
   );
 }
