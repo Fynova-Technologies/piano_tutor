@@ -7,9 +7,10 @@ import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import * as Tone from "tone";
 import { Sampler } from "tone";
 import scoreNotePlayed from "@/features/scores/scorenoteplayed";
-import CursorControls from "@/features/components/cursorcontrols";
 import { useSearchParams } from "next/navigation";
 import { BeatCursor } from "@/features/playback/beatcursor";
+import SasrPlayControls from "@/features/components/sasrplaycontrol";
+import StrikeIndicator from "@/features/components/strike";
 
 interface PlayedNote {
   midi: number;
@@ -99,14 +100,6 @@ function Test2HybridFullContent() {
       .measure-border-highlight { stroke: rgba(255, 165, 0, 0.8); stroke-width: 2px; fill: none; }
       .progress-bar { width: 100%; height: 10px; background: #eee; border-radius: 6px; overflow: hidden; cursor: pointer; }
       .progress-fill { height: 100%; background: linear-gradient(90deg,#4caf50,#8bc34a); width: 0%; }
-      .mistake-indicator {
-        animation: shake 0.5s;
-      }
-      @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-10px); }
-        75% { transform: translateX(10px); }
-      }
     `;
     document.head.appendChild(style);
   }, []);
@@ -146,18 +139,14 @@ function Test2HybridFullContent() {
         
         osmdRef.current = osmd;
         
-        // Hide default cursor
         if (osmd.cursor) {
           osmd.cursor.hide();
         }
         
-        // IMPORTANT: Wait for render to complete and layout to stabilize
         setTimeout(() => {
           if (cancelled || !osmdRef.current) return;
           
           console.log("=== Creating Beat Cursor ===");
-          console.log("GraphicSheet exists:", !!osmdRef.current.GraphicSheet);
-          console.log("Measures:", osmdRef.current.GraphicSheet?.MeasureList?.length);
           
           try {
             const beatCursor = new BeatCursor(osmdRef.current);
@@ -168,13 +157,11 @@ function Test2HybridFullContent() {
             totalStepsRef.current = totalBeats;
             setCurrentBeatIndex(0);
             
-            // Update current step notes
             const expectedMIDI = beatCursor.getCurrentExpectedMIDI();
             setCurrentStepNotes(expectedMIDI);
             currentStepNotesRef.current = expectedMIDI;
             
             console.log(`✅ Beat cursor initialized: ${totalBeats} beats`);
-            console.log(`Initial expected notes:`, expectedMIDI);
           } catch (error) {
             console.error("❌ Failed to create beat cursor:", error);
           }
@@ -199,10 +186,8 @@ function Test2HybridFullContent() {
               const newCursor = new BeatCursor(osmdRef.current);
               newCursor.setPosition(currentIndex);
               beatCursorRef.current = newCursor;
-              console.log("Cursor recreated after resize at position", currentIndex);
             } else {
               beatCursorRef.current.refreshPositions();
-              console.log("Cursor positions refreshed during playback");
             }
           }
         }, 200);
@@ -294,8 +279,6 @@ function Test2HybridFullContent() {
               }
 
               if (playModeRef.current) {
-                scoreNotePlayed(key, playModeRef, currentCursorStepRef, scoredStepsRef, 
-                               currentStepNotesRef, correctStepsRef);
                 trackAndHighlightNote(key);
               }
             }
@@ -363,7 +346,7 @@ function Test2HybridFullContent() {
 
   // ========== PLAYBACK CONTROL ==========
   const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [tempo, setTempo] = useState(120); // BPM
+  const [tempo, setTempo] = useState(120);
 
   function startPlayback() {
     if (!beatCursorRef.current) {
@@ -382,13 +365,13 @@ function Test2HybridFullContent() {
     mistakeCountRef.current = 0;
     mistakesRef.current = [];
     setShowMistakeLimit(false);
+    setScore(null);
     
     totalStepsRef.current = beatCursorRef.current.getTotalBeats();
     correctStepsRef.current = 0;
     scoredStepsRef.current.clear();
     currentCursorStepRef.current = 0;
     
-    // Update expected notes for first beat
     const expectedMIDI = beatCursorRef.current.getCurrentExpectedMIDI();
     setCurrentStepNotes(expectedMIDI);
     currentStepNotesRef.current = expectedMIDI;
@@ -424,9 +407,13 @@ function Test2HybridFullContent() {
     console.log(`🎵 Starting automatic playback at ${tempo} BPM (${beatDuration}ms per beat)`);
     
     playbackIntervalRef.current = setInterval(() => {
-      // Check if we've hit the mistake limit
+      // CRITICAL: Check mistake limit FIRST before any other actions
       if (mistakeCountRef.current >= MAX_MISTAKES) {
         console.log('🛑 Mistake limit reached - stopping playback');
+        if (playbackIntervalRef.current) {
+          clearInterval(playbackIntervalRef.current);
+          playbackIntervalRef.current = null;
+        }
         handleMistakeLimitReached();
         return;
       }
@@ -440,7 +427,6 @@ function Test2HybridFullContent() {
       }
       
       const currentIdx = beatCursorRef.current.getCurrentIndex();
-      console.log(`⏱️ Auto-advance from beat ${currentIdx}`);
       
       const moved = beatCursorRef.current.next();
       if (moved) {
@@ -488,9 +474,11 @@ function Test2HybridFullContent() {
   }
 
   function handleMistakeLimitReached() {
+    console.log('🛑 HANDLING MISTAKE LIMIT REACHED');
+    
+    // FORCE stop everything
     setIsPlaying(false);
     playModeRef.current = false;
-    setShowMistakeLimit(true);
     
     if (playbackIntervalRef.current) {
       clearInterval(playbackIntervalRef.current);
@@ -501,22 +489,27 @@ function Test2HybridFullContent() {
       beatCursorRef.current.stopPlayback();
     }
     
-    // Calculate score based on performance so far
-    const beatsPlayed = currentBeatIndex + 1; // +1 because index is 0-based
+    // Calculate score
+    const beatsPlayed = currentBeatIndex + 1;
     const finalScore = beatsPlayed > 0
       ? Math.round((correctStepsRef.current / beatsPlayed) * 100)
       : 0;
+    
+    console.log('📊 Final Score Calculation:', {
+      beatsPlayed,
+      correctBeats: correctStepsRef.current,
+      finalScore,
+      mistakes: mistakesRef.current.length
+    });
     
     setScore(finalScore);
     setLastScore(finalScore);
     localStorage.setItem("lastScore", finalScore.toString());
     
-    console.log('🛑 Stopped due to 3 mistakes:', {
-      beatsPlayed,
-      correctBeats: correctStepsRef.current,
-      mistakes: mistakesRef.current,
-      score: finalScore
-    });
+    // Show the modal
+    setShowMistakeLimit(true);
+    
+    console.log('✅ Modal should now be visible');
   }
 
   function handleEndOfPiece() {
@@ -568,7 +561,6 @@ function Test2HybridFullContent() {
     console.log('🎹 Note Analysis:', {
       played: `${noteName} (${midi})`,
       beat: currentBeatIndex,
-      beatX: currentBeat?.staffEntryX?.toFixed(2),
       expected: expectedNames || 'Rest',
       expectedMIDI: expectedMIDI
     });
@@ -587,10 +579,11 @@ function Test2HybridFullContent() {
     
     playedNotesRef.current.push(playedNote);
     
-    // Track mistakes
-    if (!isCorrect && expectedMIDI.length > 0) { // Only count as mistake if not a rest
-      mistakeCountRef.current++;
-      setMistakeCount(mistakeCountRef.current);
+    // Track mistakes - CRITICAL FIX: Only count as mistake if there ARE expected notes (not a rest)
+    if (!isCorrect && expectedMIDI.length > 0) {
+      const newMistakeCount = mistakeCountRef.current + 1;
+      mistakeCountRef.current = newMistakeCount;
+      setMistakeCount(newMistakeCount);
       
       const mistakeRecord: MistakeRecord = {
         beatIndex: currentBeatIndex,
@@ -603,12 +596,18 @@ function Test2HybridFullContent() {
       
       mistakesRef.current.push(mistakeRecord);
       
-      console.log(`❌ Mistake ${mistakeCountRef.current}/${MAX_MISTAKES}:`, {
+      console.log(`❌ MISTAKE ${newMistakeCount}/${MAX_MISTAKES}:`, {
         expected: expectedNames,
         played: noteName,
         measure: mistakeRecord.measure,
         beat: mistakeRecord.beatInMeasure
       });
+      
+      // CRITICAL: Check if we've hit the limit immediately
+      if (newMistakeCount >= MAX_MISTAKES) {
+        console.log('🚨 MAX MISTAKES REACHED - Will stop on next interval');
+        // The interval will catch this on its next tick
+      }
     }
     
     if (matchingNotes.length > 0) {
@@ -623,32 +622,6 @@ function Test2HybridFullContent() {
     
     if (isCorrect) {
       console.log('✅ Correct note played!');
-    } else {
-      console.log('❌ Incorrect note');
-    }
-  }
-
-  function advanceCursor() {
-    if (!beatCursorRef.current) return;
-    
-    const moved = beatCursorRef.current.next();
-    if (moved) {
-      const newIndex = beatCursorRef.current.getCurrentIndex();
-      setCurrentBeatIndex(newIndex);
-      currentCursorStepRef.current = newIndex;
-      setPlayIndex(newIndex);
-      
-      const expectedMIDI = beatCursorRef.current.getCurrentExpectedMIDI();
-      setCurrentStepNotes(expectedMIDI);
-      currentStepNotesRef.current = expectedMIDI;
-      
-      console.log(`➡️ Advanced to beat ${newIndex}`, {
-        x: beatCursorRef.current.getCurrentBeat()?.staffEntryX,
-        expectedNotes: expectedMIDI
-      });
-    } else {
-      console.log('🏁 Reached end of piece');
-      handleEndOfPiece();
     }
   }
 
@@ -759,17 +732,10 @@ function Test2HybridFullContent() {
     };
   }
 
-  function getMistakeColor() {
-    if (mistakeCount === 0) return '#4caf50';
-    if (mistakeCount === 1) return '#ff9800';
-    if (mistakeCount === 2) return '#ff5722';
-    return '#f44336';
-  }
-
   // ========== UI ==========
   return (
     <>
-      <CursorControls
+      <SasrPlayControls
         isPlaying={isPlaying}
         setIsPlaying={setIsPlaying}
         osmdRef={osmdRef}
@@ -798,22 +764,24 @@ function Test2HybridFullContent() {
           const x = e.clientX - rect.left;
           const percent = x / rect.width;
           const targetBeat = Math.floor(percent * totalSteps);
-          
+
           if (beatCursorRef.current) {
             beatCursorRef.current.setPosition(targetBeat);
             setCurrentBeatIndex(targetBeat);
             currentCursorStepRef.current = targetBeat;
-            
+
             const expectedMIDI = beatCursorRef.current.getCurrentExpectedMIDI();
             setCurrentStepNotes(expectedMIDI);
             currentStepNotesRef.current = expectedMIDI;
           }
-        }}
+        } }
         containerRef={containerRef}
         countdown={countdown}
         progressPercent={progressPercent}
-        courseTitle={courseTitle}
-      />
+        courseTitle={courseTitle} mistakeCount={0} maxMistakes={0}      />
+      
+      {/* Strike Indicator */}
+      {/* <StrikeIndicator mistakeCount={mistakeCount} maxMistakes={MAX_MISTAKES} /> */}
       
       {/* Mistake Limit Modal */}
       {showMistakeLimit && (
@@ -823,7 +791,7 @@ function Test2HybridFullContent() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0,0,0,0.8)',
+          background: 'rgba(0,0,0,0.9)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -831,133 +799,136 @@ function Test2HybridFullContent() {
         }}>
           <div style={{
             background: 'white',
-            padding: '30px',
-            borderRadius: '12px',
-            maxWidth: '500px',
+            padding: '40px',
+            borderRadius: '16px',
+            maxWidth: '600px',
             width: '90%',
-            textAlign: 'center'
+            textAlign: 'center',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
           }}>
-            <h2 style={{color: '#f44336', marginBottom: '20px'}}>
+            <h2 style={{color: '#f44336', marginBottom: '20px', fontSize: '28px'}}>
               ⚠️ Practice Session Stopped
             </h2>
             <p style={{fontSize: '18px', marginBottom: '15px'}}>
-              Youve made {MAX_MISTAKES} mistakes
+              Youve made {MAX_MISTAKES} strikes
             </p>
-            <p style={{marginBottom: '20px', color: '#666'}}>
+            <p style={{marginBottom: '30px', color: '#666', fontSize: '16px'}}>
               Lets review what happened and try again!
             </p>
             
             <div style={{
               background: '#f5f5f5',
-              padding: '15px',
-              borderRadius: '8px',
-              marginBottom: '20px'
+              padding: '20px',
+              borderRadius: '12px',
+              marginBottom: '25px'
             }}>
-              <div style={{fontSize: '16px', marginBottom: '10px'}}>
+              <div style={{fontSize: '18px', marginBottom: '15px'}}>
                 <strong>Your Performance:</strong>
               </div>
-              <div style={{fontSize: '14px', color: '#666'}}>
-                Beats Played: {currentBeatIndex + 1} / {totalSteps}
+              <div style={{fontSize: '16px', color: '#666', marginBottom: '8px'}}>
+                Beats Played: <strong>{currentBeatIndex + 1}</strong> / {totalSteps}
               </div>
-              <div style={{fontSize: '14px', color: '#666'}}>
-                Correct: {correctStepsRef.current}
+              <div style={{fontSize: '16px', color: '#666', marginBottom: '8px'}}>
+                Correct Notes: <strong style={{color: '#4caf50'}}>{correctStepsRef.current}</strong>
               </div>
-              <div style={{fontSize: '14px', color: '#666'}}>
-                Mistakes: {mistakeCount}
+              <div style={{fontSize: '16px', color: '#666', marginBottom: '15px'}}>
+                Mistakes: <strong style={{color: '#f44336'}}>{mistakeCount}</strong>
               </div>
-              <div style={{fontSize: '24px', marginTop: '10px', color: '#4caf50'}}>
-                Score: {score}%
+              <div style={{
+                fontSize: '48px',
+                fontWeight: 'bold',
+                color: '#4caf50',
+                marginTop: '15px'
+              }}>
+                {score}%
+              </div>
+              <div style={{fontSize: '14px', color: '#999', marginTop: '5px'}}>
+                FINAL SCORE
               </div>
             </div>
             
-            <div style={{marginBottom: '20px', textAlign: 'left'}}>
-              <strong>Mistakes Made:</strong>
+            <div style={{marginBottom: '25px', textAlign: 'left'}}>
+              <strong style={{fontSize: '16px'}}>Mistakes Made:</strong>
               <div style={{
-                maxHeight: '150px',
+                maxHeight: '180px',
                 overflowY: 'auto',
-                marginTop: '10px',
-                fontSize: '13px'
+                marginTop: '12px',
+                fontSize: '14px'
               }}>
                 {mistakesRef.current.map((mistake, idx) => (
                   <div key={idx} style={{
-                    padding: '8px',
+                    padding: '12px',
                     background: idx % 2 === 0 ? '#fafafa' : 'white',
-                    borderRadius: '4px',
-                    marginBottom: '4px'
+                    borderRadius: '6px',
+                    marginBottom: '6px',
+                    border: '1px solid #eee'
                   }}>
-                    <div>
-                      <strong>Mistake {idx + 1}:</strong> Measure {mistake.measure}, Beat {mistake.beatInMeasure}
+                    <div style={{marginBottom: '4px'}}>
+                      <strong>Strike {idx + 1}:</strong> Measure {mistake.measure}, Beat {mistake.beatInMeasure}
                     </div>
-                    <div style={{color: '#666', fontSize: '12px'}}>
-                      Expected: {mistake.expectedNotes.map(m => midiToNoteName(m)).join(', ')}
+                    <div style={{color: '#666', fontSize: '13px'}}>
+                      Expected: <strong>{mistake.expectedNotes.map(m => midiToNoteName(m)).join(', ')}</strong>
                     </div>
-                    <div style={{color: '#f44336', fontSize: '12px'}}>
-                      Played: {midiToNoteName(mistake.playedNote)}
+                    <div style={{color: '#f44336', fontSize: '13px'}}>
+                      Played: <strong>{midiToNoteName(mistake.playedNote)}</strong>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
             
-            <button
-              onClick={() => {
-                setShowMistakeLimit(false);
-                clearAllTracking();
-                if (beatCursorRef.current) {
-                  beatCursorRef.current.reset();
-                  setCurrentBeatIndex(0);
-                }
-              }}
-              style={{
-                background: '#4caf50',
-                color: 'white',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '6px',
-                fontSize: '16px',
-                cursor: 'pointer',
-                marginRight: '10px'
-              }}
-            >
-              Try Again
-            </button>
-            <button
-              onClick={() => setShowMistakeLimit(false)}
-              style={{
-                background: '#666',
-                color: 'white',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '6px',
-                fontSize: '16px',
-                cursor: 'pointer'
-              }}
-            >
-              Close
-            </button>
+            <div style={{display: 'flex', gap: '12px', justifyContent: 'center'}}>
+              <button
+                onClick={() => {
+                  setShowMistakeLimit(false);
+                  clearAllTracking();
+                  if (beatCursorRef.current) {
+                    beatCursorRef.current.reset();
+                    setCurrentBeatIndex(0);
+                  }
+                  setMistakeCount(0);
+                  mistakeCountRef.current = 0;
+                  mistakesRef.current = [];
+                  setScore(null);
+                }}
+                style={{
+                  background: '#4caf50',
+                  color: 'white',
+                  border: 'none',
+                  padding: '14px 32px',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = '#45a049'}
+                onMouseOut={(e) => e.currentTarget.style.background = '#4caf50'}
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => setShowMistakeLimit(false)}
+                style={{
+                  background: '#666',
+                  color: 'white',
+                  border: 'none',
+                  padding: '14px 32px',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = '#555'}
+                onMouseOut={(e) => e.currentTarget.style.background = '#666'}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
-      
-      {/* Mistake Counter - Top Left */}
-      <div style={{
-        position: 'fixed',
-        top: '10px',
-        left: '10px',
-        background: getMistakeColor(),
-        color: 'white',
-        padding: '12px 20px',
-        borderRadius: '8px',
-        fontSize: '16px',
-        fontWeight: 'bold',
-        zIndex: 10000,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-        transition: 'all 0.3s ease'
-      }}
-      className={mistakeCount > 0 ? 'mistake-indicator' : ''}
-      >
-        Mistakes: {mistakeCount}/{MAX_MISTAKES}
-      </div>
       
       {/* Debug info */}
       <div style={{
@@ -980,11 +951,9 @@ function Test2HybridFullContent() {
               <div>Measure: {info.measure}, Beat: {info.beatInMeasure}</div>
               <div>Expected: {info.expectedNotes || 'Rest'}</div>
               <div style={{marginTop: '5px', borderTop: '1px solid #444', paddingTop: '5px'}}>
-                Cursor X: {beatCursorRef.current?.getCurrentBeat()?.staffEntryX?.toFixed(1)}
+                Mistakes: {mistakeCount}/{MAX_MISTAKES}
               </div>
-              <div style={{marginTop: '5px', borderTop: '1px solid #444', paddingTop: '5px'}}>
-                Correct: {correctStepsRef.current} / {currentBeatIndex + 1}
-              </div>
+              <div>Correct: {correctStepsRef.current} / {currentBeatIndex + 1}</div>
               <div style={{marginTop: '5px', borderTop: '1px solid #444', paddingTop: '5px'}}>
                 <label style={{display: 'block', marginBottom: '4px'}}>Tempo: {tempo} BPM</label>
                 <input 
