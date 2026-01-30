@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // ==========================================
-// Beat-wise Cursor for OSMD - ADJUSTED X POSITIONING
+// Beat-wise Cursor for OSMD - FIXED VERSION
 // ==========================================
 
 import { Fraction } from "opensheetmusicdisplay";
@@ -62,7 +62,7 @@ function enrichBeatsWithCalculatedPositions(osmd: any, beats: Beat[]) {
     return;
   }
 
-  console.log("=== ENRICHING WITH CALCULATED POSITIONS ===");
+  console.log("=== ENRICHING WITH CALCULATED POSITIONS (FIXED) ===");
 
   const unitInPixels = osmd.drawer?.backend?.getInnerElement?.()?.offsetWidth 
     ? osmd.drawer.backend.getInnerElement().offsetWidth / graphicSheet.ParentMusicSheet.pageWidth
@@ -80,16 +80,6 @@ function enrichBeatsWithCalculatedPositions(osmd: any, beats: Beat[]) {
     const staffEntries = measure.staffEntries || [];
     const beatAbsValue = beat.timestamp.RealValue;
     
-    // Find matching entry to get ACTUAL note position
-    let matchedEntry = null;
-    for (const entry of staffEntries) {
-      const entryAbsTime = entry.timestamp?.RealValue ?? 0;
-      if (Math.abs(entryAbsTime - beatAbsValue) < 0.0001) {
-        matchedEntry = entry;
-        break;
-      }
-    }
-
     // Get system info - COVER ALL STAVES
     const musicSystem = measure.ParentMusicSystem;
     let systemHeight = 100;
@@ -128,60 +118,113 @@ function enrichBeatsWithCalculatedPositions(osmd: any, beats: Beat[]) {
     
     beat.systemHeight = systemHeight;
     
-    // CALCULATE X POSITION - USE ACTUAL NOTE POSITION IF AVAILABLE
+    // ===== FIXED X POSITION CALCULATION =====
     const measurePos = measure.PositionAndShape?.AbsolutePosition;
     const measureX = (measurePos?.x ?? 0) * unitInPixels;
     const measureY = systemTopY;
     
-    let beatX: number;
+    // Collect all note entries in this measure with their positions and durations
+    const noteEntries: Array<{
+      timestamp: number;
+      duration: number;
+      x: number;
+      notes: number[];
+    }> = [];
     
-    // If we have an actual staff entry at this beat, use its X position
-    if (matchedEntry?.PositionAndShape?.AbsolutePosition?.x !== undefined) {
-      beatX = matchedEntry.PositionAndShape.AbsolutePosition.x * unitInPixels;
-      console.log(`Beat ${beat.index}: Using actual note X = ${beatX.toFixed(1)}`);
+    for (const entry of staffEntries) {
+      const entryTime = entry.timestamp?.RealValue ?? 0;
+      const entryX = (entry.PositionAndShape?.AbsolutePosition?.x ?? 0) * unitInPixels;
+      
+      // Get duration and notes from this entry
+      let duration = 0;
+      const notes: number[] = [];
+      
+      for (const gve of entry.graphicalVoiceEntries || []) {
+        for (const gn of gve.notes || []) {
+          const halfTone = gn.sourceNote?.halfTone;
+          const isRest = gn.sourceNote?.isRest?.() || gn.sourceNote?.IsRest || false;
+          const noteDuration = gn.sourceNote?.Length?.RealValue ?? 0;
+          
+          if (noteDuration > duration) {
+            duration = noteDuration;
+          }
+          
+          if (typeof halfTone === 'number' && !isRest && !notes.includes(halfTone)) {
+            notes.push(halfTone);
+          }
+        }
+      }
+      
+      noteEntries.push({
+        timestamp: entryTime,
+        duration,
+        x: entryX,
+        notes
+      });
+    }
+    
+    // Sort by timestamp
+    noteEntries.sort((a, b) => a.timestamp - b.timestamp);
+    
+    // Find which note entry contains this beat
+    let activeEntry: typeof noteEntries[0] | null = null;
+    
+    for (let i = 0; i < noteEntries.length; i++) {
+      const entry = noteEntries[i];
+      const entryStart = entry.timestamp;
+      const entryEnd = entry.timestamp + entry.duration;
+      
+      // Check if this beat falls within this note's duration
+      if (beatAbsValue >= entryStart && beatAbsValue < entryEnd) {
+        activeEntry = entry;
+        break;
+      }
+    }
+    
+    // Calculate measure-based position (used for all beats)
+    let measureWidth = 0;
+    if (measure.PositionAndShape?.Size?.width) {
+      measureWidth = measure.PositionAndShape.Size.width * unitInPixels;
     } else {
-      // Calculate proportionally based on beat position in measure
-      let measureWidth = 0;
-      if (measure.PositionAndShape?.Size?.width) {
-        measureWidth = measure.PositionAndShape.Size.width * unitInPixels;
-      } else {
-        const borderRight = measure.PositionAndShape?.BorderRight ?? (measurePos?.x ?? 0) + 50;
-        const borderLeft = measurePos?.x ?? 0;
-        measureWidth = Math.abs((borderRight - borderLeft) * unitInPixels);
-      }
-      
-      const ts = measure.parentSourceMeasure?.ActiveTimeSignature || { Numerator: 4 };
-      const beatsInMeasure = ts.Numerator;
-      
-      // Position at the START of each beat with better spacing
-      const LEFT_MARGIN = 55; // Increased space for clef/key/time signature
-      const RIGHT_MARGIN = 20; // Increased right margin
-      const usableWidth = measureWidth - LEFT_MARGIN - RIGHT_MARGIN;
-      const beatWidth = usableWidth / beatsInMeasure;
-      const beatOffset = LEFT_MARGIN + (beatWidth * beat.beatInMeasure);
-      
-      beatX = measureX + beatOffset + 12; // Add extra shift right for better alignment
-      
-      if (beat.index < 10) {
-        console.log(`Beat ${beat.index}: Calculated X = ${beatX.toFixed(1)} (measureX=${measureX.toFixed(1)}, offset=${beatOffset.toFixed(1)}, beatWidth=${beatWidth.toFixed(1)})`);
-      }
+      const borderRight = measure.PositionAndShape?.BorderRight ?? (measurePos?.x ?? 0) + 50;
+      const borderLeft = measurePos?.x ?? 0;
+      measureWidth = Math.abs((borderRight - borderLeft) * unitInPixels);
+    }
+    
+    const ts = measure.parentSourceMeasure?.ActiveTimeSignature || { Numerator: 4 };
+    const beatsInMeasure = ts.Numerator;
+    
+    const LEFT_MARGIN = 55;
+    const RIGHT_MARGIN = 20;
+    const usableWidth = measureWidth - LEFT_MARGIN - RIGHT_MARGIN;
+    const beatWidth = usableWidth / beatsInMeasure;
+    const beatOffset = LEFT_MARGIN + (beatWidth * beat.beatInMeasure);
+    
+    const beatX = measureX + beatOffset + 12;
+    
+    // Store expected notes if we found an active entry
+    if (activeEntry) {
+      beat.expectedNotes = [...activeEntry.notes];
     }
     
     beat.staffEntryX = beatX;
     beat.staffEntryY = measureY;
     
-    if (beat.index < 10) {
+    if (beat.index < 16) { // Log first 16 beats for debugging
       console.log(`✓ Beat ${beat.index}:`, {
         measure: measureIndex,
         beatNum: beat.beatInMeasure,
         X: beat.staffEntryX.toFixed(1),
         Y: beat.staffEntryY.toFixed(1),
-        H: systemHeight.toFixed(1)
+        H: systemHeight.toFixed(1),
+        hasActiveEntry: !!activeEntry,
+        duration: activeEntry?.duration,
+        notes: beat.expectedNotes
       });
     }
 
-    // Extract notes from ALL staves
-    beat.expectedNotes = [];
+    // Also extract notes from ALL staves (in case we missed any)
+    const additionalNotes: number[] = [];
     for (let staffIdx = 0; staffIdx < measureList.length; staffIdx++) {
       const staffMeasure = measureList[staffIdx];
       for (const entry of staffMeasure.staffEntries || []) {
@@ -189,13 +232,16 @@ function enrichBeatsWithCalculatedPositions(osmd: any, beats: Beat[]) {
         if (Math.abs(entryTime - beatAbsValue) < 0.0001) {
           const notesFromStaff = extractNotesFromStaffEntry(entry);
           for (const note of notesFromStaff) {
-            if (!beat.expectedNotes.includes(note)) {
-              beat.expectedNotes.push(note);
+            if (!beat.expectedNotes.includes(note) && !additionalNotes.includes(note)) {
+              additionalNotes.push(note);
             }
           }
         }
       }
     }
+    
+    // Add any additional notes we found
+    beat.expectedNotes.push(...additionalNotes);
   }
 
   console.log(`✅ Enriched ${beats.length} beats`);
@@ -273,9 +319,9 @@ export class BeatCursor {
     }
 
     // Position cursor to cover notes better
-    const x = beat.staffEntryX - 12; // Adjusted offset
+    const x = beat.staffEntryX - 12;
     const y = beat.staffEntryY?? - 10;
-    const width = 28; // Slightly wider to cover note heads better
+    const width = 28;
     const height = (beat.systemHeight ?? 100) + 20;
 
     console.log(`🎯 Cursor at beat ${this.currentBeatIndex}: X=${x.toFixed(1)}, Y=${y.toFixed(1)}, H=${height.toFixed(1)}`);
