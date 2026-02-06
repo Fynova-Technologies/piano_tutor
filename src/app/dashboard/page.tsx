@@ -7,21 +7,17 @@ import MusicCategories from "@/components/Dashboard/musicCategories";
 export default function ComingSoon() {
   
   return (
-    <div className="overflow-y-auto">
-  <div className="flex justify-center bg-[#F8F6F1] px-1 py-16">
-    <div className="max-w-[90%] w-full text-center">
-      <MusicCategories/>
-    </div>
+   <div className="bg-[#F8F6F1] min-h-screen">
+
+      {/* ONE container */}
+      <div className="max-w-7xl mx-auto px-6 py-10 space-y-16">
+        <MusicCategories/>
+        <ContinueLearning />
+        <Favorite />
   </div>
 
-  {/* Add this wrapper */}
-  <div className="flex justify-center bg-[#F8F6F1] px-1 pb-4">
-    <div className="max-w-[90%] w-full">
-      <ContinueLearning />
-      <Favorite />
-    </div>
-  </div>
 </div>
+
 
   );
 }

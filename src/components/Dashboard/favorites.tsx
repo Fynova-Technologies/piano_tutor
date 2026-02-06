@@ -50,13 +50,14 @@ export default function Favorite(){
     if (!favorites) return <p>Loading favorites...</p>;
 
     return(
-        <div className=' '>
+        <div className=' bg-[#F8F6F1] flex justify-center px-1 pb-4 '>
             
-                <div className="">
+                <div className="max-w-[90%]">
                     <h1 className="text-2xl font-bold mb-4 text-[#151517]">Favorites</h1>
-                    <div className="flex justify-between py-4 gap-16 ">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 py-4">
+
                       {favorites?.map((song, index) =>
-                        <div key={index} className="w-[90%] max-h-[251.61px]">
+                        <div key={index} className="w-full max-h-[251.61px]">
                           {/* Add shadow-lg for the 3D effect and transition for smooth hover */}
                           <div className="shadow-[0_5px_10px_0px_#505050] rounded-2xl h-[251px] ">
                             <div className="relative rounded-t-2xl overflow-hidden group w-[200px] h-[200px]">
