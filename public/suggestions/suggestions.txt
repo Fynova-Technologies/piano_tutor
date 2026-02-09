@@ -1,0 +1,37 @@
+Fine-tuning suggestions:
+If you want to adjust further:
+typescript// For thinner cursor (more subtle)
+const cursorWidth = 35;
+const x = beat.staffEntryX - 6;
+
+// For wider cursor (more visible)
+const cursorWidth = 50;
+const x = beat.staffEntryX - 10;
+
+// For more vertical padding
+const y = (beat.staffEntryY ?? 0) - 15;
+const height = (beat.systemHeight ?? 100) + 30;
+Also update the cursor creation to make sure it extends properly:
+typescriptprivate createCursorElement() {
+  const svg = this.osmd.drawer?.backend?.getSvgElement?.();
+  if (!svg) {
+    console.error("❌ No SVG element found");
+    return;
+  }
+
+  const existing = document.getElementById("custom-beat-cursor");
+  if (existing) existing.remove();
+
+  this.cursorElement = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  this.cursorElement.setAttribute("fill", "rgba(255, 0, 0, 0.15)");
+  this.cursorElement.setAttribute("stroke", "#FF0000");
+  this.cursorElement.setAttribute("stroke-width", "2");
+  this.cursorElement.setAttribute("opacity", "0.8");
+  this.cursorElement.setAttribute("id", "custom-beat-cursor");
+  this.cursorElement.style.pointerEvents = "none";
+  this.cursorElement.setAttribute("rx", "4"); // Slightly more rounded corners
+  this.cursorElement.setAttribute("ry", "4");
+  
+  svg.appendChild(this.cursorElement);
+  this.updateCursorPosition();
+}

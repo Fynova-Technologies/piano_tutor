@@ -93,29 +93,30 @@ function getCursorX(
   localTime: number
 ) {
   const anchors = beatAnchors.get(measure);
+  console.log("ANCHORS:", beatAnchors);
+
 
   if (!anchors || anchors.length < 2) return null;
 
-  // 🎯 FIND THE SEGMENT WE'RE IN
   for (let i = 0; i < anchors.length - 1; i++) {
     const a = anchors[i];
     const b = anchors[i + 1];
 
     if (localTime >= a.t && localTime <= b.t) {
-      // ✅ INTERPOLATE between the two anchors
-      const p = (localTime - a.t) / (b.t - a.t);
-      const x = a.x + (b.x - a.x) * p;
-      
-      return x;
+      const p =
+        (localTime - a.t) /
+        (b.t - a.t);
+
+      return a.x + (b.x - a.x) * p;
     }
   }
 
-  // Fallback to last anchor
   return anchors[anchors.length - 1].x;
 }
 
 
-function buildBeatTimeline(osmd: any): Beat[] {
+
+export function buildBeatTimeline(osmd: any): Beat[] {
   const beats: Beat[] = [];
   const sheet = osmd.Sheet;
 
@@ -127,13 +128,19 @@ function buildBeatTimeline(osmd: any): Beat[] {
   const measures = sheet.SourceMeasures;
   const measurePositions = collectMeasurePositions(osmd);
 
-  // Compute measure start times
+
+  // -----------------------------------
+  // 1. Compute measure start times
+  // -----------------------------------
   const measureStarts: number[] = [];
+
   let t = 0;
 
   for (let i = 0; i < measures.length; i++) {
     measureStarts[i] = t;
+
     const m = measures[i];
+
     if (m.Duration?.RealValue != null) {
       t += m.Duration.RealValue;
     } else {
@@ -142,18 +149,46 @@ function buildBeatTimeline(osmd: any): Beat[] {
     }
   }
 
-  // Collect graphical entries
-  const graphicalEntries = collectGraphicalEntries(osmd, measureStarts);
-  const beatAnchors = buildBeatAnchors(osmd, graphicalEntries);
+  // -----------------------------------
+  // 2. Collect graphical entries
+  // -----------------------------------
+const graphicalEntries = collectGraphicalEntries(osmd, measureStarts);
+const beatAnchors = buildBeatAnchors(
+  osmd,
+  graphicalEntries
+);
 
-  graphicalEntries.sort((a, b) => a.absTime - b.absTime);
+
+
+
+graphicalEntries.sort((a, b) => a.absTime - b.absTime);
+// ✅ Group by measure
+const entriesByMeasure = new Map<number, any[]>();
+
+for (const e of graphicalEntries) {
+  if (!entriesByMeasure.has(e.measureIndex)) {
+    entriesByMeasure.set(e.measureIndex, []);
+  }
+  entriesByMeasure.get(e.measureIndex)!.push(e);
+}
+
+// Sort anchors inside each measure
+for (const list of entriesByMeasure.values()) {
+  list.sort((a, b) => a.absTime - b.absTime);
+}
+
+
+
+
+
 
   console.log("🎼 Graphical entries:", graphicalEntries.length);
 
-  // Build beats
+  // -----------------------------------
+  // 3. Build beats
+  // -----------------------------------
   let beatIndex = 0;
   let absoluteTimestamp = new Fraction(0, 1);
-  let lastValidX: number | undefined = undefined; // Track last valid note position
 
   for (let m = 0; m < measures.length; m++) {
     const measure = measures[m];
@@ -175,58 +210,63 @@ function buildBeatTimeline(osmd: any): Beat[] {
         noteDuration: 0
       };
 
-      const sourceMeasure = measures[m];
-      const measureDuration =
-        sourceMeasure.Duration?.RealValue ??
-        (sourceMeasure.ActiveTimeSignature.Numerator *
-         (1 / sourceMeasure.ActiveTimeSignature.Denominator));
+     // -----------------------------------
+// 4. Segment-based cursor positioning
+// -----------------------------------
 
-      const localTime = (beatTime - measureStarts[m]) / measureDuration;
+// -----------------------------------
+// 4. Beat-anchor-based positioning (FIXED)
+// -----------------------------------
 
-      const x = getCursorX(beatAnchors, m, localTime);
+const sourceMeasure = measures[m];
 
-      const measurePos = measurePositions.get(m);
+const measureDuration =
+  sourceMeasure.Duration?.RealValue ??
+  (sourceMeasure.ActiveTimeSignature.Numerator *
+   (1 / sourceMeasure.ActiveTimeSignature.Denominator));
 
-      if (x != null && measurePos) {
-        // 🔧 FIX: Check if this is at measure start (likely a rest)
-        const isAtMeasureStart = Math.abs(x - measurePos.x) < 5;
-        
-        if (isAtMeasureStart && b === 0 && lastValidX !== undefined) {
-          // This is a rest at measure start - use last valid note position
-          beat.staffEntryX = lastValidX;
-          console.log(`🔧 Beat ${beatIndex - 1}: Rest at measure ${m} start, using lastValidX=${lastValidX.toFixed(1)}`);
-        } else {
-          beat.staffEntryX = x;
-          
-          // Update lastValidX if this is an actual note position (not measure boundary)
-          if (!isAtMeasureStart || b > 0) {
-            lastValidX = x;
-          }
-        }
-        
-        beat.staffEntryY = measurePos.y;
-        beat.systemHeight = measurePos.height;
-      }
-      // Fallback case
-      else if (measurePos) {
-        const measureDur =
-          measures[m].Duration?.RealValue ??
-          (measures[m].ActiveTimeSignature.Numerator *
-            (1 / measures[m].ActiveTimeSignature.Denominator));
+const localTime =
+  (beatTime - measureStarts[m]) / measureDuration;
 
-        const local = (beatTime - measureStarts[m]) / measureDur;
-        const clamped = Math.max(0, Math.min(1, local));
+const x = getCursorX(
+  beatAnchors,
+  m,
+  localTime
+);
 
-        beat.staffEntryX = measurePos.x + measurePos.width * clamped;
-        beat.staffEntryY = measurePos.y;
-        beat.systemHeight = measurePos.height;
-      }
+const measurePos = measurePositions.get(m);
+
+if (x != null && measurePos) {
+  beat.staffEntryX = x;
+  beat.staffEntryY = measurePos.y;
+  beat.systemHeight = measurePos.height;
+}
+
+// Case 4: Safety fallback (rare)
+else if (measurePos) {
+  const measureDur =
+    measures[m].Duration?.RealValue ??
+    (measures[m].ActiveTimeSignature.Numerator *
+      (1 / measures[m].ActiveTimeSignature.Denominator));
+
+  const local =
+    (beatTime - measureStarts[m]) / measureDur;
+
+  const clamped = Math.max(0, Math.min(1, local));
+
+  beat.staffEntryX =
+    measurePos.x + measurePos.width * clamped;
+
+  beat.staffEntryY = measurePos.y;
+  beat.systemHeight = measurePos.height;
+}
+
 
       beats.push(beat);
+
       absoluteTimestamp = absoluteTimestamp.Add(beatDuration);
     }
   }
-
   console.log(`✅ Built ${beats.length} beats`);
 
   enrichBeatsWithNotes(osmd, beats);
@@ -252,12 +292,8 @@ function collectGraphicalEntries(osmd: any, measureStarts: number[]) {
     osmd.drawer.backend.getInnerElement().offsetWidth /
     sheet.ParentMusicSheet.pageWidth;
 
-  console.log("🔍 === COLLECTING GRAPHICAL ENTRIES ===");
-
   for (let m = 0; m < sheet.MeasureList.length; m++) {
     const staffMeasures = sheet.MeasureList[m];
-    
-    console.log(`📏 Measure ${m}:`);
 
     for (let i = 0; i < staffMeasures.length; i++) {
       const measure = staffMeasures[i];
@@ -268,9 +304,12 @@ function collectGraphicalEntries(osmd: any, measureStarts: number[]) {
       if (!measure.PositionAndShape) continue;
 
       const measureX = measure.PositionAndShape.AbsolutePosition.x * unit;
+
       let measureWidth = measure.PositionAndShape.Size.width * unit;
 
+      // Try to get real barline X
       const rightBarline = measure.RightBarLine?.PositionAndShape?.AbsolutePosition?.x;
+
       if (rightBarline != null) {
         measureWidth = rightBarline * unit - measureX;
       }
@@ -283,7 +322,51 @@ function collectGraphicalEntries(osmd: any, measureStarts: number[]) {
           bottomStaff.PositionAndShape.Size.height) * unit;
       const height = bottom - top + 20;
 
+      // ✅ MEASURE START
+      entries.push({
+        time: 0,
+        absTime: measureStarts[m],
+        x: measureX,
+        y: top,
+        height,
+        measureIndex: m
+      });
+
+      // ✅ NOTES AND RESTS
+      // ✅ NOTES AND RESTS - Enhanced version
+for (const staffEntry of measure.staffEntries || []) {
+
+  const localTime =
+    staffEntry.sourceStaffEntry?.Timestamp?.RealValue;
+
+  if (localTime == null) continue;
+
+  const pos = staffEntry.PositionAndShape?.AbsolutePosition;
+  if (!pos) continue;
+
+  const absTime = measureStarts[m] + localTime;
+  const sourceMeasure =
+  sheet.ParentMusicSheet?.SourceMeasures?.[m];
+
+const measureDuration =
+  sourceMeasure?.Duration?.RealValue ??
+  (sourceMeasure?.ActiveTimeSignature?.Numerator *
+   (1 / sourceMeasure?.ActiveTimeSignature?.Denominator));
+
+  entries.push({
+    time: localTime / measureDuration,
+    absTime,
+    x: pos.x * unit,
+    y: top,
+    height,
+    measureIndex: m
+  });
+}
+
+
+      // ✅ MEASURE END
       const sourceMeasure = sheet.ParentMusicSheet?.SourceMeasures?.[m];
+
       let measureDuration = 0;
 
       if (sourceMeasure?.Duration?.RealValue != null) {
@@ -297,104 +380,29 @@ function collectGraphicalEntries(osmd: any, measureStarts: number[]) {
         }
       }
 
-      console.log(`   staffEntries count: ${measure.staffEntries?.length || 0}`);
-
-      // ✅ COLLECT ALL NOTES (skip rests)
-      let noteCount = 0;
-      let hasNoteAtStart = false;
-
-      for (const staffEntry of measure.staffEntries || []) {
-        const localTime = staffEntry.sourceStaffEntry?.Timestamp?.RealValue;
-        if (localTime == null) continue;
-
-        const pos = staffEntry.PositionAndShape?.AbsolutePosition;
-        if (!pos) continue;
-
-        // Check if this entry has actual notes (not rests)
-        let hasActualNote = false;
-        
-        for (const gve of staffEntry.graphicalVoiceEntries || []) {
-          for (const note of gve.notes || []) {
-            const isRest = note.sourceNote?.isRest?.() || 
-                          note.sourceNote?.IsRest || 
-                          false;
-            
-            if (!isRest) {
-              hasActualNote = true;
-              break;
-            }
-          }
-          if (hasActualNote) break;
-        }
-
-        if (!hasActualNote) {
-          console.log(`   ⏭️ Skipping rest at t=${localTime.toFixed(3)}`);
-          continue;
-        }
-
-        const absTime = measureStarts[m] + localTime;
-        const normalizedTime = localTime / measureDuration;
-
-        entries.push({
-          time: normalizedTime,
-          absTime,
-          x: pos.x * unit,
-          y: top,
-          height,
-          measureIndex: m
-        });
-
-        noteCount++;
-
-        if (Math.abs(localTime) < 0.0001) {
-          hasNoteAtStart = true;
-        }
-
-        console.log(`   ✅ Note ${noteCount} at t=${normalizedTime.toFixed(3)} (local=${localTime.toFixed(3)}), x=${(pos.x * unit).toFixed(1)}px`);
-      }
-
-      console.log(`   Total notes collected: ${noteCount}`);
-
-      // MEASURE START - only if no note at start
-      if (!hasNoteAtStart) {
-        entries.push({
-          time: 0,
-          absTime: measureStarts[m],
-          x: measureX,
-          y: top,
-          height,
-          measureIndex: m
-        });
-        console.log(`   📍 Added measure start at x=${measureX.toFixed(1)}px`);
-      }
-
-      // MEASURE END
       entries.push({
-        time: 1,
+        time: measureDuration,
         absTime: measureStarts[m] + measureDuration,
         x: measureX + measureWidth,
         y: top,
         height,
         measureIndex: m
       });
-      console.log(`   📍 Added measure end at x=${(measureX + measureWidth).toFixed(1)}px`);
     }
   }
 
-  console.log(`✅ Total entries before dedup: ${entries.length}`);
+  // Remove duplicate anchors (same measure + time)
+const seen = new Set<string>();
 
-  // Remove duplicates
-  const seen = new Set<string>();
-  const filtered = entries.filter(e => {
-    const key = `${e.measureIndex}_${e.absTime.toFixed(6)}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+return entries.filter(e => {
+  const key = `${e.measureIndex}_${e.absTime.toFixed(6)}`;
 
-  console.log(`✅ After deduplication: ${filtered.length} entries`);
+  if (seen.has(key)) return false;
 
-  return filtered;
+  seen.add(key);
+  return true;
+});
+
 }
 
 function buildBeatAnchors(
@@ -604,102 +612,99 @@ export class BeatCursor {
   }
 
   private createCursorElement() {
-  const svg = this.osmd.drawer?.backend?.getSvgElement?.();
-  if (!svg) {
-    console.error("❌ No SVG element found");
-    return;
-  }
+    const svg = this.osmd.drawer?.backend?.getSvgElement?.();
+    if (!svg) {
+      console.error("❌ No SVG element found");
+      return;
+    }
 
-  const existing = document.getElementById("custom-beat-cursor");
-  if (existing) existing.remove();
+    const existing = document.getElementById("custom-beat-cursor");
+    if (existing) existing.remove();
 
-  this.cursorElement = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-  this.cursorElement.setAttribute("fill", "rgba(255, 0, 0, 0.15)");
-  this.cursorElement.setAttribute("stroke", "#FF0000");
-  this.cursorElement.setAttribute("stroke-width", "2");
-  this.cursorElement.setAttribute("opacity", "0.8");
-  this.cursorElement.setAttribute("id", "custom-beat-cursor");
-  this.cursorElement.style.pointerEvents = "none";
-  this.cursorElement.setAttribute("rx", "4"); // Slightly more rounded corners
-  this.cursorElement.setAttribute("ry", "4");
-  
-  svg.appendChild(this.cursorElement);
-  this.updateCursorPosition();
-}
-
-private updateCursorPosition() {
-  if (!this.cursorElement) {
-    console.warn("⚠️ Cursor element not initialized");
-    return;
-  }
-
-  if (!this.isVisible) {
-    this.cursorElement.setAttribute("display", "none");
-    return;
-  }
-
-  const beat = this.beats[this.currentBeatIndex];
-  if (!beat) {
-    console.error(`❌ No beat found at index ${this.currentBeatIndex}`);
-    return;
-  }
-
-  if (beat.staffEntryX === undefined || beat.staffEntryX <= 0) {
-    console.warn("⚠️ Missing X at beat", this.currentBeatIndex);
-    return;
-  }
-
-  this.cursorElement.setAttribute("display", "block");
-
-  // Visual feedback based on beat type
-  if (beat.isNoteStart) {
-    this.cursorElement.setAttribute("opacity", "0.8");
-    this.cursorElement.setAttribute("fill", "rgba(255, 0, 0, 0.20)");
+    this.cursorElement = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    this.cursorElement.setAttribute("fill", "rgba(255, 0, 0, 0.15)");
     this.cursorElement.setAttribute("stroke", "#FF0000");
-    this.cursorElement.setAttribute("stroke-width", "2.5");
-  } else if (beat.expectedNotes.length > 0) {
-    this.cursorElement.setAttribute("opacity", "0.5");
-    this.cursorElement.setAttribute("fill", "rgba(255, 165, 0, 0.15)");
-    this.cursorElement.setAttribute("stroke", "#FF8800");
     this.cursorElement.setAttribute("stroke-width", "2");
-  } else {
-    this.cursorElement.setAttribute("opacity", "0.25");
-    this.cursorElement.setAttribute("fill", "rgba(128, 128, 128, 0.10)");
-    this.cursorElement.setAttribute("stroke", "#888888");
-    this.cursorElement.setAttribute("stroke-width", "1.5");
+    this.cursorElement.setAttribute("opacity", "0.8");
+    this.cursorElement.setAttribute("id", "custom-beat-cursor");
+    this.cursorElement.style.pointerEvents = "none";
+    this.cursorElement.setAttribute("rx", "3");
+    
+    svg.appendChild(this.cursorElement);
+    this.updateCursorPosition();
   }
 
-  // 🎯 FIX 1: Wider cursor to cover the note properly
-  const cursorWidth = 25; // Increased from 28
+  private updateCursorPosition() {
+    if (!this.cursorElement) {
+      console.warn("⚠️ Cursor element not initialized");
+      return;
+    }
 
-  // 🎯 FIX 2: Center the cursor on the note, with slight left offset
-  const x = beat.staffEntryX - 12; // Small offset to center on note head
+    if (!this.isVisible) {
+      this.cursorElement.setAttribute("display", "none");
+      return;
+    }
 
-  // 🎯 FIX 3: Extend cursor height to cover full system with padding
-  const y = (beat.staffEntryY ?? 0) - 10; // Add padding above
-  const height = (beat.systemHeight ?? 100) + 20; // Add padding above and below
+    const beat = this.beats[this.currentBeatIndex];
+    if (!beat) {
+      console.error(`❌ No beat found at index ${this.currentBeatIndex}`);
+      return;
+    }
 
-  if (isNaN(x) || isNaN(y) || isNaN(height)) {
-    console.error(`❌ Invalid cursor position values: x=${x}, y=${y}, height=${height}`);
-    return;
-  }
+    if (beat.staffEntryX === undefined || beat.staffEntryX <= 0) {
+  console.warn("⚠️ Missing X at beat", this.currentBeatIndex);
 
-  this.cursorElement.setAttribute("x", x.toString());
-  this.cursorElement.setAttribute("y", y.toString());
-  this.cursorElement.setAttribute("width", cursorWidth.toString());
-  this.cursorElement.setAttribute("height", height.toString());
-
-  // Ensure cursor is on top
-  const parent = this.cursorElement.parentNode;
-  if (parent) {
-    parent.removeChild(this.cursorElement);
-    parent.appendChild(this.cursorElement);
-  }
-
-  console.log(`🎯 Cursor at beat ${this.currentBeatIndex} (t=${beat.timestamp.RealValue.toFixed(4)}): X=${x.toFixed(1)} (staffEntryX=${beat.staffEntryX.toFixed(1)}), Y=${y.toFixed(1)}`);
-
-  this.scrollIntoView(beat.staffEntryX);
+  // fallback: keep last position
+  return;
 }
+
+
+    this.cursorElement.setAttribute("display", "block");
+
+    // Visual feedback based on beat type
+    if (beat.isNoteStart) {
+      this.cursorElement.setAttribute("opacity", "0.8");
+      this.cursorElement.setAttribute("fill", "rgba(255, 0, 0, 0.20)");
+      this.cursorElement.setAttribute("stroke", "#FF0000");
+      this.cursorElement.setAttribute("stroke-width", "2.5");
+    } else if (beat.expectedNotes.length > 0) {
+      this.cursorElement.setAttribute("opacity", "0.5");
+      this.cursorElement.setAttribute("fill", "rgba(255, 165, 0, 0.15)");
+      this.cursorElement.setAttribute("stroke", "#FF8800");
+      this.cursorElement.setAttribute("stroke-width", "2");
+    } else {
+      this.cursorElement.setAttribute("opacity", "0.25");
+      this.cursorElement.setAttribute("fill", "rgba(128, 128, 128, 0.10)");
+      this.cursorElement.setAttribute("stroke", "#888888");
+      this.cursorElement.setAttribute("stroke-width", "1.5");
+    }
+
+    const cursorWidth = 28;
+    const x = beat.staffEntryX - (cursorWidth / 2);
+    const y = beat.staffEntryY ?? 0;
+    const height = beat.systemHeight ?? 100;
+
+    if (isNaN(x) || isNaN(y) || isNaN(height)) {
+      console.error(`❌ Invalid cursor position values: x=${x}, y=${y}, height=${height}`);
+      return;
+    }
+
+    this.cursorElement.setAttribute("x", x.toString());
+    this.cursorElement.setAttribute("y", y.toString());
+    this.cursorElement.setAttribute("width", cursorWidth.toString());
+    this.cursorElement.setAttribute("height", height.toString());
+
+    // Ensure cursor is on top
+    const parent = this.cursorElement.parentNode;
+    if (parent) {
+      parent.removeChild(this.cursorElement);
+      parent.appendChild(this.cursorElement);
+    }
+
+    console.log(`🎯 Cursor at beat ${this.currentBeatIndex} (t=${beat.timestamp.RealValue.toFixed(4)}): X=${x.toFixed(1)}, Y=${y.toFixed(1)}`);
+
+    this.scrollIntoView(beat.staffEntryX);
+  }
 
   private scrollIntoView(x: number) {
     const container = this.osmd.container;
