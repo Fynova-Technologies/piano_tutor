@@ -2,6 +2,7 @@
 // ==========================================
 // Beat-wise Cursor - MEASURE-BASED APPROACH
 // ==========================================
+// 🎯 FIXED: Timestamp mismatch between beats (absolute) and voice entries (relative)
 
 import { Fraction } from "opensheetmusicdisplay";
 import React from "react";
@@ -106,12 +107,16 @@ function getCursorX(
       const p = (localTime - a.t) / (b.t - a.t);
       const x = a.x + (b.x - a.x) * p;
       
+      if (i === 0 && localTime < 0.001) {
+        console.log(`   🎯 Measure ${measure} at t=${localTime.toFixed(3)}: interpolated x=${x.toFixed(1)} (anchor at t=${a.t}, x=${a.x.toFixed(1)})`);
+      }
+      
       return x;
     }
   }
 
   // Fallback to last anchor
-  return anchors[anchors.length - 1].x;
+return anchors[0].x; // first note
 }
 
 
@@ -153,7 +158,6 @@ function buildBeatTimeline(osmd: any): Beat[] {
   // Build beats
   let beatIndex = 0;
   let absoluteTimestamp = new Fraction(0, 1);
-  let lastValidX: number | undefined = undefined; // Track last valid note position
 
   for (let m = 0; m < measures.length; m++) {
     const measure = measures[m];
@@ -187,23 +191,8 @@ function buildBeatTimeline(osmd: any): Beat[] {
 
       const measurePos = measurePositions.get(m);
 
-      if (x != null && measurePos) {
-        // 🔧 FIX: Check if this is at measure start (likely a rest)
-        const isAtMeasureStart = Math.abs(x - measurePos.x) < 5;
-        
-        if (isAtMeasureStart && b === 0 && lastValidX !== undefined) {
-          // This is a rest at measure start - use last valid note position
-          beat.staffEntryX = lastValidX;
-          console.log(`🔧 Beat ${beatIndex - 1}: Rest at measure ${m} start, using lastValidX=${lastValidX.toFixed(1)}`);
-        } else {
-          beat.staffEntryX = x;
-          
-          // Update lastValidX if this is an actual note position (not measure boundary)
-          if (!isAtMeasureStart || b > 0) {
-            lastValidX = x;
-          }
-        }
-        
+      if (x != null && measurePos && x > measurePos.x + 5) {
+        beat.staffEntryX = x;
         beat.staffEntryY = measurePos.y;
         beat.systemHeight = measurePos.height;
       }
@@ -328,7 +317,7 @@ function collectGraphicalEntries(osmd: any, measureStarts: number[]) {
         }
 
         if (!hasActualNote) {
-          console.log(`   ⏭️ Skipping rest at t=${localTime.toFixed(3)}`);
+          console.log(`   ⏭️ Skipping rest at t=${localTime.toFixed(3)}, x=${(pos.x * unit).toFixed(1)}px`);
           continue;
         }
 
@@ -347,26 +336,14 @@ function collectGraphicalEntries(osmd: any, measureStarts: number[]) {
         noteCount++;
 
         if (Math.abs(localTime) < 0.0001) {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           hasNoteAtStart = true;
         }
 
-        console.log(`   ✅ Note ${noteCount} at t=${normalizedTime.toFixed(3)} (local=${localTime.toFixed(3)}), x=${(pos.x * unit).toFixed(1)}px`);
+        console.log(`   ✅ Note ${noteCount} at t=${normalizedTime.toFixed(3)} (local=${localTime.toFixed(3)}), x=${(pos.x * unit).toFixed(1)}px, rawTimestamp=${staffEntry.sourceStaffEntry?.Timestamp?.toString()}`);
       }
 
       console.log(`   Total notes collected: ${noteCount}`);
-
-      // MEASURE START - only if no note at start
-      if (!hasNoteAtStart) {
-        entries.push({
-          time: 0,
-          absTime: measureStarts[m],
-          x: measureX,
-          y: top,
-          height,
-          measureIndex: m
-        });
-        console.log(`   📍 Added measure start at x=${measureX.toFixed(1)}px`);
-      }
 
       // MEASURE END
       entries.push({
@@ -403,8 +380,12 @@ function buildBeatAnchors(
 ) {
   const anchors = new Map<number, { t: number; x: number }[]>();
 
-  // Group by measure
   const byMeasure = new Map<number, any[]>();
+
+
+  
+
+
 
   for (const e of graphicalEntries) {
     if (!byMeasure.has(e.measureIndex)) {
@@ -413,29 +394,119 @@ function buildBeatAnchors(
     byMeasure.get(e.measureIndex)!.push(e);
   }
 
-  // Build anchors per measure
+  // Also get measure positions for comparison
+  const graphicSheet = osmd.GraphicSheet;
+  let unitInPixels = 10;
+  if (osmd.drawer?.backend) {
+    const innerElement = osmd.drawer.backend.getInnerElement?.();
+    if (innerElement?.offsetWidth && graphicSheet?.ParentMusicSheet?.pageWidth) {
+      unitInPixels = innerElement.offsetWidth / graphicSheet.ParentMusicSheet.pageWidth;
+    }
+  }
+
   for (const [m, list] of byMeasure) {
 
-    // Sort by time
-    list.sort((a, b) => a.absTime - b.absTime);
+    // ✅ Sort by LOCAL time
+    list.sort((a, b) => a.time - b.time);
 
     const arr: { t: number; x: number }[] = [];
 
-    for (const e of list) {
+    // Separate measure end from actual notes
+    const measureEnd = list.find(e => Math.abs(e.time - 1) < 0.0001);
+    const notes = list.filter(e => Math.abs(e.time - 1) >= 0.0001);
+
+    if (notes.length === 0) {
+      // 🎯 FIX: Empty measure (all rests) - create proper anchors instead of skipping
+      const measurePos = graphicSheet?.MeasureList?.[m]?.[0]?.PositionAndShape;
+      
+      if (measurePos?.AbsolutePosition?.x != null && measurePos?.Size?.width != null) {
+        const startX = measurePos.AbsolutePosition.x * unitInPixels;
+        const width = measurePos.Size.width * unitInPixels;
+        const endX = measureEnd ? measureEnd.x : (startX + width);
+        
+        // Create anchors at measure boundaries for rest measures
+        // This ensures smooth interpolation across rest measures
+        arr.push({ t: 0, x: startX + 20 }); // Slight offset from barline
+        arr.push({ t: 1, x: endX - 10 }); // Slight offset before next barline
+        
+        anchors.set(m, arr);
+        console.log(`   ⚠️ Measure ${m}: Rest-only measure, anchors: t=0 x=${(startX + 10).toFixed(1)}, t=1 x=${(endX - 10).toFixed(1)}`);
+      }
+      continue;
+    }
+
+    const firstNote = notes[0];
+    const lastNote = notes[notes.length - 1];
+
+    // Get measure barline position for debugging
+    let measureBarlineX = 0;
+    if (graphicSheet?.MeasureList?.[m]?.[0]?.PositionAndShape?.AbsolutePosition?.x) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      measureBarlineX = graphicSheet.MeasureList[m][0].PositionAndShape.AbsolutePosition.x * unitInPixels;
+    }
+
+    // 🎯 Add measure start anchor (t=0) with interpolated X position
+    if (firstNote.time > 0.0001) {
+      // There's a rest at the beginning - interpolate backwards from notes
+      // Add measure start if leading rest
+if (firstNote.time > 0.0001) {
+
+  const measurePos =
+    graphicSheet?.MeasureList?.[m]?.[0]?.PositionAndShape;
+
+  if (measurePos?.AbsolutePosition?.x != null) {
+
+    const barX = measurePos.AbsolutePosition.x * unitInPixels;
+
+    arr.push({
+      t: 0,
+      x: barX + 10 // Offset from barline
+    });
+
+    console.log(
+      `   📍 Measure ${m}: Leading rest → bar anchor at x=${(barX + 10).toFixed(1)}`
+    );
+  }
+}
+
+      // console.log(`   📍 Measure ${m}: Interpolated start at t=0, x=${startX.toFixed(1)} (first note at t=${firstNote.time.toFixed(3)}, x=${firstNote.x.toFixed(1)})`);
+    }
+
+    // Add all note anchors
+    for (const note of notes) {
       arr.push({
-        t: e.time, // already normalized 0..1
-        x: e.x
+        t: note.time,
+        x: note.x
       });
     }
 
-    // Must have at least 2 anchors
+    // 🎯 Add measure end anchor (t=1)
+    if (measureEnd) {
+      if (lastNote.time < 0.999) {
+        arr.push({ t: 1, x: measureEnd.x });
+        console.log(`   📍 Measure ${m}: Added end at t=1, x=${measureEnd.x.toFixed(1)} (last note at t=${lastNote.time.toFixed(3)})`);
+      }
+    } else {
+      // No explicit measure end - extrapolate from last notes
+      if (notes.length >= 2) {
+        const secondLast = notes[notes.length - 2];
+        const spacing = (lastNote.x - secondLast.x) / (lastNote.time - secondLast.time);
+        const endX = lastNote.x + (spacing * (1 - lastNote.time));
+        arr.push({ t: 1, x: endX });
+        console.log(`   📍 Measure ${m}: Interpolated end at t=1, x=${endX.toFixed(1)}`);
+      }
+    }
+
     if (arr.length >= 2) {
       anchors.set(m, arr);
+      
+      console.log(`   ✅ Measure ${m} has ${arr.length} anchors: ${arr.map(a => `t=${a.t.toFixed(2)}, x=${a.x.toFixed(1)}`).join(' | ')}`);
     }
   }
 
   return anchors;
 }
+
 
 
 
@@ -450,11 +521,27 @@ function enrichBeatsWithNotes(osmd: any, beats: Beat[]) {
 
   console.log("=== 🔧 ENRICHING BEATS WITH NOTES ===");
 
+  // 🎯 FIX: Calculate measure start times for absolute time conversion
+  const measures = osmd.Sheet?.SourceMeasures || [];
+  const measureStarts: number[] = [];
+  let t = 0;
+  
+  for (let i = 0; i < measures.length; i++) {
+    measureStarts[i] = t;
+    const m = measures[i];
+    if (m.Duration?.RealValue != null) {
+      t += m.Duration.RealValue;
+    } else {
+      const ts = m.ActiveTimeSignature || { Numerator: 4, Denominator: 4 };
+      t += ts.Numerator * (1 / ts.Denominator);
+    }
+  }
+
   osmd.cursor.reset();
   const iterator = osmd.cursor.Iterator;
   
   interface VoiceEntryInfo {
-    timestamp: Fraction;
+    absoluteTime: number;  // 🎯 FIXED: Changed from Fraction to absolute number
     notes: number[];
     duration: number;
     measureIndex: number;
@@ -495,12 +582,18 @@ function enrichBeatsWithNotes(osmd: any, beats: Beat[]) {
       }
       
       if (notes.length > 0) {
+        // 🎯 FIXED: Convert measure-relative time to absolute time
+        const relativeTime = timestamp.RealValue;
+        const absoluteTime = measureStarts[measureIndex] + relativeTime;
+        
         allVoiceEntries.push({
-          timestamp: timestamp.clone(),
+          absoluteTime: absoluteTime,  // 🎯 Now storing absolute time
           notes: notes,
           duration: maxDuration,
           measureIndex: measureIndex
         });
+        
+        console.log(`   📝 Note at measure ${measureIndex}, relative t=${relativeTime.toFixed(4)}, absolute t=${absoluteTime.toFixed(4)}, notes=${notes.join(',')}, duration=${maxDuration.toFixed(4)}`);
       }
     }
     
@@ -510,6 +603,7 @@ function enrichBeatsWithNotes(osmd: any, beats: Beat[]) {
   const EPSILON = 1e-6;
   
   console.log("🎹 === ASSIGNING NOTES TO BEATS ===");
+  console.log(`   Total voice entries collected: ${allVoiceEntries.length}`);
   
   for (const beat of beats) {
     const beatTime = beat.timestamp.RealValue;
@@ -520,9 +614,10 @@ function enrichBeatsWithNotes(osmd: any, beats: Beat[]) {
     let noteDuration = 0;
     
     for (const entry of allVoiceEntries) {
-      const entryStart = entry.timestamp.RealValue;
+      const entryStart = entry.absoluteTime;  // 🎯 FIXED: Now using absolute time
       const entryEnd = entryStart + entry.duration;
       
+      // Check if beat time falls within this note's duration
       if (beatTime >= entryStart - EPSILON && beatTime < entryEnd - EPSILON) {
         for (const note of entry.notes) {
           if (!activeNotes.includes(note)) {
@@ -530,6 +625,7 @@ function enrichBeatsWithNotes(osmd: any, beats: Beat[]) {
           }
         }
         
+        // Check if this is the exact start of a note
         if (Math.abs(beatTime - entryStart) < EPSILON) {
           isStart = true;
           noteDuration = entry.duration;
@@ -540,43 +636,27 @@ function enrichBeatsWithNotes(osmd: any, beats: Beat[]) {
     beat.expectedNotes = activeNotes;
     beat.isNoteStart = isStart;
     beat.noteDuration = noteDuration;
+    
+    // 🎯 Enhanced logging for debugging
+    if (activeNotes.length > 0 && beat.index < 20) {
+      console.log(`   🎵 Beat ${beat.index} (t=${beatTime.toFixed(4)}, measure ${beat.measureIndex}, beat ${beat.beatInMeasure}): notes=[${activeNotes.join(',')}], isStart=${isStart}, duration=${noteDuration.toFixed(4)}`);
+    }
   }
   
   const validBeats = beats.filter(b => b.staffEntryX && b.staffEntryX > 0).length;
   const uniqueXPositions = new Set(beats.map(b => b.staffEntryX).filter(x => x !== undefined && x > 0));
+  const beatsWithNotes = beats.filter(b => b.expectedNotes.length > 0).length;
   
-  console.log(`✅ Enrichment complete - ${validBeats}/${beats.length} beats have valid positions`);
-  console.log(`   ${uniqueXPositions.size} unique X positions found`);
+  console.log(`✅ Enrichment complete:`);
+  console.log(`   - ${validBeats}/${beats.length} beats have valid positions`);
+  console.log(`   - ${uniqueXPositions.size} unique X positions found`);
+  console.log(`   - ${beatsWithNotes} beats have expected notes`);
   
   osmd.cursor.hide();
 }
 
 
 
-function enrichWithVirtualBeats(
-  anchors: { t: number; x: number }[],
-  beatsPerMeasure: number
-) {
-  if (anchors.length >= beatsPerMeasure + 1) {
-    return anchors; // already enough
-  }
-
-  const start = anchors[0];
-  const end = anchors[anchors.length - 1];
-
-  const result: typeof anchors = [];
-
-  for (let i = 0; i <= beatsPerMeasure; i++) {
-    const t = i / beatsPerMeasure;
-
-    const x =
-      start.x + (end.x - start.x) * t;
-
-    result.push({ t, x });
-  }
-
-  return result;
-}
 
 
 export class BeatCursor {
@@ -696,7 +776,7 @@ private updateCursorPosition() {
     parent.appendChild(this.cursorElement);
   }
 
-  console.log(`🎯 Cursor at beat ${this.currentBeatIndex} (t=${beat.timestamp.RealValue.toFixed(4)}): X=${x.toFixed(1)} (staffEntryX=${beat.staffEntryX.toFixed(1)}), Y=${y.toFixed(1)}`);
+  console.log(`🎯 Cursor at beat ${this.currentBeatIndex} (t=${beat.timestamp.RealValue.toFixed(4)}): X=${x.toFixed(1)} (staffEntryX=${beat.staffEntryX.toFixed(1)}), Y=${y.toFixed(1)}, Expected notes: [${beat.expectedNotes.join(',')}]`);
 
   this.scrollIntoView(beat.staffEntryX);
 }
