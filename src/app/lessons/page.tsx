@@ -54,6 +54,7 @@ function Test2HybridFullContent() {
   const [score, setScore] = useState<number | null>(null);
   const totalStepsRef = useRef(0);
   const correctStepsRef = useRef(0);
+  const incorrectNotesRef = useRef(0); // ✅ NEW: Track incorrect notes played
   const [countdown, setCountdown] = useState<number | null>(null);
   const [highScore, setHighScore] = useState<number | null>(null);
   const [lastScore, setLastScore] = useState<number | null>(null);
@@ -65,10 +66,19 @@ function Test2HybridFullContent() {
   const [currentBeatIndex, setCurrentBeatIndex] = useState<number>(0);
   
   useEffect(() => {
-    const hs = Number(localStorage.getItem("highScore"));
-    const ls = Number(localStorage.getItem("lastScore"));
-    if (!Number.isNaN(hs)) setHighScore(hs);
-    if (!Number.isNaN(ls)) setLastScore(ls);
+    const hsStr = localStorage.getItem("highScore");
+    const lsStr = localStorage.getItem("lastScore");
+    
+    // Only set if the value actually exists in localStorage
+    if (hsStr !== null) {
+      const hs = Number(hsStr);
+      if (!Number.isNaN(hs)) setHighScore(hs);
+    }
+    
+    if (lsStr !== null) {
+      const ls = Number(lsStr);
+      if (!Number.isNaN(ls)) setLastScore(ls);
+    }
   }, []);
   
   useEffect(() => {
@@ -364,7 +374,7 @@ function startPlayback() {
   
   clearAllTracking();
   // New attempt starts
-attemptCountRef.current += 1;
+  attemptCountRef.current += 1;
 
   beatCursorRef.current.reset();
   
@@ -389,6 +399,7 @@ attemptCountRef.current += 1;
   totalStepsRef.current = totalBeats; // For progress bar
   scoreableNotesRef.current = scoreableCount; // For score calculation
   correctStepsRef.current = 0;
+  incorrectNotesRef.current = 0; // ✅ Reset incorrect counter
   scoredStepsRef.current.clear();
   
   console.log(`🎵 Playback started: ${totalBeats} beats, ${scoreableCount} scoreable notes`);
@@ -492,69 +503,75 @@ function handleEndOfPiece() {
     beatCursorRef.current.stopPlayback();
   }
   
-  // 🎯 Use scoreableNotesRef for calculation
-  const finalScore = scoreableNotesRef.current > 0
-    ? Math.round((correctStepsRef.current / scoreableNotesRef.current) * 100)
+  // ✅ IMPROVED SCORING CALCULATION
+  // Score = (Correct Notes / Scoreable Notes) - (Incorrect Notes Penalty)
+  // Each incorrect note reduces score by 5%, but can't go below 0
+  const baseScore = scoreableNotesRef.current > 0
+    ? (correctStepsRef.current / scoreableNotesRef.current) * 100
     : 0;
+  
+  const incorrectPenalty = incorrectNotesRef.current * 5; // 5% per incorrect note
+  const finalScore = Math.max(0, Math.round(baseScore - incorrectPenalty));
+  
+  console.log('📊 Score Update:', {
+    currentHighScore: highScore,
+    currentLastScore: lastScore,
+    newScore: finalScore,
+    willUpdateHighScore: highScore === null || finalScore > highScore
+  });
   
   setScore(finalScore);
   setLastScore(finalScore);
   localStorage.setItem("lastScore", finalScore.toString());
   
+  // ✅ Only update high score if it's actually higher
   if (highScore === null || finalScore > highScore) {
+    console.log(`🏆 NEW HIGH SCORE! ${finalScore} (previous: ${highScore})`);
     setHighScore(finalScore);
     localStorage.setItem("highScore", finalScore.toString());
+  } else {
+    console.log(`📊 Score ${finalScore} did not beat high score of ${highScore}`);
   }
 
   const endTime = Date.now();
-const startTime = sessionStartRef.current ?? endTime;
+  const startTime = sessionStartRef.current ?? endTime;
+  const durationSec = Math.round((endTime - startTime) / 1000);
 
-const durationSec = Math.round((endTime - startTime) / 1000);
-
-const accuracy =
-  scoreableNotesRef.current > 0
-    ? Math.round(
-        (correctStepsRef.current / scoreableNotesRef.current) * 100
-      )
+  const accuracy = scoreableNotesRef.current > 0
+    ? Math.round((correctStepsRef.current / scoreableNotesRef.current) * 100)
     : 0;
 
-// ---- BUILD CLEAN SESSION ----
+  const lessonId = searchparams.get("lessonid") || "0";
+  const lessonUID = `${source}-${lessonId}`;
 
-const lessonId = searchparams.get("lessonid") || "0"; // pass this in URL later
+  const session = {
+    id: crypto.randomUUID(),
+    startedAt: startTime,
+    endedAt: endTime,
+    durationSec,
+    lesson: {
+      uid: lessonUID,
+      id: lessonId,
+      title: courseTitle,
+      source: source,
+    },
+    performance: {
+      attempts: Math.max(1, attemptCountRef.current),
+      score: finalScore,
+      accuracy,
+      correctNotes: correctStepsRef.current,
+      incorrectNotes: incorrectNotesRef.current,
+      totalScoreable: scoreableNotesRef.current,
+    },
+  };
 
-const lessonUID = `${source}-${lessonId}`;
-
-const session = {
-  id: crypto.randomUUID(),
-
-  startedAt: startTime,
-  endedAt: endTime,
-  durationSec,
-
-  lesson: {
-    uid: lessonUID,          // ✅ UNIQUE
-    id: lessonId,            // ✅ STABLE
-    title: courseTitle,
-    source: source,
-  },
-
-  performance: {
-    attempts: Math.max(1, attemptCountRef.current),    score: finalScore,
-    accuracy,
-  },
-};
-
-// ---- SAVE ----
-saveSession(session);
-
-console.log("💾 Clean session saved:", session);
-
-
-console.log("💾 Session saved:", session);
+  saveSession(session);
   
   console.log(`🎉 Piece complete!`);
-  console.log(`   Correct notes: ${correctStepsRef.current}`);
-  console.log(`   Scoreable notes: ${scoreableNotesRef.current}`);
+  console.log(`   Correct notes: ${correctStepsRef.current}/${scoreableNotesRef.current}`);
+  console.log(`   Incorrect notes: ${incorrectNotesRef.current}`);
+  console.log(`   Base score: ${baseScore.toFixed(1)}%`);
+  console.log(`   Penalty: -${incorrectPenalty}%`);
   console.log(`   Final score: ${finalScore}%`);
 }
 
@@ -592,7 +609,6 @@ console.log("💾 Session saved:", session);
   const noteName = midiToNoteName(midi);
   const expectedNames = expectedMIDI.map(m => midiToNoteName(m)).join(', ');
   
-  // ✅ Use the beat's isNoteStart property (already calculated correctly)
   const isNoteStart = currentBeat.isNoteStart ?? true;
   
   console.log('🎹 Note pressed:', {
@@ -607,18 +623,24 @@ console.log("💾 Session saved:", session);
   const exactMatch = expectedMIDI.includes(midi);
   const isCorrect = exactMatch && isNoteStart;
   
-  // 🎯 ADD SCORE TRACKING HERE:
-  if (isCorrect && !scoredStepsRef.current.has(actualCurrentBeatIndex)) {
+  // ✅ FIXED SCORING LOGIC - Only track once per beat
+  if (isNoteStart && !scoredStepsRef.current.has(actualCurrentBeatIndex)) {
     scoredStepsRef.current.add(actualCurrentBeatIndex);
-    correctStepsRef.current += 1;
     
-    console.log(`✅ SCORE: ${correctStepsRef.current}/${totalStepsRef.current}`);
-  } else if (!isCorrect && !scoredStepsRef.current.has(actualCurrentBeatIndex)) {
-    scoredStepsRef.current.add(actualCurrentBeatIndex);
-    console.log(`❌ Incorrect at beat ${actualCurrentBeatIndex}`);
+    if (isCorrect) {
+      correctStepsRef.current += 1;
+      console.log(`✅ CORRECT: ${correctStepsRef.current}/${scoreableNotesRef.current}`);
+    } else {
+      incorrectNotesRef.current += 1;
+      console.log(`❌ INCORRECT: Wrong note at beat ${actualCurrentBeatIndex}`);
+    }
+  } else if (!exactMatch) {
+    // Track extra incorrect notes (notes that don't match at all)
+    incorrectNotesRef.current += 1;
+    console.log(`❌ EXTRA INCORRECT NOTE: ${noteName}`);
   }
   
-  // 🎯 KEY FIX: Find the actual graphical notes
+  // Find graphical notes for highlighting
   let graphicalNotes: any[] = [];
   
   if (isCorrect) {
@@ -642,11 +664,8 @@ console.log("💾 Session saved:", session);
   
   console.log(`${isCorrect ? '✅' : '❌'} Drawing feedback`);
   
-  // ✅ FIXED: Pass graphical notes to the drawing function
   drawFeedbackDot(osmdRef.current, midi, isCorrect, currentBeat, graphicalNotes);
 }
-
-  // ✅ FIX: Remove unused advanceCursor function since auto-advance handles it
 
   function midiToNoteName(midi: number): string {
     const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -660,7 +679,7 @@ function drawFeedbackDot(
   midi: number, 
   isCorrect: boolean, 
   beat: any,
-  graphicalNotes?: any[] // ✅ NEW parameter
+  graphicalNotes?: any[]
 ) {
   if (!osmd?.drawer?.backend) {
     console.warn('⚠️ No OSMD backend');
@@ -709,10 +728,10 @@ function drawFeedbackDot(
       console.log(`🔴 Dot drawn at ACTUAL NOTE position: X=${noteX.toFixed(1)}, Y=${noteY.toFixed(1)}, correct=${isCorrect}`);
     }
     
-    return; // ✅ Done - we used the actual note positions
+    return;
   }
 
-  // 🎯 FALLBACK METHOD: Calculate position (less accurate, but better than nothing)
+  // 🎯 FALLBACK METHOD: Calculate position (less accurate)
   console.log(`⚠️ No graphical notes found, using fallback positioning`);
   
   if (!beat || beat.staffEntryX === undefined) {
@@ -731,7 +750,6 @@ function drawFeedbackDot(
   const lineSpacing = 10;
   const measureY = (measure.PositionAndShape?.AbsolutePosition?.y ?? 0) * unitInPixels;
   
-  // Calculate Y position based on MIDI note
   const midiToDiatonic = (midi: number) => {
     const pitchClass = midi % 12;
     const octave = Math.floor(midi / 12) - 1;
@@ -743,10 +761,10 @@ function drawFeedbackDot(
   const clef = measure.InitiallyActiveClef?.clefType;
   let referenceDiatonic, referenceY;
   
-  if (clef === 1) { // Treble clef
+  if (clef === 1) {
     referenceDiatonic = midiToDiatonic(50);
     referenceY = measureY + (2 * lineSpacing);
-  } else { // Bass clef
+  } else {
     referenceDiatonic = midiToDiatonic(71);
     referenceY = measureY + (2 * lineSpacing);
   }
@@ -768,42 +786,13 @@ function drawFeedbackDot(
   console.log(`🔴 Fallback dot drawn at X=${beat.staffEntryX.toFixed(1)}, Y=${y.toFixed(1)}, correct=${isCorrect}`);
 }
 
-function highlightGraphicalNote(
-  osmd: any,
-  midi: number,
-  isCorrect: boolean
-) {
-  if (!beatCursorRef.current) return;
-  
-  const graphicalNotes = beatCursorRef.current.findGraphicalNotesAtCurrentBeat(midi);
-  
-  console.log(`🎨 Highlighting ${graphicalNotes.length} graphical notes`);
-  
-  for (const gNote of graphicalNotes) {
-    // Try to get the SVG element
-    const svgElement = gNote.getSVGGElement?.();
-    
-    if (svgElement) {
-      // Add highlight class
-      svgElement.classList.add(isCorrect ? 'vf-note-correct' : 'vf-note-incorrect');
-      
-      // Store for cleanup
-      activeHighlightsRef.current.add(svgElement);
-      
-      console.log(`✨ Added highlight class to note element`);
-    } else {
-      console.warn('⚠️ Could not get SVG element from graphical note');
-    }
-  }
-}
-
 function clearAllTracking() {
   playedNotesRef.current = [];
   
   activeHighlightsRef.current.forEach((element) => {
     try {
       if (element.parentNode) {
-        element.parentNode.removeChild(element); // ✅ Actually remove from DOM
+        element.parentNode.removeChild(element);
       }
     } catch (e) {
       console.warn('Failed to remove highlight:', e);
@@ -866,7 +855,6 @@ function clearAllTracking() {
           if (beatCursorRef.current) {
             beatCursorRef.current.setPosition(targetBeat);
             
-            // ✅ FIX: Sync all state when seeking
             setCurrentBeatIndex(targetBeat);
             currentCursorStepRef.current = targetBeat;
             setPlayIndex(targetBeat);
@@ -884,7 +872,7 @@ function clearAllTracking() {
         courseTitle={courseTitle}
       />
       
-      {/* Debug info */}
+      {/* Enhanced Debug Panel */}
       <div style={{
         position: 'fixed',
         top: '10px',
@@ -896,33 +884,47 @@ function clearAllTracking() {
         fontSize: '12px',
         fontFamily: 'monospace',
         zIndex: 10000,
-        maxWidth: '250px'
+        maxWidth: '280px'
       }}>
         {(() => {
           const info = getCurrentBeatInfo();
+          const currentScore = scoreableNotesRef.current > 0 
+            ? Math.round((correctStepsRef.current / scoreableNotesRef.current) * 100) 
+            : 0;
+          const penalty = incorrectNotesRef.current * 5;
+          const projectedScore = Math.max(0, currentScore - penalty);
+          
           return info ? (
             <>
+              <div style={{fontWeight: 'bold', marginBottom: '8px', borderBottom: '1px solid #444', paddingBottom: '4px'}}>
+                🎵 Current Position
+              </div>
               <div>Beat: {info.beatIndex + 1}/{totalSteps}</div>
               <div>Measure: {info.measure}, Beat: {info.beatInMeasure}</div>
               <div>Expected: {info.expectedNotes || 'Rest'}</div>
-              <div style={{marginTop: '5px', borderTop: '1px solid #444', paddingTop: '5px'}}>
-                Cursor X: {beatCursorRef.current?.getCurrentBeat()?.staffEntryX?.toFixed(1) || 'N/A'}
+              
+              <div style={{marginTop: '10px', fontWeight: 'bold', borderTop: '1px solid #444', paddingTop: '8px', borderBottom: '1px solid #444', paddingBottom: '4px'}}>
+                📊 Scoring
               </div>
-              <div>
-  <div>Total Beats: {totalSteps}</div>
-  <div>Scoreable Notes: {scoreableNotesRef.current}</div>
-  <div>Correct: {correctStepsRef.current}</div>
-  <div>Score: {scoreableNotesRef.current > 0 
-    ? Math.round((correctStepsRef.current / scoreableNotesRef.current) * 100) 
-    : 0}%</div>
-</div>
-              {/* ✅ FIX: Better state debugging */}
-              <div style={{marginTop: '5px', borderTop: '1px solid #444', paddingTop: '5px', fontSize: '10px'}}>
-                <div>State Index: {currentBeatIndex}</div>
-                <div>Ref Index: {currentCursorStepRef.current}</div>
-                <div>Cursor Index: {beatCursorRef.current?.getCurrentIndex()}</div>
+              <div>Scoreable Notes: {scoreableNotesRef.current}</div>
+              <div style={{color: '#4caf50'}}>✓ Correct: {correctStepsRef.current}</div>
+              <div style={{color: '#f44336'}}>✗ Incorrect: {incorrectNotesRef.current}</div>
+              <div style={{marginTop: '4px', paddingTop: '4px', borderTop: '1px solid #333'}}>
+                Base Score: {currentScore}%
               </div>
-              <div style={{marginTop: '5px', borderTop: '1px solid #444', paddingTop: '5px'}}>
+              <div>Penalty: -{penalty}%</div>
+              <div style={{fontWeight: 'bold', color: projectedScore >= 80 ? '#4caf50' : projectedScore >= 60 ? '#ff9800' : '#f44336'}}>
+                Score: {projectedScore}%
+              </div>
+              
+              <div style={{marginTop: '10px', borderTop: '1px solid #444', paddingTop: '8px'}}>
+                <div style={{fontSize: '11px'}}>
+                  <div style={{color: '#ffd700'}}>🏆 High: {highScore !== null ? `${highScore}%` : 'None'}</div>
+                  <div style={{color: '#90caf9', marginTop: '2px'}}>📝 Last: {lastScore !== null ? `${lastScore}%` : 'None'}</div>
+                </div>
+              </div>
+              
+              <div style={{marginTop: '10px', borderTop: '1px solid #444', paddingTop: '8px'}}>
                 <label style={{display: 'block', marginBottom: '4px'}}>Tempo: {tempo} BPM</label>
                 <input 
                   type="range" 
