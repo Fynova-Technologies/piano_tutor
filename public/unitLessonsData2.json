@@ -3,16 +3,16 @@
     {
         "fkid": "1",
         "unitlessons": [
-          { "id": "1", "lessontitle": "Finding Middle C", "link": "/lessons", "file":"1A/Wholenotes.mxl"  },
-          { "id": "2", "lessontitle": "Playing the White Keys", "link": "/lessons","file":"1A/HalfRestHalfNotes.mxl"},
-          { "id": "3", "lessontitle": "Exploring Black Keys", "link": "/lessons","file":"1A/QuarterNotes.mxl"},
-          { "id": "4", "lessontitle": "Simple Patterns", "link": "/lessons","file":"1A/CSong.mxl"},
-          { "id": "5", "lessontitle": "Half Notes & Half Rests / Minims", "link": "/lessons","file":"1A/NotCsong.mxl"  },
-          { "id": "6", "lessontitle": "Quarter Notes / Crotchets", "link": "/lessons","file":"1A/Whole C.mxl"},
-          { "id": "7", "lessontitle": "C song", "link": "/lessons","file":"1A/halfNotes(R&L).mxl" },
-          { "id": "8", "lessontitle": "C song", "link": "/lessons","file":"1A/Quarter(R&L).mxl" },
-          { "id": "9", "lessontitle": "C song", "link": "/lessons","file":"1A/Quarter(R&L)no2.mxl" },
-          { "id": "10", "lessontitle": "C song", "link": "/lessons","file":"1A/CSong(R&L).mxl" }
+          { "id": "1", "lessontitle": "Finding Middle C", "link": "/lessons", "file":"1A/Wholenotes.mxl", "source":"Method-1A"  },
+          { "id": "2", "lessontitle": "Playing the White Keys", "link": "/lessons","file":"1A/HalfRestHalfNotes.mxl","source":"Method-1A"},
+          { "id": "3", "lessontitle": "Exploring Black Keys", "link": "/lessons","file":"1A/QuarterNotes.mxl", "source":"Method-1A"},
+          { "id": "4", "lessontitle": "Simple Patterns", "link": "/lessons","file":"1A/CSong.mxl","source":"Method-1A"},
+          { "id": "5", "lessontitle": "Half Notes & Half Rests / Minims", "link": "/lessons","file":"1A/NotCsong.mxl","source":"Method-1A"  },
+          { "id": "6", "lessontitle": "Quarter Notes / Crotchets", "link": "/lessons","file":"1A/Whole C.mxl","source":"Method-1A"},
+          { "id": "7", "lessontitle": "C song", "link": "/lessons","file":"1A/halfNotes(R&L).mxl","source":"Method-1A" },
+          { "id": "8", "lessontitle": "C song", "link": "/lessons","file":"1A/Quarter(R&L).mxl","source":"Method-1A" },
+          { "id": "9", "lessontitle": "C song", "link": "/lessons","file":"1A/Quarter(R&L)no2.mxl","source":"Method-1A" },
+          { "id": "10", "lessontitle": "C song", "link": "/lessons","file":"1A/CSong(R&L).mxl","source":"Method-1A" }
     ]
   },
   {

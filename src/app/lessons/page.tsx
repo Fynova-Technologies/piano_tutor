@@ -10,6 +10,7 @@ import scoreNotePlayed from "@/features/scores/scorenoteplayed";
 import CursorControls from "@/features/components/cursorcontrols";
 import { useSearchParams } from "next/navigation";
 import { BeatCursor } from "@/features/playback/beatcursor";
+import { saveSession} from "@/datastore/sessionstorage";
 
 interface PlayedNote {
   midi: number;
@@ -28,12 +29,17 @@ function Test2HybridFullContent() {
   const searchparams = useSearchParams();
   const courseTitle = searchparams.get("title") || "Lesson";
   const fileName = searchparams.get("file") || "Wholenotes.mxl";
-  
+  const source = searchparams.get("source") || "Method-1A";
+  const hasInitializedOSMD = useRef(false);
+  const scoreableNotesRef = useRef(0);
+  // Session timing
+  const sessionStartRef = useRef<number | null>(null);
+  // Session attempts (restarts / replays)
+  const attemptCountRef = useRef(0);
   const fallbackXml = "/songs/" + fileName;
   const xml = uploadedMusicXML || fallbackXml;
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const osmdRef = useRef<any>(null);
-  
+  const osmdRef = useRef<any>(null);  
   // playback state
   const [isPlaying, setIsPlaying] = useState(false);
   const [playIndex, setPlayIndex] = useState(0);
@@ -44,7 +50,6 @@ function Test2HybridFullContent() {
   const currentStepNotesRef = useRef<number[]>([]);
   const playbackMidiGuard = useRef<number>(0);
   const playModeRef = useRef<boolean>(false);
-  
   // ===== SCORING STATE =====
   const [score, setScore] = useState<number | null>(null);
   const totalStepsRef = useRef(0);
@@ -54,7 +59,6 @@ function Test2HybridFullContent() {
   const [lastScore, setLastScore] = useState<number | null>(null);
   const scoredStepsRef = useRef<Set<number>>(new Set());
   const currentCursorStepRef = useRef<number>(0);
-  
   const playedNotesRef = useRef<PlayedNote[]>([]);
   const activeHighlightsRef = useRef<Set<any>>(new Set());
   const beatCursorRef = useRef<BeatCursor | null>(null);
@@ -89,7 +93,14 @@ function Test2HybridFullContent() {
 
   // ========== FIXED OSMD SETUP ==========
   useEffect(() => {
+    attemptCountRef.current = 0;
+
     if (!containerRef.current) return;
+
+      if (hasInitializedOSMD.current) {
+    console.log('⚠️ OSMD already initialized, skipping');
+    return;
+  }
     
     const osmd = new OpenSheetMusicDisplay(containerRef.current, {
       backend: "svg",
@@ -345,52 +356,67 @@ function Test2HybridFullContent() {
   const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [tempo, setTempo] = useState(120); // BPM
 
-  function startPlayback() {
-    if (!beatCursorRef.current) {
-      console.error("Cannot start - beat cursor not initialized");
-      return;
-    }
-    
-    clearAllTracking();
-    beatCursorRef.current.reset();
-    
-    // ✅ FIX: Sync all state properly
-    setCurrentBeatIndex(0);
-    currentCursorStepRef.current = 0;
-    setPlayIndex(0);
-    
-    setIsPlaying(true);
-    playModeRef.current = true;
-    
-    totalStepsRef.current = beatCursorRef.current.getTotalBeats();
-    correctStepsRef.current = 0;
-    scoredStepsRef.current.clear();
-    
-    // Update expected notes for first beat
-    const expectedMIDI = beatCursorRef.current.getCurrentExpectedMIDI();
-    setCurrentStepNotes(expectedMIDI);
-    currentStepNotesRef.current = expectedMIDI;
-    
-    setCountdown(3);
-    let countdownValue = 3;
-    const countdownInterval = setInterval(() => {
-      countdownValue--;
-      setCountdown(countdownValue);
-      
-      if (countdownValue <= 0) {
-        clearInterval(countdownInterval);
-        setCountdown(null);
-        
-        if (beatCursorRef.current) {
-          beatCursorRef.current.startPlayback();
-        }
-        
-        startAutomaticPlayback();
-      }
-    }, 1000);
-    
-    console.log("🎵 Playback started");
+function startPlayback() {
+  if (!beatCursorRef.current) {
+    console.error("Cannot start - beat cursor not initialized");
+    return;
   }
+  
+  clearAllTracking();
+  // New attempt starts
+attemptCountRef.current += 1;
+
+  beatCursorRef.current.reset();
+  
+  setCurrentBeatIndex(0);
+  currentCursorStepRef.current = 0;
+  setPlayIndex(0);
+  
+  setIsPlaying(true);
+  playModeRef.current = true;
+  
+  // 🎯 Count scoreable notes (beats with isNoteStart = true)
+  const totalBeats = beatCursorRef.current.getTotalBeats();
+  let scoreableCount = 0;
+  
+  for (let i = 0; i < totalBeats; i++) {
+    const beat = beatCursorRef.current.getBeatAt(i);
+    if (beat?.isNoteStart && beat.expectedNotes.length > 0) {
+      scoreableCount++;
+    }
+  }
+  
+  totalStepsRef.current = totalBeats; // For progress bar
+  scoreableNotesRef.current = scoreableCount; // For score calculation
+  correctStepsRef.current = 0;
+  scoredStepsRef.current.clear();
+  
+  console.log(`🎵 Playback started: ${totalBeats} beats, ${scoreableCount} scoreable notes`);
+  
+  const expectedMIDI = beatCursorRef.current.getCurrentExpectedMIDI();
+  setCurrentStepNotes(expectedMIDI);
+  currentStepNotesRef.current = expectedMIDI;
+  sessionStartRef.current = Date.now();
+
+  
+  setCountdown(3);
+  let countdownValue = 3;
+  const countdownInterval = setInterval(() => {
+    countdownValue--;
+    setCountdown(countdownValue);
+    
+    if (countdownValue <= 0) {
+      clearInterval(countdownInterval);
+      setCountdown(null);
+      
+      if (beatCursorRef.current) {
+        beatCursorRef.current.startPlayback();
+      }
+      
+      startAutomaticPlayback();
+    }
+  }, 1000);
+}
 
   function startAutomaticPlayback() {
     if (playbackIntervalRef.current) {
@@ -453,34 +479,84 @@ function Test2HybridFullContent() {
     console.log("⏸️ Playback paused");
   }
 
-  function handleEndOfPiece() {
-    setIsPlaying(false);
-    playModeRef.current = false;
-    
-    if (playbackIntervalRef.current) {
-      clearInterval(playbackIntervalRef.current);
-      playbackIntervalRef.current = null;
-    }
-    
-    if (beatCursorRef.current) {
-      beatCursorRef.current.stopPlayback();
-    }
-    
-    const finalScore = totalStepsRef.current > 0
-      ? Math.round((correctStepsRef.current / totalStepsRef.current) * 100)
-      : 0;
-    
-    setScore(finalScore);
-    setLastScore(finalScore);
-    localStorage.setItem("lastScore", finalScore.toString());
-    
-    if (highScore === null || finalScore > highScore) {
-      setHighScore(finalScore);
-      localStorage.setItem("highScore", finalScore.toString());
-    }
-    
-    console.log(`🎉 Piece complete! Score: ${finalScore}%`);
+function handleEndOfPiece() {
+  setIsPlaying(false);
+  playModeRef.current = false;
+  
+  if (playbackIntervalRef.current) {
+    clearInterval(playbackIntervalRef.current);
+    playbackIntervalRef.current = null;
   }
+  
+  if (beatCursorRef.current) {
+    beatCursorRef.current.stopPlayback();
+  }
+  
+  // 🎯 Use scoreableNotesRef for calculation
+  const finalScore = scoreableNotesRef.current > 0
+    ? Math.round((correctStepsRef.current / scoreableNotesRef.current) * 100)
+    : 0;
+  
+  setScore(finalScore);
+  setLastScore(finalScore);
+  localStorage.setItem("lastScore", finalScore.toString());
+  
+  if (highScore === null || finalScore > highScore) {
+    setHighScore(finalScore);
+    localStorage.setItem("highScore", finalScore.toString());
+  }
+
+  const endTime = Date.now();
+const startTime = sessionStartRef.current ?? endTime;
+
+const durationSec = Math.round((endTime - startTime) / 1000);
+
+const accuracy =
+  scoreableNotesRef.current > 0
+    ? Math.round(
+        (correctStepsRef.current / scoreableNotesRef.current) * 100
+      )
+    : 0;
+
+// ---- BUILD CLEAN SESSION ----
+
+const lessonId = searchparams.get("lessonid") || "0"; // pass this in URL later
+
+const lessonUID = `${source}-${lessonId}`;
+
+const session = {
+  id: crypto.randomUUID(),
+
+  startedAt: startTime,
+  endedAt: endTime,
+  durationSec,
+
+  lesson: {
+    uid: lessonUID,          // ✅ UNIQUE
+    id: lessonId,            // ✅ STABLE
+    title: courseTitle,
+    source: source,
+  },
+
+  performance: {
+    attempts: Math.max(1, attemptCountRef.current),    score: finalScore,
+    accuracy,
+  },
+};
+
+// ---- SAVE ----
+saveSession(session);
+
+console.log("💾 Clean session saved:", session);
+
+
+console.log("💾 Session saved:", session);
+  
+  console.log(`🎉 Piece complete!`);
+  console.log(`   Correct notes: ${correctStepsRef.current}`);
+  console.log(`   Scoreable notes: ${scoreableNotesRef.current}`);
+  console.log(`   Final score: ${finalScore}%`);
+}
 
   useEffect(() => {
     return () => {
@@ -492,80 +568,83 @@ function Test2HybridFullContent() {
 
   // ========== NOTE TRACKING ==========
   function trackAndHighlightNote(midi: number) {
-    const actualCurrentBeatIndex = currentCursorStepRef.current;
-    
-    console.log('🔍 trackAndHighlightNote called:', {
-      midi,
-      playModeActive: playModeRef.current,
-      cursorExists: !!beatCursorRef.current,
-      currentBeatIndex: actualCurrentBeatIndex
-    });
-    
-    if (!beatCursorRef.current || !playModeRef.current) {
-      console.log('⚠️ Ignoring note - not in play mode or no cursor');
-      return;
-    }
-
-    const currentBeat = beatCursorRef.current.getBeatAt(actualCurrentBeatIndex);
-    if (!currentBeat) {
-      console.log('❌ No beat found at index', actualCurrentBeatIndex);
-      return;
-    }
-    
-    const expectedMIDI = currentBeat.expectedNotes.map(ht => ht + 12);
-    const noteName = midiToNoteName(midi);
-    const expectedNames = expectedMIDI.map(m => midiToNoteName(m)).join(', ');
-    
-    // Check if this beat is the START of a note (not a continuation)
-    let isNoteStart = true;
-    
-    if (actualCurrentBeatIndex > 0) {
-      const prevBeat = beatCursorRef.current.getBeatAt(actualCurrentBeatIndex - 1);
-      if (prevBeat && prevBeat.expectedNotes.length > 0) {
-        const prevExpectedMIDI = prevBeat.expectedNotes.map(ht => ht + 12);
-        
-        // Sort both arrays for proper comparison
-        const currentSorted = [...expectedMIDI].sort((a, b) => a - b);
-        const prevSorted = [...prevExpectedMIDI].sort((a, b) => a - b);
-        
-        // If arrays are identical, this is a continuation
-        if (currentSorted.length === prevSorted.length && 
-            currentSorted.every((val, idx) => val === prevSorted[idx])) {
-          isNoteStart = false;
-          console.log('⚠️ CONTINUATION BEAT DETECTED');
-        }
-      }
-    }
-    
-    console.log('🎹 Note pressed:', {
-      played: `${noteName} (${midi})`,
-      beat: actualCurrentBeatIndex,
-      beatX: currentBeat?.staffEntryX?.toFixed(2),
-      expected: expectedNames || 'Rest',
-      expectedMIDI: expectedMIDI,
-      isNoteStart: isNoteStart
-    });
-    
-    const exactMatch = expectedMIDI.includes(midi);
-    const isCorrect = exactMatch && isNoteStart;
-    
-    const playedNote: PlayedNote = {
-      midi,
-      timestamp: Date.now(),
-      cursorStep: actualCurrentBeatIndex,
-      wasCorrect: isCorrect,
-      graphicalNotes: undefined
-    };
-    
-    playedNotesRef.current.push(playedNote);
-    
-    if (!isNoteStart && exactMatch) {
-      console.log(`⚠️ Correct note but wrong timing (continuation beat) - marking as incorrect`);
-    }
-    
-    console.log(`${isCorrect ? '✅' : '❌'} Drawing feedback dot at cursor position`);
-    drawFeedbackDot(osmdRef.current, midi, isCorrect, currentBeat);
+  const actualCurrentBeatIndex = currentCursorStepRef.current;
+  
+  console.log('🔍 trackAndHighlightNote called:', {
+    midi,
+    playModeActive: playModeRef.current,
+    cursorExists: !!beatCursorRef.current,
+    currentBeatIndex: actualCurrentBeatIndex
+  });
+  
+  if (!beatCursorRef.current || !playModeRef.current) {
+    console.log('⚠️ Ignoring note - not in play mode or no cursor');
+    return;
   }
+
+  const currentBeat = beatCursorRef.current.getBeatAt(actualCurrentBeatIndex);
+  if (!currentBeat) {
+    console.log('❌ No beat found at index', actualCurrentBeatIndex);
+    return;
+  }
+  
+  const expectedMIDI = currentBeat.expectedNotes.map(ht => ht + 12);
+  const noteName = midiToNoteName(midi);
+  const expectedNames = expectedMIDI.map(m => midiToNoteName(m)).join(', ');
+  
+  // ✅ Use the beat's isNoteStart property (already calculated correctly)
+  const isNoteStart = currentBeat.isNoteStart ?? true;
+  
+  console.log('🎹 Note pressed:', {
+    played: `${noteName} (${midi})`,
+    beat: actualCurrentBeatIndex,
+    beatX: currentBeat?.staffEntryX?.toFixed(2),
+    expected: expectedNames || 'Rest',
+    expectedMIDI: expectedMIDI,
+    isNoteStart: isNoteStart
+  });
+  
+  const exactMatch = expectedMIDI.includes(midi);
+  const isCorrect = exactMatch && isNoteStart;
+  
+  // 🎯 ADD SCORE TRACKING HERE:
+  if (isCorrect && !scoredStepsRef.current.has(actualCurrentBeatIndex)) {
+    scoredStepsRef.current.add(actualCurrentBeatIndex);
+    correctStepsRef.current += 1;
+    
+    console.log(`✅ SCORE: ${correctStepsRef.current}/${totalStepsRef.current}`);
+  } else if (!isCorrect && !scoredStepsRef.current.has(actualCurrentBeatIndex)) {
+    scoredStepsRef.current.add(actualCurrentBeatIndex);
+    console.log(`❌ Incorrect at beat ${actualCurrentBeatIndex}`);
+  }
+  
+  // 🎯 KEY FIX: Find the actual graphical notes
+  let graphicalNotes: any[] = [];
+  
+  if (isCorrect) {
+    graphicalNotes = beatCursorRef.current.findGraphicalNotesAtCurrentBeat(midi);
+    console.log(`🔍 Found ${graphicalNotes.length} graphical notes for highlighting`);
+  }
+  
+  const playedNote: PlayedNote = {
+    midi,
+    timestamp: Date.now(),
+    cursorStep: actualCurrentBeatIndex,
+    wasCorrect: isCorrect,
+    graphicalNotes: graphicalNotes
+  };
+  
+  playedNotesRef.current.push(playedNote);
+  
+  if (!isNoteStart && exactMatch) {
+    console.log(`⚠️ Correct note but wrong timing (continuation beat) - marking as incorrect`);
+  }
+  
+  console.log(`${isCorrect ? '✅' : '❌'} Drawing feedback`);
+  
+  // ✅ FIXED: Pass graphical notes to the drawing function
+  drawFeedbackDot(osmdRef.current, midi, isCorrect, currentBeat, graphicalNotes);
+}
 
   // ✅ FIX: Remove unused advanceCursor function since auto-advance handles it
 
@@ -576,79 +655,164 @@ function Test2HybridFullContent() {
     return `${noteName}${octave}`;
   }
 
-  function drawFeedbackDot(osmd: any, midi: number, isCorrect: boolean, beat: any) {
-    if (!beat || beat.staffEntryX === undefined) {
-      console.warn('⚠️ Cannot draw dot - invalid beat position');
-      return;
-    }
-
-    const svg = osmd.drawer?.backend?.getSvgElement?.();
-    if (!svg) return;
-
-    const graphicSheet = osmd.GraphicSheet;
-    const measureList = graphicSheet?.MeasureList?.[beat.measureIndex];
-    const measure = measureList?.[0];
-    
-    if (!measure) return;
-
-    const lineSpacing = 10;
-    
-    const unitInPixels = osmd.drawer?.backend?.getInnerElement?.()?.offsetWidth 
-      ? osmd.drawer.backend.getInnerElement().offsetWidth / graphicSheet.ParentMusicSheet.pageWidth
-      : 10;
-    
-    const measureY = (measure.PositionAndShape?.AbsolutePosition?.y ?? 0) * unitInPixels;
-    
-    const midiToDiatonic = (midi: number) => {
-      const pitchClass = midi % 12;
-      const octave = Math.floor(midi / 12) - 1;
-      const chromaticToDiatonic = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
-      const diatonicPitch = chromaticToDiatonic[pitchClass];
-      return octave * 7 + diatonicPitch;
-    };
-    
-    const clef = measure.InitiallyActiveClef?.clefType;
-    let referenceDiatonic, referenceY;
-    
-    if (clef === 1) {
-      referenceDiatonic = midiToDiatonic(50);
-      referenceY = measureY + (2 * lineSpacing);
-    } else {
-      referenceDiatonic = midiToDiatonic(71);
-      referenceY = measureY + (2 * lineSpacing);
-    }
-    
-    const noteDiatonic = midiToDiatonic(midi);
-    const diatonicSteps = referenceDiatonic - noteDiatonic;
-    const y = referenceY + (diatonicSteps * (lineSpacing / 2));
-
-    const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    el.setAttribute("cx", beat.staffEntryX.toString());
-    el.setAttribute("cy", y.toString());
-    el.setAttribute("r", "8");
-    el.classList.add(isCorrect ? "midi-ghost-note-correct" : "midi-ghost-note-incorrect");
-    el.setAttribute("stroke-width", "2.5");
-    
-    svg.appendChild(el);
-    activeHighlightsRef.current.add(el);
-    
-    console.log(`🔴 Dot drawn at X=${beat.staffEntryX.toFixed(1)}, Y=${y.toFixed(1)}, correct=${isCorrect}`);
+function drawFeedbackDot(
+  osmd: any, 
+  midi: number, 
+  isCorrect: boolean, 
+  beat: any,
+  graphicalNotes?: any[] // ✅ NEW parameter
+) {
+  if (!osmd?.drawer?.backend) {
+    console.warn('⚠️ No OSMD backend');
+    return;
   }
 
-  function clearAllTracking() {
-    playedNotesRef.current = [];
+  const svg = osmd.drawer.backend.getSvgElement();
+  if (!svg) {
+    console.warn('⚠️ No SVG element');
+    return;
+  }
+
+  const graphicSheet = osmd.GraphicSheet;
+  
+  // Calculate unit conversion
+  let unitInPixels = 10;
+  const innerElement = osmd.drawer?.backend?.getInnerElement?.();
+  if (innerElement?.offsetWidth && graphicSheet?.ParentMusicSheet?.pageWidth) {
+    unitInPixels = innerElement.offsetWidth / graphicSheet.ParentMusicSheet.pageWidth;
+  }
+
+  // 🎯 METHOD 1: Use graphical notes if available (MOST ACCURATE)
+  if (graphicalNotes && graphicalNotes.length > 0) {
+    console.log(`✨ Drawing dots at graphical note positions`);
     
-    activeHighlightsRef.current.forEach((element) => {
-      if (element.classList) {
-        element.classList.remove('vf-note-correct', 'vf-note-incorrect');
-      } else {
-        element.remove();
+    for (const gNote of graphicalNotes) {
+      const posAndShape = gNote.PositionAndShape;
+      if (!posAndShape?.AbsolutePosition) {
+        console.warn('⚠️ Graphical note missing position');
+        continue;
       }
-    });
+      
+      const noteX = posAndShape.AbsolutePosition.x * unitInPixels;
+      const noteY = posAndShape.AbsolutePosition.y * unitInPixels;
+      
+      const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      el.setAttribute("cx", noteX.toString());
+      el.setAttribute("cy", noteY.toString());
+      el.setAttribute("r", "8");
+      el.classList.add(isCorrect ? "midi-ghost-note-correct" : "midi-ghost-note-incorrect");
+      el.setAttribute("stroke-width", "2.5");
+      
+      svg.appendChild(el);
+      activeHighlightsRef.current.add(el);
+      
+      console.log(`🔴 Dot drawn at ACTUAL NOTE position: X=${noteX.toFixed(1)}, Y=${noteY.toFixed(1)}, correct=${isCorrect}`);
+    }
     
-    activeHighlightsRef.current.clear();
-    console.log('🧹 Cleared all tracking and highlights');
+    return; // ✅ Done - we used the actual note positions
   }
+
+  // 🎯 FALLBACK METHOD: Calculate position (less accurate, but better than nothing)
+  console.log(`⚠️ No graphical notes found, using fallback positioning`);
+  
+  if (!beat || beat.staffEntryX === undefined) {
+    console.warn('⚠️ Cannot draw dot - invalid beat position');
+    return;
+  }
+
+  const measureList = graphicSheet?.MeasureList?.[beat.measureIndex];
+  const measure = measureList?.[0];
+  
+  if (!measure) {
+    console.warn('⚠️ No measure found');
+    return;
+  }
+
+  const lineSpacing = 10;
+  const measureY = (measure.PositionAndShape?.AbsolutePosition?.y ?? 0) * unitInPixels;
+  
+  // Calculate Y position based on MIDI note
+  const midiToDiatonic = (midi: number) => {
+    const pitchClass = midi % 12;
+    const octave = Math.floor(midi / 12) - 1;
+    const chromaticToDiatonic = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
+    const diatonicPitch = chromaticToDiatonic[pitchClass];
+    return octave * 7 + diatonicPitch;
+  };
+  
+  const clef = measure.InitiallyActiveClef?.clefType;
+  let referenceDiatonic, referenceY;
+  
+  if (clef === 1) { // Treble clef
+    referenceDiatonic = midiToDiatonic(50);
+    referenceY = measureY + (2 * lineSpacing);
+  } else { // Bass clef
+    referenceDiatonic = midiToDiatonic(71);
+    referenceY = measureY + (2 * lineSpacing);
+  }
+  
+  const noteDiatonic = midiToDiatonic(midi);
+  const diatonicSteps = referenceDiatonic - noteDiatonic;
+  const y = referenceY + (diatonicSteps * (lineSpacing / 2));
+
+  const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  el.setAttribute("cx", beat.staffEntryX.toString());
+  el.setAttribute("cy", y.toString());
+  el.setAttribute("r", "8");
+  el.classList.add(isCorrect ? "midi-ghost-note-correct" : "midi-ghost-note-incorrect");
+  el.setAttribute("stroke-width", "2.5");
+  
+  svg.appendChild(el);
+  activeHighlightsRef.current.add(el);
+  
+  console.log(`🔴 Fallback dot drawn at X=${beat.staffEntryX.toFixed(1)}, Y=${y.toFixed(1)}, correct=${isCorrect}`);
+}
+
+function highlightGraphicalNote(
+  osmd: any,
+  midi: number,
+  isCorrect: boolean
+) {
+  if (!beatCursorRef.current) return;
+  
+  const graphicalNotes = beatCursorRef.current.findGraphicalNotesAtCurrentBeat(midi);
+  
+  console.log(`🎨 Highlighting ${graphicalNotes.length} graphical notes`);
+  
+  for (const gNote of graphicalNotes) {
+    // Try to get the SVG element
+    const svgElement = gNote.getSVGGElement?.();
+    
+    if (svgElement) {
+      // Add highlight class
+      svgElement.classList.add(isCorrect ? 'vf-note-correct' : 'vf-note-incorrect');
+      
+      // Store for cleanup
+      activeHighlightsRef.current.add(svgElement);
+      
+      console.log(`✨ Added highlight class to note element`);
+    } else {
+      console.warn('⚠️ Could not get SVG element from graphical note');
+    }
+  }
+}
+
+function clearAllTracking() {
+  playedNotesRef.current = [];
+  
+  activeHighlightsRef.current.forEach((element) => {
+    try {
+      if (element.parentNode) {
+        element.parentNode.removeChild(element); // ✅ Actually remove from DOM
+      }
+    } catch (e) {
+      console.warn('Failed to remove highlight:', e);
+    }
+  });
+  
+  activeHighlightsRef.current.clear();
+  console.log('🧹 Cleared all tracking and highlights');
+}
 
   function getCurrentBeatInfo() {
     if (!beatCursorRef.current) return null;
@@ -744,6 +908,14 @@ function Test2HybridFullContent() {
               <div style={{marginTop: '5px', borderTop: '1px solid #444', paddingTop: '5px'}}>
                 Cursor X: {beatCursorRef.current?.getCurrentBeat()?.staffEntryX?.toFixed(1) || 'N/A'}
               </div>
+              <div>
+  <div>Total Beats: {totalSteps}</div>
+  <div>Scoreable Notes: {scoreableNotesRef.current}</div>
+  <div>Correct: {correctStepsRef.current}</div>
+  <div>Score: {scoreableNotesRef.current > 0 
+    ? Math.round((correctStepsRef.current / scoreableNotesRef.current) * 100) 
+    : 0}%</div>
+</div>
               {/* ✅ FIX: Better state debugging */}
               <div style={{marginTop: '5px', borderTop: '1px solid #444', paddingTop: '5px', fontSize: '10px'}}>
                 <div>State Index: {currentBeatIndex}</div>

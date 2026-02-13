@@ -1,35 +1,113 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';   
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ArrowUpDown, MoreVertical } from "lucide-react";
+import {
+  getSessions,
+  PracticeSession,
+  } from "@/datastore/sessionstorage";
 
 
 export default function ActivitiesReportPage() {
     const pathname = usePathname();
     const breadcrumbs = pathname.split('/').filter((segment) => segment);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [songs, setSongs] = useState<Array<{id:number; title:string; source:string, date:string,attempt:number,timespent:number,score:number;}>>([
-      {id:1, title:"Song A", source:"Artist 1",date:"2024-06-01",attempt:1,timespent:5,score:15},
-      {id:2, title:"Song B", source:"Artist 2",date:"2024-06-01",attempt:2,timespent:15,score:85},
-      {id:3, title:"Song C", source:"Artist 3",date:"2024-06-01",attempt:3,timespent:25,score:25}
-    ]);
-
-    const TotalTime = songs.reduce((total, song) => total + song.timespent, 0);
     const [query, setQuery] = useState("");
+    const [sessions, setSessions] = useState<PracticeSession[]>([]);    
 
-    const filteredSongs = useMemo(() => {
-      return songs.filter(song =>
-        song.title.toLowerCase().includes(query.toLowerCase()) ||
-        song.source.toLowerCase().includes(query.toLowerCase())
-      );
-    }, [songs, query]);
+    const thisWeek = sessions.filter((s) =>
+      isThisWeek(s.startedAt)
+    );
+
+    /* Aggregation */
+    const totalTime = thisWeek.reduce(
+      (sum, s) => sum + s.durationSec,
+      0
+    );
+  
+        useEffect(() => {
+      setSessions(getSessions());
+    }, []);
 
     type RangeType = "week" | "month" | "3month" | "custom";
 
     const [range, setRange] = useState<RangeType>("week");
     // const [customFrom, setCustomFrom] = useState<string>("");
     // const [customTo, setCustomTo] = useState<string>("");
+
+    /* Helper: Check if date is in current week */
+    function isThisWeek(timestamp: number) {
+      const now = new Date();
+      const startOfWeek = new Date(now);
+    
+      // Monday as start
+      startOfWeek.setDate(now.getDate() - now.getDay() + 1);
+      startOfWeek.setHours(0, 0, 0, 0);
+    
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 7);
+    
+      return (
+        timestamp >= startOfWeek.getTime() &&
+        timestamp < endOfWeek.getTime()
+      );
+    }
+
+    /* Format seconds → mm:ss */
+    function formatTime(sec: number) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m}m ${s}s`;
+    }
+    
+    const lessonStats = useMemo(() => {
+      const map: Record<string, any> = {};
+    
+      sessions.forEach((s) => {
+        const key = `${s.lesson.id}__${s.lesson.source}`;
+        
+        if (!map[key]) {
+          map[key] = {
+            id: key,
+            lessonId: s.lesson.id,
+            title: s.lesson.title,
+            source: s.lesson.source,
+            date: s.startedAt,
+            attempt: 0,
+            timespent: 0,
+            score: 0,
+            count: 0,
+          };
+        }
+      
+    if (s.startedAt < map[key].date) {
+          map[key].date = s.startedAt;
+        }
+      
+        map[key].attempt += s.performance.attempts;
+        map[key].timespent += s.durationSec;
+        map[key].score += s.performance.score;
+        map[key].count += 1;
+      });
+    
+      return Object.values(map).map((l: any) => ({
+        ...l,
+        score: Math.round(l.score / l.count),
+      }));
+    }, [sessions]);
+
+    const filteredLessons = useMemo(() => {
+  return lessonStats.filter(
+    (l: any) =>
+      l.title
+        .toLowerCase()
+        .includes(query.toLowerCase()) ||
+      l.source
+        .toLowerCase()
+        .includes(query.toLowerCase())
+  );
+}, [lessonStats, query]);
 
   return (
     <div className="p-16 bg-[#F8F6F1] h-[100vh]" >
@@ -42,8 +120,8 @@ export default function ActivitiesReportPage() {
         {/* info and print section */}
         <div className="flex justify-between pt-4">
           <div className="flex flex-col gap-4 p-6 border-b border-[#E3E3E3] text-[#151517] text-[18px] font-medium" >
-            <span className="gap-1">Songs : {songs.length}</span>
-            <span className="gap-1">Total Time : {TotalTime} Mins</span>
+            <span className="gap-1">Lessons : {lessonStats.length}</span>
+            <span className="gap-1">Total Time : {Math.round(totalTime / 60)} Mins</span>
           </div>
           <div>
             <div className="text-[#151517] space-x-8">
@@ -126,20 +204,20 @@ export default function ActivitiesReportPage() {
               </thead>
 
               <tbody>
-                {filteredSongs.map(song => (
-                  <tr key={song.id} className="border-b border-gray-200 text-sm last:border-none odd:bg-white even:bg-[#F7F7F7] hover:bg-gray-100transition">
+                {filteredLessons.map(lesson => (
+                  <tr key={lesson.id} className="border-b border-gray-200 text-sm last:border-none odd:bg-white even:bg-[#F7F7F7] hover:bg-gray-100transition">
 
                     <td className="px-6 py-4 font-medium text-gray-900">
-                      {song.title}
+                      {lesson.title}
                     </td>
-                    <td className="px-6 py-4 text-gray-700">{song.source}</td>
+                    <td className="px-6 py-4 text-gray-700">{lesson.source}</td>
                     <td className="px-6 py-4 text-gray-700">
-                      {new Date(song.date).toLocaleDateString()}
+                      {new Date(lesson.date).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 text-gray-700">{song.attempt}</td>
-                    <td className="px-6 py-4 text-gray-700">{song.timespent} Mins</td>
+                    <td className="px-6 py-4 text-gray-700">{lesson.attempt}</td>
+                    <td className="px-6 py-4 text-gray-700">  {formatTime(lesson.timespent)} Mins</td>
                     <td className="px-6 py-4 font-medium text-gray-900">
-                      {song.score}
+                      {lesson.score} %
                     </td>
                 
                     <td className="px-6 py-4 text-right">
@@ -150,7 +228,7 @@ export default function ActivitiesReportPage() {
                   </tr>
                 ))}
 
-                {filteredSongs.length === 0 && (
+                {filteredLessons.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-6 py-8 text-center text-gray-400">
                       No results found
@@ -168,6 +246,10 @@ export default function ActivitiesReportPage() {
           </div>
         </div>
       </div>
+
+     
     </div>
   );
 }
+
+

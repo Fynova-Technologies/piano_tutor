@@ -95,7 +95,10 @@ function getCursorX(
 ) {
   const anchors = beatAnchors.get(measure);
 
-  if (!anchors || anchors.length < 2) return null;
+  if (!anchors || anchors.length < 2) {
+    console.warn(`⚠️ Measure ${measure}: Insufficient anchors (${anchors?.length || 0})`);
+    return null;
+  }
 
   // 🎯 FIND THE SEGMENT WE'RE IN
   for (let i = 0; i < anchors.length - 1; i++) {
@@ -115,8 +118,23 @@ function getCursorX(
     }
   }
 
-  // Fallback to last anchor
-return anchors[0].x; // first note
+  // 🎯 IMPROVED FALLBACK: Handle times before first anchor or after last anchor
+  const firstAnchor = anchors[0];
+  const lastAnchor = anchors[anchors.length - 1];
+  
+  if (localTime < firstAnchor.t) {
+    console.warn(`⚠️ Measure ${measure}: localTime ${localTime.toFixed(3)} < first anchor ${firstAnchor.t.toFixed(3)}, using first anchor x=${firstAnchor.x.toFixed(1)}`);
+    return firstAnchor.x;
+  }
+  
+  if (localTime > lastAnchor.t) {
+    console.warn(`⚠️ Measure ${measure}: localTime ${localTime.toFixed(3)} > last anchor ${lastAnchor.t.toFixed(3)}, using last anchor x=${lastAnchor.x.toFixed(1)}`);
+    return lastAnchor.x;
+  }
+  
+  // Should never reach here
+  console.error(`❌ Measure ${measure}: Failed to find position for t=${localTime.toFixed(3)}`);
+  return firstAnchor.x;
 }
 
 
@@ -438,38 +456,23 @@ function buildBeatAnchors(
     const firstNote = notes[0];
     const lastNote = notes[notes.length - 1];
 
-    // Get measure barline position for debugging
-    let measureBarlineX = 0;
-    if (graphicSheet?.MeasureList?.[m]?.[0]?.PositionAndShape?.AbsolutePosition?.x) {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      measureBarlineX = graphicSheet.MeasureList[m][0].PositionAndShape.AbsolutePosition.x * unitInPixels;
-    }
-
-    // 🎯 Add measure start anchor (t=0) with interpolated X position
+    // 🎯 Add measure start anchor (t=0) if needed
     if (firstNote.time > 0.0001) {
-      // There's a rest at the beginning - interpolate backwards from notes
-      // Add measure start if leading rest
-if (firstNote.time > 0.0001) {
+      // There's a rest at the beginning - add barline anchor
+      const measurePos = graphicSheet?.MeasureList?.[m]?.[0]?.PositionAndShape;
 
-  const measurePos =
-    graphicSheet?.MeasureList?.[m]?.[0]?.PositionAndShape;
+      if (measurePos?.AbsolutePosition?.x != null) {
+        const barX = measurePos.AbsolutePosition.x * unitInPixels;
 
-  if (measurePos?.AbsolutePosition?.x != null) {
+        arr.push({
+          t: 0,
+          x: barX + 10 // Offset from barline
+        });
 
-    const barX = measurePos.AbsolutePosition.x * unitInPixels;
-
-    arr.push({
-      t: 0,
-      x: barX + 10 // Offset from barline
-    });
-
-    console.log(
-      `   📍 Measure ${m}: Leading rest → bar anchor at x=${(barX + 10).toFixed(1)}`
-    );
-  }
-}
-
-      // console.log(`   📍 Measure ${m}: Interpolated start at t=0, x=${startX.toFixed(1)} (first note at t=${firstNote.time.toFixed(3)}, x=${firstNote.x.toFixed(1)})`);
+        console.log(
+          `   📍 Measure ${m}: Leading rest → bar anchor at t=0, x=${(barX + 10).toFixed(1)}`
+        );
+      }
     }
 
     // Add all note anchors
@@ -480,20 +483,26 @@ if (firstNote.time > 0.0001) {
       });
     }
 
-    // 🎯 Add measure end anchor (t=1)
-    if (measureEnd) {
-      if (lastNote.time < 0.999) {
+    // 🎯 Add measure end anchor (t=1) if needed
+    if (lastNote.time < 0.999) {
+      if (measureEnd) {
         arr.push({ t: 1, x: measureEnd.x });
-        console.log(`   📍 Measure ${m}: Added end at t=1, x=${measureEnd.x.toFixed(1)} (last note at t=${lastNote.time.toFixed(3)})`);
-      }
-    } else {
-      // No explicit measure end - extrapolate from last notes
-      if (notes.length >= 2) {
+        console.log(`   📍 Measure ${m}: Added measure end at t=1, x=${measureEnd.x.toFixed(1)} (last note at t=${lastNote.time.toFixed(3)})`);
+      } else if (notes.length >= 2) {
+        // No explicit measure end - extrapolate from last notes
         const secondLast = notes[notes.length - 2];
         const spacing = (lastNote.x - secondLast.x) / (lastNote.time - secondLast.time);
         const endX = lastNote.x + (spacing * (1 - lastNote.time));
         arr.push({ t: 1, x: endX });
-        console.log(`   📍 Measure ${m}: Interpolated end at t=1, x=${endX.toFixed(1)}`);
+        console.log(`   📍 Measure ${m}: Extrapolated end at t=1, x=${endX.toFixed(1)}`);
+      } else if (notes.length === 1) {
+        // Single note in measure - use measure end position
+        const measurePos = graphicSheet?.MeasureList?.[m]?.[0]?.PositionAndShape;
+        if (measurePos?.AbsolutePosition?.x != null && measurePos?.Size?.width != null) {
+          const measureEndX = (measurePos.AbsolutePosition.x + measurePos.Size.width) * unitInPixels;
+          arr.push({ t: 1, x: measureEndX - 10 }); // Slight offset from barline
+          console.log(`   📍 Measure ${m}: Single note measure, end at t=1, x=${(measureEndX - 10).toFixed(1)}`);
+        }
       }
     }
 
@@ -921,37 +930,96 @@ private updateCursorPosition() {
 
   findGraphicalNotesAtCurrentBeat(midiNote: number): any[] {
     const beat = this.getCurrentBeat();
-    if (!beat) return [];
+    if (!beat) {
+      console.error('❌ No current beat found');
+      return [];
+    }
+
+    console.log(`\n🔍 === findGraphicalNotesAtCurrentBeat CALLED ===`);
+    console.log(`   Input MIDI note: ${midiNote}`);
+    console.log(`   Current beat: ${beat.index} (measure ${beat.measureIndex}, beat ${beat.beatInMeasure})`);
+    console.log(`   Beat timestamp (absolute): ${beat.timestamp.RealValue.toFixed(4)}`);
+    console.log(`   Expected notes at this beat: [${beat.expectedNotes.map(ht => `${ht} (MIDI ${ht + 12})`).join(', ')}]`);
 
     const osmdHalfTone = midiNote - 12;
+    console.log(`   Looking for halfTone: ${osmdHalfTone}`);
+
     const graphicSheet = this.osmd.GraphicSheet;
     const measureList = graphicSheet.MeasureList?.[beat.measureIndex];
     
-    if (!measureList) return [];
+    if (!measureList) {
+      console.error(`❌ No measure list found for measure ${beat.measureIndex}`);
+      return [];
+    }
+
+    // 🎯 FIX: Calculate measure start time for absolute time conversion
+    const measures = this.osmd.Sheet?.SourceMeasures || [];
+    let measureStartTime = 0;
+    
+    for (let i = 0; i < beat.measureIndex; i++) {
+      const m = measures[i];
+      if (m.Duration?.RealValue != null) {
+        measureStartTime += m.Duration.RealValue;
+      } else {
+        const ts = m.ActiveTimeSignature || { Numerator: 4, Denominator: 4 };
+        measureStartTime += ts.Numerator * (1 / ts.Denominator);
+      }
+    }
+
+    console.log(`   Measure ${beat.measureIndex} starts at absolute time: ${measureStartTime.toFixed(4)}`);
 
     const matchingNotes: any[] = [];
-    const beatTime = beat.timestamp.RealValue;
+    const beatTime = beat.timestamp.RealValue; // Absolute time
     const EPSILON = 1e-6;
+
+    console.log(`\n   📋 Checking all staff entries in measure ${beat.measureIndex}:`);
 
     for (let staffIdx = 0; staffIdx < measureList.length; staffIdx++) {
       const measure = measureList[staffIdx];
       
+      console.log(`   📝 Staff ${staffIdx}: ${measure.staffEntries?.length || 0} entries`);
+      
       for (const staffEntry of measure.staffEntries || []) {
-        const entryTime = staffEntry.timestamp?.RealValue ?? 
-                         staffEntry.sourceStaffEntry?.Timestamp?.RealValue;
+        // 🎯 FIX: Get relative time and convert to absolute time
+        const relativeTime = staffEntry.timestamp?.RealValue ?? 
+                            staffEntry.sourceStaffEntry?.Timestamp?.RealValue;
         
-        if (entryTime === null || Math.abs(entryTime - beatTime) > EPSILON) continue;
+        if (relativeTime === null || relativeTime === undefined) {
+          console.log(`      ⏭️ Skipping entry with no timestamp`);
+          continue;
+        }
+        
+        // Convert to absolute time for comparison
+        const absoluteEntryTime = measureStartTime + relativeTime;
+        const timeDiff = Math.abs(absoluteEntryTime - beatTime);
+        
+        console.log(`      Entry: relativeT=${relativeTime.toFixed(4)}, absoluteT=${absoluteEntryTime.toFixed(4)}, targetT=${beatTime.toFixed(4)}, diff=${timeDiff.toFixed(6)}`);
+        
+        if (timeDiff > EPSILON) {
+          console.log(`         ⏭️ Skipping - time difference too large (${timeDiff.toFixed(6)} > ${EPSILON})`);
+          continue;
+        }
+
+        console.log(`         ✅ Time match! Checking notes...`);
 
         for (const gve of staffEntry.graphicalVoiceEntries || []) {
           for (const gn of gve.notes || []) {
             const halfTone = gn.sourceNote?.halfTone;
+            const isRest = gn.sourceNote?.isRest?.() || gn.sourceNote?.IsRest || false;
+            
+            console.log(`            Note: halfTone=${halfTone}, MIDI=${halfTone + 12}, isRest=${isRest}, target=${osmdHalfTone}`);
+            
             if (halfTone === osmdHalfTone) {
               matchingNotes.push(gn);
+              console.log(`            🎯 MATCH FOUND!`);
             }
           }
         }
       }
     }
+
+    console.log(`\n   ✅ Total matching notes found: ${matchingNotes.length}`);
+    console.log(`=== END findGraphicalNotesAtCurrentBeat ===\n`);
 
     return matchingNotes;
   }

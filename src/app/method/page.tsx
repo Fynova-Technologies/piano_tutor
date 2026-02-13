@@ -14,6 +14,7 @@ type UnitLesson = {
       link: string;
       pattern: string;
       patternkey: string;
+      source: string;
     }
   ];
 };
@@ -21,7 +22,7 @@ type UnitLesson = {
 type UniteLesson2 = {
   fkid: string;
   unitlessons: [
-    { id: string; lessontitle: string; link: string; file?: string }
+    { id: string; lessontitle: string; link: string; file?: string, source: string }
   ];
 };
 
@@ -127,6 +128,8 @@ export default function PianoLesson() {
                       title: lesson.lessontitle,
                       file: lesson.file ?? "",
                       unitId: lesson.id ?? "",
+                      source: lesson.source ?? "",
+                      lessonid: lesson.id ?? "",
                     });
                     router.push(`${lesson.link}?${params.toString()}`);
                   }}
