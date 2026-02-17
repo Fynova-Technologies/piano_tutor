@@ -23,7 +23,7 @@ export default function MusicCategories() {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                   <div
-                        onClick={() => router.push("/musiclibrary")}
+                        onClick={() => router.push("/library")}
                         className="bg-[#FEFEFE] rounded-2xl w-full hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-[0_5px_10px_0px_#505050]  transition duration-300  cursor-pointer group hover:scale-[1.03]"
                       >
                         <div className="relative flex ">
@@ -55,7 +55,7 @@ export default function MusicCategories() {
                         </div>
                       </div>
                       <div
-                        onClick={() => router.push("/musiclibrary")}
+                        onClick={() => router.push("/method")}
                         className="bg-[#FEFEFE] rounded-2xl w-full  hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-[0_5px_10px_0px_#505050]   transition duration-300  cursor-pointer group hover:scale-[1.03]"
                       >
                         <div className="relative flex ">
@@ -91,7 +91,7 @@ export default function MusicCategories() {
                     </div>
                     <div className={`${isMobile?"flex flex-col justify-center items-center mt-10 space-y-10":"flex justify-center space-x-8 items-stretch mt-4"  }`}>
                                   <div
-                                    onClick={() => router.push("/musiclibrary")}
+                                    onClick={() => router.push("/sasr")}
                                     className="bg-[#FEFEFE] rounded-2xl w-full hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-[0_5px_10px_0px_#505050]   transition duration-300  cursor-pointer group hover:scale-[1.03]"
                                   >
                                     <div className="relative flex">
@@ -149,7 +149,7 @@ export default function MusicCategories() {
                                   </div>
                                   
                                   <div
-                                    onClick={() => router.push("/musiclibrary")}
+                                    onClick={() => router.push("/techniques")}
                                     className="bg-[#FEFEFE] rounded-2xl lg:w-[60%] w-full hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-[0_5px_10px_0px_#505050]   transition duration-300  cursor-pointer group hover:scale-[1.03]"
                                   >
                                     <div className="relative flex ">

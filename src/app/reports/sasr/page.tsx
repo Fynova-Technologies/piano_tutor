@@ -4,89 +4,98 @@ import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useState, useMemo, useEffect } from "react";
 import { ArrowUpDown, MoreVertical, Download, Printer } from "lucide-react";
-import { sasrDataStore, SASRSessionData } from "@/datastore/sasrdatastore";
+import {
+  getSessions,
+  PracticeSession,
+  } from "@/datastore/sessionstorage";
 
 type RangeType = "week" | "month" | "3month" | "custom";
 
 export default function SASRReportPage() {
   const pathname = usePathname();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter();
   const breadcrumbs = pathname.split('/').filter((segment) => segment);
   
-  const [sessions, setSessions] = useState<SASRSessionData[]>([]);
+  const [sessions, setSessions] = useState<PracticeSession[]>([]);
   const [query, setQuery] = useState("");
   const [range, setRange] = useState<RangeType>("month");
   const [customFrom, setCustomFrom] = useState<string>("");
   const [customTo, setCustomTo] = useState<string>("");
   const [sortField, setSortField] = useState<'date' | 'score'>('date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const sasrSessions = useMemo(() => {
+  return sessions.filter(
+    (s) => s.lesson?.source?.toUpperCase() === "SASR"
+  );
+}, [sessions]);
 
-  // Load sessions on component mount
-  useEffect(() => {
-    loadSessions();
-  }, [range, customFrom, customTo]);
+useEffect(() => {
+  const data = getSessions();
+  setSessions(data);
+}, []);
 
-  function loadSessions() {
-    let loadedSessions: SASRSessionData[];
-
-    if (range === 'custom' && customFrom && customTo) {
-      const startDate = new Date(customFrom);
-      const endDate = new Date(customTo);
-      loadedSessions = sasrDataStore.getSessionsByDateRange(startDate, endDate);
-    } else {
-      const days = range === 'week' ? 7 : range === 'month' ? 30 : 90;
-      loadedSessions = sasrDataStore.getRecentSessions(days);
-    }
-
-    setSessions(loadedSessions);
+const statistics = useMemo(() => {
+  if (sasrSessions.length === 0) {
+    return {
+      lastScore: 0,
+      highestScore: 0,
+      averageScore: 0,
+      totalSessions: 0,
+    };
   }
 
-  // Calculate statistics
-  const statistics = useMemo(() => {
-    if (sessions.length === 0) {
-      return {
-        lastScore: 0,
-        highestScore: 0,
-        averageScore: 0,
-        totalSessions: 0
-      };
+  const scores = sasrSessions.map(
+    (s) => s.performance.score
+  );
+
+  const lastScore =
+    sasrSessions[sasrSessions.length - 1]?.performance.score || 0;
+
+  const highestScore = Math.max(...scores);
+
+  const averageScore = Math.round(
+    scores.reduce((a, b) => a + b, 0) / scores.length
+  );
+
+  return {
+    lastScore,
+    highestScore,
+    averageScore,
+    totalSessions: sasrSessions.length,
+  };
+}, [sasrSessions]);
+
+
+const filteredSessions = useMemo(() => {
+  const filtered = sasrSessions.filter((session) => {
+    const title = session.lesson?.title || "";
+
+    return (
+      title.toLowerCase().includes(query.toLowerCase()) ||
+      new Date(session.startedAt)
+        .toLocaleDateString()
+        .includes(query.toLowerCase())
+    );
+  });
+
+  filtered.sort((a, b) => {
+    let comparison = 0;
+
+    if (sortField === "date") {
+      comparison = a.startedAt - b.startedAt;
+    } else if (sortField === "score") {
+      comparison =
+        a.performance.score - b.performance.score;
     }
 
-    const scores = sessions.map(s => s.score);
-    const lastScore = sessions[sessions.length - 1]?.score || 0;
-    const highestScore = Math.max(...scores);
-    const averageScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+    return sortDirection === "asc"
+      ? comparison
+      : -comparison;
+  });
 
-    return {
-      lastScore,
-      highestScore,
-      averageScore,
-      totalSessions: sessions.length
-    };
-  }, [sessions]);
-
-  // Filter and sort sessions
-  const filteredSessions = useMemo(() => {
-    const filtered = sessions.filter(session =>
-      session.title.toLowerCase().includes(query.toLowerCase()) ||
-      new Date(session.date).toLocaleDateString().includes(query.toLowerCase())
-    );
-
-    // Sort
-    filtered.sort((a, b) => {
-      let comparison = 0;
-      
-      if (sortField === 'date') {
-        comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
-      } else if (sortField === 'score') {
-        comparison = a.score - b.score;
-      }
-
-      return sortDirection === 'asc' ? comparison : -comparison;
-    });
-
-    return filtered;
-  }, [sessions, query, sortField, sortDirection]);
+  return filtered;
+}, [sasrSessions, query, sortField, sortDirection]);
 
   function handleSort(field: 'date' | 'score') {
     if (sortField === field) {
@@ -97,18 +106,18 @@ export default function SASRReportPage() {
     }
   }
 
-  function exportData() {
-    const jsonData = sasrDataStore.exportSessions();
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `sasr-sessions-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
+  // function exportData() {
+  //   const jsonData = sasrDataStore.exportSessions();
+  //   const blob = new Blob([jsonData], { type: 'application/json' });
+  //   const url = URL.createObjectURL(blob);
+  //   const a = document.createElement('a');
+  //   a.href = url;
+  //   a.download = `sasr-sessions-${new Date().toISOString().split('T')[0]}.json`;
+  //   document.body.appendChild(a);
+  //   a.click();
+  //   document.body.removeChild(a);
+  //   URL.revokeObjectURL(url);
+  // }
 
   function printReport() {
     window.print();
@@ -134,21 +143,21 @@ export default function SASRReportPage() {
             </div>
             <div className="flex flex-col gap-2">
               <span className="text-[#6E6E73] text-sm font-medium">Highest Score</span>
-              <span className="text-[#151517] text-3xl font-bold text-green-600">{statistics.highestScore}%</span>
+              <span className=" text-3xl font-bold text-green-600">{statistics.highestScore}%</span>
             </div>
             <div className="flex flex-col gap-2">
               <span className="text-[#6E6E73] text-sm font-medium">Average Score</span>
-              <span className="text-[#151517] text-3xl font-bold text-blue-600">{statistics.averageScore}%</span>
+              <span className=" text-3xl font-bold text-blue-600">{statistics.averageScore}%</span>
             </div>
             <div className="flex flex-col gap-2">
               <span className="text-[#6E6E73] text-sm font-medium">Total Sessions</span>
-              <span className="text-[#151517] text-3xl font-bold text-purple-600">{statistics.totalSessions}</span>
+              <span className=" text-3xl font-bold text-purple-600">{statistics.totalSessions}</span>
             </div>
           </div>
 
           <div className="flex items-start gap-4">
             <button 
-              onClick={exportData}
+              // onClick={exportData}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               title="Download Data"
             >
@@ -263,88 +272,99 @@ export default function SASRReportPage() {
               </thead>
 
               <tbody>
-                {filteredSessions.map((session, idx) => (
-                  <tr 
-                    key={session.id} 
-                    className="border-b border-gray-200 text-sm last:border-none odd:bg-white even:bg-[#F7F7F7] hover:bg-gray-100 transition"
-                  >
-                    <td className="px-6 py-4 font-medium text-gray-900">
-                      {session.title}
-                    </td>
-                    <td className="px-6 py-4 text-gray-700">
-                      {new Date(session.date).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </td>
-                    <td className="px-6 py-4 text-gray-700">
-                      {session.attempt}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className={`font-bold ${
-                          session.score >= 90 ? 'text-green-600' :
-                          session.score >= 70 ? 'text-blue-600' :
-                          session.score >= 50 ? 'text-yellow-600' :
-                          'text-red-600'
-                        }`}>
-                          {session.score}%
-                        </span>
-                        <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full ${
-                              session.score >= 90 ? 'bg-green-500' :
-                              session.score >= 70 ? 'bg-blue-500' :
-                              session.score >= 50 ? 'bg-yellow-500' :
-                              'bg-red-500'
-                            }`}
-                            style={{ width: `${session.score}%` }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        session.mistakeCount === 0 ? 'bg-green-100 text-green-800' :
-                        session.mistakeCount < 3 ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {session.mistakeCount} {session.mistakeCount === 1 ? 'mistake' : 'mistakes'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        session.completedFully ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {session.completedFully ? 'Completed' : 'Stopped'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button className="rounded-full p-1 hover:bg-gray-200">
-                        <MoreVertical className="h-4 w-4 text-gray-600" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+  {filteredSessions.map((session) => (
+    <tr
+      key={session.id}
+      className="border-b border-gray-200 text-sm last:border-none odd:bg-white even:bg-[#F7F7F7] hover:bg-gray-100 transition"
+    >
+      {/* Title */}
+      <td className="px-6 py-4 font-medium text-gray-900">
+        {session.lesson.title}
+      </td>
 
-                {filteredSessions.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
-                      {sessions.length === 0 ? (
-                        <div>
-                          <p className="text-lg mb-2">No practice sessions recorded yet</p>
-                          <p className="text-sm">Start practicing to see your progress!</p>
-                        </div>
-                      ) : (
-                        <p>No results found matching your search</p>
-                      )}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
+      {/* Date */}
+      <td className="px-6 py-4 text-gray-700">
+        {new Date(session.startedAt).toLocaleDateString(
+          "en-US",
+          {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }
+        )}
+      </td>
+
+      {/* Attempts */}
+      <td className="px-6 py-4 text-gray-700">
+        {session.performance.attempts}
+      </td>
+
+      {/* Score */}
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-2">
+          <span
+            className={`font-bold ${
+              session.performance.score >= 90
+                ? "text-green-600"
+                : session.performance.score >= 70
+                ? "text-blue-600"
+                : session.performance.score >= 50
+                ? "text-yellow-600"
+                : "text-red-600"
+            }`}
+          >
+            {session.performance.score}%
+          </span>
+
+          <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className={`h-full ${
+                session.performance.score >= 90
+                  ? "bg-green-500"
+                  : session.performance.score >= 70
+                  ? "bg-blue-500"
+                  : session.performance.score >= 50
+                  ? "bg-yellow-500"
+                  : "bg-red-500"
+              }`}
+              style={{
+                width: `${session.performance.score}%`,
+              }}
+            />
+          </div>
+        </div>
+      </td>
+
+      {/* Mistakes */}
+      <td className="px-6 py-4">
+        {session.performance.attempts}
+      </td>
+
+      {/* Status */}
+      <td className="px-6 py-4">
+        <span
+          className={`px-2 py-1 rounded text-xs font-medium ${
+            session.performance.score === 100
+              ? "bg-blue-100 text-blue-800"
+              : "bg-gray-100 text-gray-800"
+          }`}
+        >
+          {session.performance.score === 100
+            ? "Completed"
+            : "Stopped"}
+        </span>
+      </td>
+
+      <td className="px-6 py-4 text-right">
+        <button className="rounded-full p-1 hover:bg-gray-200">
+          <MoreVertical className="h-4 w-4 text-gray-600" />
+        </button>
+      </td>
+    </tr>
+  ))}
+</tbody>
             </table>
 
             {/* Pagination UI */}

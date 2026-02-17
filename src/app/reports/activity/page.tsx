@@ -28,6 +28,9 @@ export default function ActivitiesReportPage() {
   
         useEffect(() => {
       setSessions(getSessions());
+      sessions.forEach(s => {
+  console.log("KEY:", `${s.lesson.id}__${s.lesson.source}`);
+});
     }, []);
 
     type RangeType = "week" | "month" | "3month" | "custom";

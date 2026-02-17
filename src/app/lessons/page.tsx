@@ -609,7 +609,15 @@ function handleEndOfPiece() {
   const noteName = midiToNoteName(midi);
   const expectedNames = expectedMIDI.map(m => midiToNoteName(m)).join(', ');
   
-  const isNoteStart = currentBeat.isNoteStart ?? true;
+  const isNoteStart = currentBeat.isNoteStart === true;
+const exactMatch = expectedMIDI.includes(midi);
+const isCorrect = exactMatch && isNoteStart;
+
+// 🚫 Prevent double scoring
+if (scoredStepsRef.current.has(actualCurrentBeatIndex)) {
+  return;
+}
+
   
   console.log('🎹 Note pressed:', {
     played: `${noteName} (${midi})`,
@@ -619,26 +627,26 @@ function handleEndOfPiece() {
     expectedMIDI: expectedMIDI,
     isNoteStart: isNoteStart
   });
-  
-  const exactMatch = expectedMIDI.includes(midi);
-  const isCorrect = exactMatch && isNoteStart;
-  
-  // ✅ FIXED SCORING LOGIC - Only track once per beat
-  if (isNoteStart && !scoredStepsRef.current.has(actualCurrentBeatIndex)) {
-    scoredStepsRef.current.add(actualCurrentBeatIndex);
     
-    if (isCorrect) {
-      correctStepsRef.current += 1;
-      console.log(`✅ CORRECT: ${correctStepsRef.current}/${scoreableNotesRef.current}`);
-    } else {
-      incorrectNotesRef.current += 1;
-      console.log(`❌ INCORRECT: Wrong note at beat ${actualCurrentBeatIndex}`);
-    }
-  } else if (!exactMatch) {
-    // Track extra incorrect notes (notes that don't match at all)
+  // ✅ FIXED SCORING LOGIC - Only track once per beat
+  if (isNoteStart) {
+
+  scoredStepsRef.current.add(actualCurrentBeatIndex);
+
+  if (isCorrect) {
+    correctStepsRef.current += 1;
+    console.log(`✅ CORRECT: ${correctStepsRef.current}`);
+  } else {
     incorrectNotesRef.current += 1;
-    console.log(`❌ EXTRA INCORRECT NOTE: ${noteName}`);
+    console.log(`❌ INCORRECT at beat ${actualCurrentBeatIndex}`);
   }
+
+} else if (!exactMatch) {
+
+  // Wrong note during sustain
+  incorrectNotesRef.current += 1;
+  console.log(`❌ Wrong sustain note`);
+}
   
   // Find graphical notes for highlighting
   let graphicalNotes: any[] = [];

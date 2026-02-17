@@ -1,21 +1,10 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import { useState } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, Legend, CartesianGrid } from "recharts";
 import Image from "next/image";
 import SASRReport from "@/features/components/sasrreport";
 import { useRouter } from "next/navigation";
+import SasrPopup from "@/features/components/sasrpopup";
 
-const data = [
-  { date: "05/22/2025", score: 90 },
-  { date: "05/23/2025", score: 60 },
-  { date: "05/24/2025", score: 10 },
-  { date: "05/25/2025", score: 25 },
-  { date: "05/26/2025", score: 70 },
-  { date: "05/27/2025", score: 55 },
-  { date: "05/28/2025", score: 45 },
-  { date: "05/29/2025", score: 20 },
-];
 
 export default function Page() {
   const router = useRouter();
@@ -35,12 +24,14 @@ export default function Page() {
     { level: "Sight Reading Star", score: 1620, range: "1437-1620" },
     { level: "Top Performer", score: 1900, range: "1621-1900" },
   ];
+  const [popupOpen, setPopupOpen] = useState(false);
+
 
   return (
     <div className="min-h-screen bg-[#f8f5ef] flex flex-col items-center p-8 w-full">
       <div className="max-w-[90%] w-full flex flex-col md:flex-row gap-6">
         
-        {/* Left Section */}h-[552px]
+        {/* Left Section */}
         <div className="flex-1 ">
           {/* Top bar */}
           <div className="flex justify-between items-center mb-6 bg-white p-6 rounded-2xl shadow-md">
@@ -64,7 +55,7 @@ export default function Page() {
               </div>
             </div>
 
-            <button className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] ... text-[#151517] text-[16px] px-6 py-3 rounded-2xl  transition">
+            <button onClick={()=> setPopupOpen(true)} className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] ... text-[#151517] text-[16px] px-6 py-3 rounded-2xl  transition">
               Start new test
               <Image src="Union.svg" alt="arrow" width={20} height={12} className="inline-block ml-2"/>
             </button>
@@ -128,6 +119,13 @@ export default function Page() {
         </div>
 
       </div>
+      <div>
+        {popupOpen && ( 
+           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 transition-opacity ">
+                <SasrPopup/>
+           </div>
+        )}
+      </div>  
     </div>
   );
 }

@@ -47,7 +47,7 @@ type CursorControlsProps = {
     progressPercent: number,
     courseTitle: string,
     mistakeCount: number,
-    maxMistakes: number
+    maxMistakes?: number  // Made optional with default
 }
 type UnitLesson = {
   id: string, lessontitle: string, link: string, file: string 
@@ -93,7 +93,7 @@ export default function SasrPlayControls (props: CursorControlsProps) {
             progressPercent,
             courseTitle,
             mistakeCount,
-            maxMistakes
+            maxMistakes = MAX_MISTAKES  // Use default if not provided
         } =  props;
 
         const [unitlessonsData, setUnitLessonsData] = useState<UnitLesson[]>([]);
@@ -298,7 +298,11 @@ export default function SasrPlayControls (props: CursorControlsProps) {
                 <Image src="/icon.svg" width={15} height={10} alt="icon"/> Learn
             </button> */}
 
-                  <StrikeIndicator mistakeCount={mistakeCount} maxMistakes={MAX_MISTAKES} />
+                  {/* ✅ FIXED: Properly pass mistakeCount and maxMistakes */}
+                  <StrikeIndicator 
+                    mistakeCount={mistakeCount} 
+                    maxMistakes={maxMistakes} 
+                  />
 
               <Image src="/settings.svg" width={40} height={40} alt="icon" 
               className=" border-gray-300 cursor-pointer p-1"

@@ -7,11 +7,12 @@ import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import * as Tone from "tone";
 import { Sampler } from "tone";
 import scoreNotePlayed from "@/features/scores/scorenoteplayed";
+import SasrPlayControls from "../../features/components/sasrplaycontrol";
 import { useSearchParams } from "next/navigation";
 import { BeatCursor } from "@/features/playback/beatcursor";
-import SasrPlayControls from "@/features/components/sasrplaycontrol";
-import StrikeIndicator from "@/features/components/strike";
-import { sasrDataStore } from "@/datastore/sasrdatastore";
+import { saveSession} from "@/datastore/sessionstorage";
+import { sasrDataStore } from "../../datastore/sasrdatastore";
+
 
 interface PlayedNote {
   midi: number;
@@ -21,16 +22,7 @@ interface PlayedNote {
   graphicalNotes?: any[];
 }
 
-interface MistakeRecord {
-  beatIndex: number;
-  timestamp: number;
-  expectedNotes: number[];
-  playedNote: number;
-  measure: number;
-  beatInMeasure: number;
-}
-
-function SASRTechnique() {
+function Test2HybridFullContent() {
   const [uploadedMusicXML, setUploadedMusicXML] = useState<string | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -39,12 +31,17 @@ function SASRTechnique() {
   const searchparams = useSearchParams();
   const courseTitle = searchparams.get("title") || "Lesson";
   const fileName = searchparams.get("file") || "Wholenotes.mxl";
-  
+  const source = searchparams.get("source") || "Method-1A";
+  const hasInitializedOSMD = useRef(false);
+  const scoreableNotesRef = useRef(0);
+  // Session timing
+  const sessionStartRef = useRef<number | null>(null);
+  // Session attempts (restarts / replays)
+  const attemptCountRef = useRef(0);
   const fallbackXml = "/songs/" + fileName;
   const xml = uploadedMusicXML || fallbackXml;
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const osmdRef = useRef<any>(null);
-  
+  const osmdRef = useRef<any>(null);  
   // playback state
   const [isPlaying, setIsPlaying] = useState(false);
   const [playIndex, setPlayIndex] = useState(0);
@@ -55,45 +52,41 @@ function SASRTechnique() {
   const currentStepNotesRef = useRef<number[]>([]);
   const playbackMidiGuard = useRef<number>(0);
   const playModeRef = useRef<boolean>(false);
-  
   // ===== SCORING STATE =====
   const [score, setScore] = useState<number | null>(null);
   const totalStepsRef = useRef(0);
   const correctStepsRef = useRef(0);
+  const incorrectNotesRef = useRef(0);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [highScore, setHighScore] = useState<number | null>(null);
   const [lastScore, setLastScore] = useState<number | null>(null);
   const scoredStepsRef = useRef<Set<number>>(new Set());
   const currentCursorStepRef = useRef<number>(0);
-  
-  // ===== MISTAKE TRACKING STATE =====
-  const [mistakeCount, setMistakeCount] = useState(0);
-  const mistakeCountRef = useRef(0);
-  const mistakesRef = useRef<MistakeRecord[]>([]);
-  const [showMistakeLimit, setShowMistakeLimit] = useState(false);
-  const [showCompletionModal, setShowCompletionModal] = useState(false);
-  const MAX_MISTAKES = 3;
-  
-  // ===== SESSION TRACKING =====
-  const sessionStartTimeRef = useRef<number>(0);
-  const [tempo, setTempo] = useState(120);
-  
-  // ===== IMPROVED BEAT TRACKING =====
-  // Track which beats have been scored as CORRECT (to prevent duplicate scoring)
-  const correctBeatsRef = useRef<Set<number>>(new Set());
-  // Track which beats have had mistakes (to prevent duplicate mistake counting)
-  const mistakeBeatsRef = useRef<Set<number>>(new Set());
-  
   const playedNotesRef = useRef<PlayedNote[]>([]);
   const activeHighlightsRef = useRef<Set<any>>(new Set());
   const beatCursorRef = useRef<BeatCursor | null>(null);
   const [currentBeatIndex, setCurrentBeatIndex] = useState<number>(0);
   
+  // ✅ NEW: Mistake tracking and popup state
+  const [showScorePopup, setShowScorePopup] = useState(false);
+  const totalMistakesRef = useRef(0); // ✅ CHANGED: Track total mistakes, not consecutive
+  const [mistakeCountState, setMistakeCountState] = useState(0); // ✅ State for UI updates
+  const MAX_MISTAKES = 3;
+  
   useEffect(() => {
-    const hs = Number(localStorage.getItem("highScore"));
-    const ls = Number(localStorage.getItem("lastScore"));
-    if (!Number.isNaN(hs)) setHighScore(hs);
-    if (!Number.isNaN(ls)) setLastScore(ls);
+    const hsStr = localStorage.getItem("highScore");
+    const lsStr = localStorage.getItem("lastScore");
+    
+    // Only set if the value actually exists in localStorage
+    if (hsStr !== null) {
+      const hs = Number(hsStr);
+      if (!Number.isNaN(hs)) setHighScore(hs);
+    }
+    
+    if (lsStr !== null) {
+      const ls = Number(lsStr);
+      if (!Number.isNaN(ls)) setLastScore(ls);
+    }
   }, []);
   
   useEffect(() => {
@@ -118,7 +111,14 @@ function SASRTechnique() {
 
   // ========== FIXED OSMD SETUP ==========
   useEffect(() => {
+    attemptCountRef.current = 0;
+
     if (!containerRef.current) return;
+
+      if (hasInitializedOSMD.current) {
+    console.log('⚠️ OSMD already initialized, skipping');
+    return;
+  }
     
     const osmd = new OpenSheetMusicDisplay(containerRef.current, {
       backend: "svg",
@@ -151,14 +151,18 @@ function SASRTechnique() {
         
         osmdRef.current = osmd;
         
+        // Hide default cursor
         if (osmd.cursor) {
           osmd.cursor.hide();
         }
         
+        // IMPORTANT: Wait for render to complete and layout to stabilize
         setTimeout(() => {
           if (cancelled || !osmdRef.current) return;
           
           console.log("=== Creating Beat Cursor ===");
+          console.log("GraphicSheet exists:", !!osmdRef.current.GraphicSheet);
+          console.log("Measures:", osmdRef.current.GraphicSheet?.MeasureList?.length);
           
           try {
             const beatCursor = new BeatCursor(osmdRef.current);
@@ -168,12 +172,15 @@ function SASRTechnique() {
             setTotalSteps(totalBeats);
             totalStepsRef.current = totalBeats;
             setCurrentBeatIndex(0);
+            currentCursorStepRef.current = 0; // ✅ FIX: Initialize this
             
+            // Update current step notes
             const expectedMIDI = beatCursor.getCurrentExpectedMIDI();
             setCurrentStepNotes(expectedMIDI);
             currentStepNotesRef.current = expectedMIDI;
             
             console.log(`✅ Beat cursor initialized: ${totalBeats} beats`);
+            console.log(`Initial expected notes:`, expectedMIDI);
           } catch (error) {
             console.error("❌ Failed to create beat cursor:", error);
           }
@@ -193,14 +200,19 @@ function SASRTechnique() {
           if (beatCursorRef.current && osmdRef.current) {
             const currentIndex = beatCursorRef.current.getCurrentIndex();
             
-            if (!playModeRef.current) {
-              beatCursorRef.current.destroy();
-              const newCursor = new BeatCursor(osmdRef.current);
-              newCursor.setPosition(currentIndex);
-              beatCursorRef.current = newCursor;
-            } else {
-              beatCursorRef.current.refreshPositions();
-            }
+            // ✅ FIX: Recreate cursor element after render (SVG gets replaced)
+            beatCursorRef.current.destroy();
+            const newCursor = new BeatCursor(osmdRef.current);
+            newCursor.setPosition(currentIndex);
+            beatCursorRef.current = newCursor;
+            
+            setTotalSteps(newCursor.getTotalBeats());
+            
+            const expectedMIDI = newCursor.getCurrentExpectedMIDI();
+            setCurrentStepNotes(expectedMIDI);
+            currentStepNotesRef.current = expectedMIDI;
+            
+            console.log("Cursor recreated after resize at position", currentIndex);
           }
         }, 200);
       } catch (e) {
@@ -291,6 +303,8 @@ function SASRTechnique() {
               }
 
               if (playModeRef.current) {
+                scoreNotePlayed(key, playModeRef, currentCursorStepRef, scoredStepsRef, 
+                               currentStepNotesRef, correctStepsRef);
                 trackAndHighlightNote(key);
               }
             }
@@ -358,61 +372,74 @@ function SASRTechnique() {
 
   // ========== PLAYBACK CONTROL ==========
   const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [tempo, setTempo] = useState(120); // BPM
 
-  function startPlayback() {
-    if (!beatCursorRef.current) {
-      console.error("Cannot start - beat cursor not initialized");
-      return;
-    }
-    
-    clearAllTracking();
-    beatCursorRef.current.reset();
-    setCurrentBeatIndex(0);
-    setIsPlaying(true);
-    playModeRef.current = true;
-    
-    // Reset mistake tracking
-    setMistakeCount(0);
-    mistakeCountRef.current = 0;
-    mistakesRef.current = [];
-    setShowMistakeLimit(false);
-    setShowCompletionModal(false);
-    setScore(null);
-    
-    // Track session start time
-    sessionStartTimeRef.current = Date.now();
-    
-    totalStepsRef.current = beatCursorRef.current.getTotalBeats();
-    correctStepsRef.current = 0;
-    scoredStepsRef.current.clear();
-    correctBeatsRef.current.clear();
-    mistakeBeatsRef.current.clear();
-    currentCursorStepRef.current = 0;
-    
-    const expectedMIDI = beatCursorRef.current.getCurrentExpectedMIDI();
-    setCurrentStepNotes(expectedMIDI);
-    currentStepNotesRef.current = expectedMIDI;
-    
-    setCountdown(3);
-    let countdownValue = 3;
-    const countdownInterval = setInterval(() => {
-      countdownValue--;
-      setCountdown(countdownValue);
-      
-      if (countdownValue <= 0) {
-        clearInterval(countdownInterval);
-        setCountdown(null);
-        
-        if (beatCursorRef.current) {
-          beatCursorRef.current.startPlayback();
-        }
-        
-        startAutomaticPlayback();
-      }
-    }, 1000);
-    
-    console.log("🎵 Playback started with 3-mistake limit");
+function startPlayback() {
+  if (!beatCursorRef.current) {
+    console.error("Cannot start - beat cursor not initialized");
+    return;
   }
+  
+  clearAllTracking();
+  // New attempt starts
+  attemptCountRef.current += 1;
+  
+  // ✅ Reset mistake counter
+  totalMistakesRef.current = 0; // ✅ CHANGED: Reset total mistakes
+  setMistakeCountState(0); // ✅ Reset state for UI
+
+  beatCursorRef.current.reset();
+  
+  setCurrentBeatIndex(0);
+  currentCursorStepRef.current = 0;
+  setPlayIndex(0);
+  
+  setIsPlaying(true);
+  playModeRef.current = true;
+  
+  // 🎯 Count scoreable notes (beats with isNoteStart = true)
+  const totalBeats = beatCursorRef.current.getTotalBeats();
+  let scoreableCount = 0;
+  
+  for (let i = 0; i < totalBeats; i++) {
+    const beat = beatCursorRef.current.getBeatAt(i);
+    if (beat?.isNoteStart && beat.expectedNotes.length > 0) {
+      scoreableCount++;
+    }
+  }
+  
+  totalStepsRef.current = totalBeats; // For progress bar
+  scoreableNotesRef.current = scoreableCount; // For score calculation
+  correctStepsRef.current = 0;
+  incorrectNotesRef.current = 0;
+  scoredStepsRef.current.clear();
+  
+  console.log(`🎵 Playback started: ${totalBeats} beats, ${scoreableCount} scoreable notes`);
+  
+  const expectedMIDI = beatCursorRef.current.getCurrentExpectedMIDI();
+  setCurrentStepNotes(expectedMIDI);
+  currentStepNotesRef.current = expectedMIDI;
+  sessionStartRef.current = Date.now();
+
+  
+  setCountdown(3);
+  let countdownValue = 3;
+  const countdownInterval = setInterval(() => {
+    countdownValue--;
+    setCountdown(countdownValue);
+    
+    if (countdownValue <= 0) {
+      clearInterval(countdownInterval);
+      setCountdown(null);
+      
+      if (beatCursorRef.current) {
+        beatCursorRef.current.startPlayback();
+      }
+      
+      startAutomaticPlayback();
+    }
+  }, 1000);
+}
 
   function startAutomaticPlayback() {
     if (playbackIntervalRef.current) {
@@ -420,21 +447,9 @@ function SASRTechnique() {
     }
     
     const beatDuration = (60 / tempo) * 1000;
-    
     console.log(`🎵 Starting automatic playback at ${tempo} BPM (${beatDuration}ms per beat)`);
     
     playbackIntervalRef.current = setInterval(() => {
-      // CRITICAL: Check mistake limit FIRST before any other actions
-      if (mistakeCountRef.current >= MAX_MISTAKES) {
-        console.log('🛑 Mistake limit reached - stopping playback');
-        if (playbackIntervalRef.current) {
-          clearInterval(playbackIntervalRef.current);
-          playbackIntervalRef.current = null;
-        }
-        handleMistakeLimitReached();
-        return;
-      }
-      
       if (!playModeRef.current || !beatCursorRef.current) {
         if (playbackIntervalRef.current) {
           clearInterval(playbackIntervalRef.current);
@@ -444,16 +459,13 @@ function SASRTechnique() {
       }
       
       const currentIdx = beatCursorRef.current.getCurrentIndex();
+      console.log(`⏱️ Auto-advance from beat ${currentIdx}`);
       
       const moved = beatCursorRef.current.next();
       if (moved) {
         const newIndex = beatCursorRef.current.getCurrentIndex();
         
-        if (newIndex <= currentIdx) {
-          console.error(`❌ Cursor moved backwards! ${currentIdx} -> ${newIndex}`);
-          return;
-        }
-        
+        // ✅ FIX: Sync all state variables
         setCurrentBeatIndex(newIndex);
         currentCursorStepRef.current = newIndex;
         setPlayIndex(newIndex);
@@ -490,76 +502,9 @@ function SASRTechnique() {
     console.log("⏸️ Playback paused");
   }
 
-  // ========== SAVE SESSION DATA ==========
-  function saveSessionData(finalScore: number, completedFully: boolean) {
-    try {
-      const sessionData = {
-        title: courseTitle,
-        date: new Date().toISOString(),
-        score: finalScore,
-        totalBeats: totalStepsRef.current,
-        correctBeats: correctStepsRef.current,
-        mistakeCount: mistakesRef.current.length,
-        mistakes: mistakesRef.current,
-        completedFully: completedFully,
-        tempo: tempo,
-      };
-      
-      const savedSession = sasrDataStore.saveSession(sessionData);
-      
-      console.log('💾 Session saved:', savedSession);
-      
-      return savedSession;
-    } catch (error) {
-      console.error('❌ Error saving session:', error);
-      return null;
-    }
-  }
-
-  function handleMistakeLimitReached() {
-    console.log('🛑 HANDLING MISTAKE LIMIT REACHED');
-    
-    // FORCE stop everything
-    setIsPlaying(false);
-    playModeRef.current = false;
-    
-    if (playbackIntervalRef.current) {
-      clearInterval(playbackIntervalRef.current);
-      playbackIntervalRef.current = null;
-    }
-    
-    if (beatCursorRef.current) {
-      beatCursorRef.current.stopPlayback();
-    }
-    
-    // Calculate score based on total beats in the piece
-    const finalScore = totalStepsRef.current > 0
-      ? Math.round((correctStepsRef.current / totalStepsRef.current) * 100)
-      : 0;
-    
-    console.log('📊 Final Score Calculation (Mistake Limit):', {
-      totalBeats: totalStepsRef.current,
-      correctBeats: correctStepsRef.current,
-      beatsPlayed: currentBeatIndex + 1,
-      finalScore,
-      mistakes: mistakesRef.current.length
-    });
-    
-    setScore(finalScore);
-    setLastScore(finalScore);
-    localStorage.setItem("lastScore", finalScore.toString());
-    
-    // SAVE SESSION DATA
-    saveSessionData(finalScore, false);
-    
-    // Show the modal
-    setShowMistakeLimit(true);
-    
-    console.log('✅ Mistake limit modal should now be visible');
-  }
-
-  function handleEndOfPiece() {
-    console.log('🏁 HANDLING END OF PIECE');
+  // ✅ NEW: Function to stop playback due to mistakes
+  function stopPlaybackDueToMistakes() {
+    console.log(`🛑 Stopping playback - ${MAX_MISTAKES} mistakes reached`);
     
     setIsPlaying(false);
     playModeRef.current = false;
@@ -573,16 +518,24 @@ function SASRTechnique() {
       beatCursorRef.current.stopPlayback();
     }
     
-    // Calculate final score
-    const finalScore = totalStepsRef.current > 0
-      ? Math.round((correctStepsRef.current / totalStepsRef.current) * 100)
+    // Calculate and show score
+    calculateAndShowScore();
+  }
+
+  // ✅ NEW: Separate function to calculate and show score
+  function calculateAndShowScore() {
+    const baseScore = scoreableNotesRef.current > 0
+      ? (correctStepsRef.current / scoreableNotesRef.current) * 100
       : 0;
     
-    console.log('📊 Final Score Calculation (Completion):', {
-      totalBeats: totalStepsRef.current,
-      correctBeats: correctStepsRef.current,
-      finalScore,
-      mistakes: mistakesRef.current.length
+    const incorrectPenalty = incorrectNotesRef.current * 5;
+    const finalScore = Math.max(0, Math.round(baseScore - incorrectPenalty));
+    
+    console.log('📊 Score Update:', {
+      currentHighScore: highScore,
+      currentLastScore: lastScore,
+      newScore: finalScore,
+      willUpdateHighScore: highScore === null || finalScore > highScore
     });
     
     setScore(finalScore);
@@ -590,18 +543,72 @@ function SASRTechnique() {
     localStorage.setItem("lastScore", finalScore.toString());
     
     if (highScore === null || finalScore > highScore) {
+      console.log(`🏆 NEW HIGH SCORE! ${finalScore} (previous: ${highScore})`);
       setHighScore(finalScore);
       localStorage.setItem("highScore", finalScore.toString());
+    } else {
+      console.log(`📊 Score ${finalScore} did not beat high score of ${highScore}`);
     }
+
+    const endTime = Date.now();
+    const startTime = sessionStartRef.current ?? endTime;
+    const durationSec = Math.round((endTime - startTime) / 1000);
+
+    const accuracy = scoreableNotesRef.current > 0
+      ? Math.round((correctStepsRef.current / scoreableNotesRef.current) * 100)
+      : 0;
+
+    const lessonId = searchparams.get("lessonid") || "0";
+    const lessonUID = `SASR-${lessonId}`;
+
+    const session = {
+      id: crypto.randomUUID(),
+      startedAt: startTime,
+      endedAt: endTime,
+      durationSec,
+      lesson: {
+        uid: lessonUID,
+        id: lessonId,
+        title: courseTitle,
+        source: "SASR",
+      },
+      performance: {
+        attempts: Math.max(1, attemptCountRef.current),
+        score: finalScore,
+        accuracy,
+        correctNotes: correctStepsRef.current,
+        incorrectNotes: incorrectNotesRef.current,
+        totalScoreable: scoreableNotesRef.current,
+      },
+    };
+
+    saveSession(session);
     
-    // SAVE SESSION DATA
-    saveSessionData(finalScore, true);
+    // ✅ Show popup
+    setShowScorePopup(true);
     
-    // Show completion modal
-    setShowCompletionModal(true);
-    
-    console.log(`🎉 Piece complete! Score: ${finalScore}%`);
+    console.log(`Correct notes: ${correctStepsRef.current}/${scoreableNotesRef.current}`);
+    console.log(`Incorrect notes: ${incorrectNotesRef.current}`);
+    console.log(`Base score: ${baseScore.toFixed(1)}%`);
+    console.log(`Penalty: -${incorrectPenalty}%`);
+    console.log(`Final score: ${finalScore}%`);
   }
+
+function handleEndOfPiece() {
+  setIsPlaying(false);
+  playModeRef.current = false;
+  
+  if (playbackIntervalRef.current) {
+    clearInterval(playbackIntervalRef.current);
+    playbackIntervalRef.current = null;
+  }
+  
+  if (beatCursorRef.current) {
+    beatCursorRef.current.stopPlayback();
+  }
+  
+  calculateAndShowScore();
+}
 
   useEffect(() => {
     return () => {
@@ -611,111 +618,112 @@ function SASRTechnique() {
     };
   }, []);
 
-  // ========== PROPERLY FIXED NOTE TRACKING ==========
+  // ========== NOTE TRACKING ==========
   function trackAndHighlightNote(midi: number) {
-    if (!beatCursorRef.current || !playModeRef.current) return;
+  const actualCurrentBeatIndex = currentCursorStepRef.current;
+  
+  console.log('🔍 trackAndHighlightNote called:', {
+    midi,
+    playModeActive: playModeRef.current,
+    cursorExists: !!beatCursorRef.current,
+    currentBeatIndex: actualCurrentBeatIndex
+  });
+  
+  if (!beatCursorRef.current || !playModeRef.current) {
+    console.log('⚠️ Ignoring note - not in play mode or no cursor');
+    return;
+  }
 
-    const currentBeatIdx = currentBeatIndex;
-    const expectedMIDI = beatCursorRef.current.getCurrentExpectedMIDI();
-    const noteName = midiToNoteName(midi);
-    const expectedNames = expectedMIDI.map(m => midiToNoteName(m)).join(', ');
+  const currentBeat = beatCursorRef.current.getBeatAt(actualCurrentBeatIndex);
+  if (!currentBeat) {
+    console.log('❌ No beat found at index', actualCurrentBeatIndex);
+    return;
+  }
+  
+  const expectedMIDI = currentBeat.expectedNotes.map(ht => ht + 12);
+  const noteName = midiToNoteName(midi);
+  const expectedNames = expectedMIDI.map(m => midiToNoteName(m)).join(', ');
+  
+  const isNoteStart = currentBeat.isNoteStart === true;
+  const exactMatch = expectedMIDI.includes(midi);
+  const isCorrect = exactMatch && isNoteStart;
+
+  // 🚫 Prevent double scoring
+  if (scoredStepsRef.current.has(actualCurrentBeatIndex)) {
+    return;
+  }
+
+  
+  console.log('🎹 Note pressed:', {
+    played: `${noteName} (${midi})`,
+    beat: actualCurrentBeatIndex,
+    beatX: currentBeat?.staffEntryX?.toFixed(2),
+    expected: expectedNames || 'Rest',
+    expectedMIDI: expectedMIDI,
+    isNoteStart: isNoteStart
+  });
     
-    const currentBeat = beatCursorRef.current.getCurrentBeat();
-    
-    console.log('🎹 Note Analysis:', {
-      played: `${noteName} (${midi})`,
-      beat: currentBeatIdx,
-      expected: expectedNames || 'Rest',
-      expectedMIDI: expectedMIDI,
-      alreadyCorrect: correctBeatsRef.current.has(currentBeatIdx),
-      alreadyMistake: mistakeBeatsRef.current.has(currentBeatIdx)
-    });
-    
-    const exactMatch = expectedMIDI.includes(midi);
-    const matchingNotes = beatCursorRef.current.findGraphicalNotesAtCurrentBeat(midi);
-    const isCorrect = exactMatch && matchingNotes.length > 0;
-    
-    const playedNote: PlayedNote = {
-      midi,
-      timestamp: Date.now(),
-      cursorStep: currentBeatIdx,
-      wasCorrect: isCorrect,
-      graphicalNotes: matchingNotes.length > 0 ? matchingNotes : undefined
-    };
-    
-    playedNotesRef.current.push(playedNote);
-    
-    // HANDLE CORRECT NOTES
+  // ✅ SCORING LOGIC with mistake tracking (TOTAL, not consecutive)
+  if (isNoteStart) {
+    scoredStepsRef.current.add(actualCurrentBeatIndex);
+
     if (isCorrect) {
-      console.log('✅ Correct note played!');
+      correctStepsRef.current += 1;
+      // ✅ CHANGED: Don't reset mistake counter on correct notes
+      console.log(`✅ CORRECT: ${correctStepsRef.current}`);
+    } else {
+      incorrectNotesRef.current += 1;
+      totalMistakesRef.current += 1; // ✅ CHANGED: Increment total mistake counter
+      setMistakeCountState(totalMistakesRef.current); // ✅ Update state immediately for UI
+      console.log(`❌ INCORRECT at beat ${actualCurrentBeatIndex} (Total Mistakes: ${totalMistakesRef.current}/${MAX_MISTAKES})`);
       
-      // Only increment score if this beat hasn't been marked correct yet
-      if (!correctBeatsRef.current.has(currentBeatIdx)) {
-        correctStepsRef.current++;
-        correctBeatsRef.current.add(currentBeatIdx);
-        
-        console.log(`📈 Score updated: ${correctStepsRef.current}/${totalStepsRef.current} beats correct`);
-      }
-      
-      // Always highlight correct notes (visual feedback)
-      if (matchingNotes.length > 0) {
-        console.log(`✅ Highlighting ${matchingNotes.length} correct note(s)`);
-        matchingNotes.forEach((gn) => {
-          highlightGraphicalNotePersistent(gn, true);
-        });
-      }
-    } 
-    // HANDLE INCORRECT NOTES
-    else if (expectedMIDI.length > 0) {
-      // Only count as mistake if:
-      // 1. There ARE expected notes (not a rest)
-      // 2. This beat hasn't already been marked as a mistake
-      if (!mistakeBeatsRef.current.has(currentBeatIdx)) {
-        const newMistakeCount = mistakeCountRef.current + 1;
-        mistakeCountRef.current = newMistakeCount;
-        setMistakeCount(newMistakeCount);
-        
-        // Mark this beat as having a mistake
-        mistakeBeatsRef.current.add(currentBeatIdx);
-        
-        const mistakeRecord: MistakeRecord = {
-          beatIndex: currentBeatIdx,
-          timestamp: Date.now(),
-          expectedNotes: expectedMIDI,
-          playedNote: midi,
-          measure: currentBeat?.measureIndex ? currentBeat.measureIndex + 1 : 0,
-          beatInMeasure: currentBeat?.beatInMeasure ? currentBeat.beatInMeasure + 1 : 0
-        };
-        
-        mistakesRef.current.push(mistakeRecord);
-        
-        console.log(`❌ MISTAKE ${newMistakeCount}/${MAX_MISTAKES}:`, {
-          expected: expectedNames,
-          played: noteName,
-          measure: mistakeRecord.measure,
-          beat: mistakeRecord.beatInMeasure
-        });
-        
-        // Check if we've hit the limit
-        if (newMistakeCount >= MAX_MISTAKES) {
-          console.log('🚨 MAX MISTAKES REACHED - Will stop on next interval');
-        }
-      } else {
-        console.log('⚠️ Mistake already counted for this beat, not counting again');
-      }
-      
-      // Always highlight incorrect notes (visual feedback)
-      if (matchingNotes.length > 0) {
-        console.log(`❌ Highlighting ${matchingNotes.length} incorrect note(s)`);
-        matchingNotes.forEach((gn) => {
-          highlightGraphicalNotePersistent(gn, false);
-        });
-      } else if (!exactMatch) {
-        console.log('👻 Drawing ghost note (incorrect)');
-        drawGhostNote(osmdRef.current, midi, false);
+      // ✅ Check if max mistakes reached
+      if (totalMistakesRef.current >= MAX_MISTAKES) {
+        stopPlaybackDueToMistakes();
+        return; // Stop processing this note
       }
     }
+
+  } else if (!exactMatch) {
+    // Wrong note during sustain
+    incorrectNotesRef.current += 1;
+    totalMistakesRef.current += 1; // ✅ CHANGED: Count all mistakes
+    setMistakeCountState(totalMistakesRef.current); // ✅ Update state immediately for UI
+    console.log(`❌ Wrong sustain note (Total Mistakes: ${totalMistakesRef.current}/${MAX_MISTAKES})`);
+    
+    // ✅ Check if max mistakes reached
+    if (totalMistakesRef.current >= MAX_MISTAKES) {
+      stopPlaybackDueToMistakes();
+      return;
+    }
   }
+  
+  // Find graphical notes for highlighting
+  let graphicalNotes: any[] = [];
+  
+  if (isCorrect) {
+    graphicalNotes = beatCursorRef.current.findGraphicalNotesAtCurrentBeat(midi);
+    console.log(`🔍 Found ${graphicalNotes.length} graphical notes for highlighting`);
+  }
+  
+  const playedNote: PlayedNote = {
+    midi,
+    timestamp: Date.now(),
+    cursorStep: actualCurrentBeatIndex,
+    wasCorrect: isCorrect,
+    graphicalNotes: graphicalNotes
+  };
+  
+  playedNotesRef.current.push(playedNote);
+  
+  if (!isNoteStart && exactMatch) {
+    console.log(`⚠️ Correct note but wrong timing (continuation beat) - marking as incorrect`);
+  }
+  
+  console.log(`${isCorrect ? '✅' : '❌'} Drawing feedback`);
+  
+  drawFeedbackDot(osmdRef.current, midi, isCorrect, currentBeat, graphicalNotes);
+}
 
   function midiToNoteName(midi: number): string {
     const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -724,89 +732,134 @@ function SASRTechnique() {
     return `${noteName}${octave}`;
   }
 
-  function highlightGraphicalNotePersistent(graphicalNote: any, isCorrect: boolean) {
-    if (!graphicalNote?.getSVGGElement) return;
-    
-    const className = isCorrect ? 'vf-note-correct' : 'vf-note-incorrect';
-    const group = graphicalNote.getSVGGElement();
-    
-    if (group) {
-      group.classList.add(className);
-      activeHighlightsRef.current.add(group);
-    }
+function drawFeedbackDot(
+  osmd: any, 
+  midi: number, 
+  isCorrect: boolean, 
+  beat: any,
+  graphicalNotes?: any[]
+) {
+  if (!osmd?.drawer?.backend) {
+    console.warn('⚠️ No OSMD backend');
+    return;
   }
 
-  function drawGhostNote(osmd: any, midi: number, isCorrect: boolean) {
-    if (!beatCursorRef.current) return;
-    
-    const beat = beatCursorRef.current.getCurrentBeat();
-    if (!beat || beat.staffEntryX === undefined) return;
-
-    const svg = osmd.drawer?.backend?.getSvgElement?.();
-    if (!svg) return;
-
-    const graphicSheet = osmd.GraphicSheet;
-    const measureList = graphicSheet?.MeasureList?.[beat.measureIndex];
-    const measure = measureList?.[0];
-    
-    if (!measure) return;
-
-    const lineSpacing = 10;
-    
-    const unitInPixels = osmd.drawer?.backend?.getInnerElement?.()?.offsetWidth 
-      ? osmd.drawer.backend.getInnerElement().offsetWidth / graphicSheet.ParentMusicSheet.pageWidth
-      : 10;
-    
-    const measureY = (measure.PositionAndShape?.AbsolutePosition?.y ?? 0) * unitInPixels;
-    
-    const midiToDiatonic = (midi: number) => {
-      const pitchClass = midi % 12;
-      const octave = Math.floor(midi / 12) - 1;
-      const chromaticToDiatonic = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
-      const diatonicPitch = chromaticToDiatonic[pitchClass];
-      return octave * 7 + diatonicPitch;
-    };
-    
-    const clef = measure.InitiallyActiveClef?.clefType;
-    let referenceDiatonic, referenceY;
-    
-    if (clef === 1) {
-      referenceDiatonic = midiToDiatonic(50);
-      referenceY = measureY + (2 * lineSpacing);
-    } else {
-      referenceDiatonic = midiToDiatonic(71);
-      referenceY = measureY + (2 * lineSpacing);
-    }
-    
-    const noteDiatonic = midiToDiatonic(midi);
-    const diatonicSteps = referenceDiatonic - noteDiatonic;
-    const y = referenceY + (diatonicSteps * (lineSpacing / 2));
-
-    const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    el.setAttribute("cx", beat.staffEntryX.toString());
-    el.setAttribute("cy", y.toString());
-    el.setAttribute("r", "8");
-    el.classList.add(isCorrect ? "midi-ghost-note-correct" : "midi-ghost-note-incorrect");
-    el.setAttribute("stroke-width", "2.5");
-    
-    svg.appendChild(el);
-    activeHighlightsRef.current.add(el);
+  const svg = osmd.drawer.backend.getSvgElement();
+  if (!svg) {
+    console.warn('⚠️ No SVG element');
+    return;
   }
 
-  function clearAllTracking() {
-    playedNotesRef.current = [];
+  const graphicSheet = osmd.GraphicSheet;
+  
+  // Calculate unit conversion
+  let unitInPixels = 10;
+  const innerElement = osmd.drawer?.backend?.getInnerElement?.();
+  if (innerElement?.offsetWidth && graphicSheet?.ParentMusicSheet?.pageWidth) {
+    unitInPixels = innerElement.offsetWidth / graphicSheet.ParentMusicSheet.pageWidth;
+  }
+
+  // 🎯 METHOD 1: Use graphical notes if available (MOST ACCURATE)
+  if (graphicalNotes && graphicalNotes.length > 0) {
+    console.log(`✨ Drawing dots at graphical note positions`);
     
-    activeHighlightsRef.current.forEach((element) => {
-      if (element.classList) {
-        element.classList.remove('vf-note-correct', 'vf-note-incorrect');
-      } else {
-        element.remove();
+    for (const gNote of graphicalNotes) {
+      const posAndShape = gNote.PositionAndShape;
+      if (!posAndShape?.AbsolutePosition) {
+        console.warn('⚠️ Graphical note missing position');
+        continue;
       }
-    });
+      
+      const noteX = posAndShape.AbsolutePosition.x * unitInPixels;
+      const noteY = posAndShape.AbsolutePosition.y * unitInPixels;
+      
+      const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      el.setAttribute("cx", noteX.toString());
+      el.setAttribute("cy", noteY.toString());
+      el.setAttribute("r", "8");
+      el.classList.add(isCorrect ? "midi-ghost-note-correct" : "midi-ghost-note-incorrect");
+      el.setAttribute("stroke-width", "2.5");
+      
+      svg.appendChild(el);
+      activeHighlightsRef.current.add(el);
+      
+      console.log(`🔴 Dot drawn at ACTUAL NOTE position: X=${noteX.toFixed(1)}, Y=${noteY.toFixed(1)}, correct=${isCorrect}`);
+    }
     
-    activeHighlightsRef.current.clear();
-    console.log('🧹 Cleared all tracking and highlights');
+    return;
   }
+
+  // 🎯 FALLBACK METHOD: Calculate position (less accurate)
+  console.log(`⚠️ No graphical notes found, using fallback positioning`);
+  
+  if (!beat || beat.staffEntryX === undefined) {
+    console.warn('⚠️ Cannot draw dot - invalid beat position');
+    return;
+  }
+
+  const measureList = graphicSheet?.MeasureList?.[beat.measureIndex];
+  const measure = measureList?.[0];
+  
+  if (!measure) {
+    console.warn('⚠️ No measure found');
+    return;
+  }
+
+  const lineSpacing = 10;
+  const measureY = (measure.PositionAndShape?.AbsolutePosition?.y ?? 0) * unitInPixels;
+  
+  const midiToDiatonic = (midi: number) => {
+    const pitchClass = midi % 12;
+    const octave = Math.floor(midi / 12) - 1;
+    const chromaticToDiatonic = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
+    const diatonicPitch = chromaticToDiatonic[pitchClass];
+    return octave * 7 + diatonicPitch;
+  };
+  
+  const clef = measure.InitiallyActiveClef?.clefType;
+  let referenceDiatonic, referenceY;
+  
+  if (clef === 1) {
+    referenceDiatonic = midiToDiatonic(50);
+    referenceY = measureY + (2 * lineSpacing);
+  } else {
+    referenceDiatonic = midiToDiatonic(71);
+    referenceY = measureY + (2 * lineSpacing);
+  }
+  
+  const noteDiatonic = midiToDiatonic(midi);
+  const diatonicSteps = referenceDiatonic - noteDiatonic;
+  const y = referenceY + (diatonicSteps * (lineSpacing / 2));
+
+  const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  el.setAttribute("cx", beat.staffEntryX.toString());
+  el.setAttribute("cy", y.toString());
+  el.setAttribute("r", "8");
+  el.classList.add(isCorrect ? "midi-ghost-note-correct" : "midi-ghost-note-incorrect");
+  el.setAttribute("stroke-width", "2.5");
+  
+  svg.appendChild(el);
+  activeHighlightsRef.current.add(el);
+  
+  console.log(`🔴 Fallback dot drawn at X=${beat.staffEntryX.toFixed(1)}, Y=${y.toFixed(1)}, correct=${isCorrect}`);
+}
+
+function clearAllTracking() {
+  playedNotesRef.current = [];
+  
+  activeHighlightsRef.current.forEach((element) => {
+    try {
+      if (element.parentNode) {
+        element.parentNode.removeChild(element);
+      }
+    } catch (e) {
+      console.warn('Failed to remove highlight:', e);
+    }
+  });
+  
+  activeHighlightsRef.current.clear();
+  console.log('🧹 Cleared all tracking and highlights');
+}
 
   function getCurrentBeatInfo() {
     if (!beatCursorRef.current) return null;
@@ -822,24 +875,6 @@ function SASRTechnique() {
         .map(m => midiToNoteName(m))
         .join(', ')
     };
-  }
-
-  // Helper function to reset for new attempt
-  function resetForNewAttempt() {
-    setShowMistakeLimit(false);
-    setShowCompletionModal(false);
-    clearAllTracking();
-    if (beatCursorRef.current) {
-      beatCursorRef.current.reset();
-      setCurrentBeatIndex(0);
-    }
-    setMistakeCount(0);
-    mistakeCountRef.current = 0;
-    mistakesRef.current = [];
-    correctStepsRef.current = 0;
-    correctBeatsRef.current.clear();
-    mistakeBeatsRef.current.clear();
-    setScore(null);
   }
 
   // ========== UI ==========
@@ -874,34 +909,38 @@ function SASRTechnique() {
           const x = e.clientX - rect.left;
           const percent = x / rect.width;
           const targetBeat = Math.floor(percent * totalSteps);
-
+          
           if (beatCursorRef.current) {
             beatCursorRef.current.setPosition(targetBeat);
+            
             setCurrentBeatIndex(targetBeat);
             currentCursorStepRef.current = targetBeat;
-
+            setPlayIndex(targetBeat);
+            
             const expectedMIDI = beatCursorRef.current.getCurrentExpectedMIDI();
             setCurrentStepNotes(expectedMIDI);
             currentStepNotesRef.current = expectedMIDI;
+            
+            console.log(`📍 Seeked to beat ${targetBeat}`);
           }
         }}
         containerRef={containerRef}
         countdown={countdown}
         progressPercent={progressPercent}
-        courseTitle={courseTitle} 
-        mistakeCount={mistakeCount} 
+        courseTitle={courseTitle}
+        mistakeCount={mistakeCountState}
         maxMistakes={MAX_MISTAKES}
       />
       
-      {/* Mistake Limit Modal */}
-      {showMistakeLimit && (
+      {/* ✅ NEW: Score Popup */}
+      {showScorePopup && (
         <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0,0,0,0.9)',
+          background: 'rgba(0, 0, 0, 0.7)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -909,118 +948,94 @@ function SASRTechnique() {
         }}>
           <div style={{
             background: 'white',
+            borderRadius: '12px',
             padding: '40px',
-            borderRadius: '16px',
-            maxWidth: '600px',
+            maxWidth: '500px',
             width: '90%',
-            textAlign: 'center',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+            boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+            textAlign: 'center'
           }}>
-            <h2 style={{color: '#f44336', marginBottom: '20px', fontSize: '28px'}}>
-              ⚠️ Practice Session Stopped
+            <h2 style={{ margin: '0 0 20px 0', fontSize: '32px', color: '#333' }}>
+              {totalMistakesRef.current >= MAX_MISTAKES ? '🛑 Practice Stopped' : '🎉 Complete!'}
             </h2>
-            <p style={{fontSize: '18px', marginBottom: '15px'}}>
-              Youve made {MAX_MISTAKES} strikes
-            </p>
-            <p style={{marginBottom: '30px', color: '#666', fontSize: '16px'}}>
-              Lets review what happened and try again!
-            </p>
+            
+            {totalMistakesRef.current >= MAX_MISTAKES && (
+              <p style={{ 
+                fontSize: '18px', 
+                color: '#f44336', 
+                marginBottom: '20px',
+                fontWeight: 'bold'
+              }}>
+                {MAX_MISTAKES} mistakes made - Keep practicing!
+              </p>
+            )}
             
             <div style={{
-              background: '#f5f5f5',
-              padding: '20px',
-              borderRadius: '12px',
-              marginBottom: '25px'
+              fontSize: '64px',
+              fontWeight: 'bold',
+              color: (score ?? 0) >= 80 ? '#4caf50' : (score ?? 0) >= 60 ? '#ff9800' : '#f44336',
+              margin: '20px 0'
             }}>
-              <div style={{fontSize: '18px', marginBottom: '15px'}}>
-                <strong>Your Performance:</strong>
-              </div>
-              <div style={{fontSize: '16px', color: '#666', marginBottom: '8px'}}>
-                Total Beats: <strong>{totalStepsRef.current}</strong>
-              </div>
-              <div style={{fontSize: '16px', color: '#666', marginBottom: '8px'}}>
-                Correct Notes: <strong style={{color: '#4caf50'}}>{correctStepsRef.current}</strong>
-              </div>
-              <div style={{fontSize: '16px', color: '#666', marginBottom: '15px'}}>
-                Mistakes: <strong style={{color: '#f44336'}}>{mistakeCount}</strong>
-              </div>
-              <div style={{
-                fontSize: '48px',
-                fontWeight: 'bold',
-                color: '#4caf50',
-                marginTop: '15px'
-              }}>
-                {score}%
-              </div>
-              <div style={{fontSize: '14px', color: '#999', marginTop: '5px'}}>
-                FINAL SCORE
-              </div>
+              {score ?? 0}%
             </div>
             
-            <div style={{marginBottom: '25px', textAlign: 'left'}}>
-              <strong style={{fontSize: '16px'}}>Mistakes Made:</strong>
-              <div style={{
-                maxHeight: '180px',
-                overflowY: 'auto',
-                marginTop: '12px',
-                fontSize: '14px'
-              }}>
-                {mistakesRef.current.map((mistake, idx) => (
-                  <div key={idx} style={{
-                    padding: '12px',
-                    background: idx % 2 === 0 ? '#fafafa' : 'white',
-                    borderRadius: '6px',
-                    marginBottom: '6px',
-                    border: '1px solid #eee'
-                  }}>
-                    <div style={{marginBottom: '4px'}}>
-                      <strong>Strike {idx + 1}:</strong> Measure {mistake.measure}, Beat {mistake.beatInMeasure}
-                    </div>
-                    <div style={{color: '#666', fontSize: '13px'}}>
-                      Expected: <strong>{mistake.expectedNotes.map(m => midiToNoteName(m)).join(', ')}</strong>
-                    </div>
-                    <div style={{color: '#f44336', fontSize: '13px'}}>
-                      Played: <strong>{midiToNoteName(mistake.playedNote)}</strong>
-                    </div>
-                  </div>
-                ))}
+            <div style={{ fontSize: '16px', color: '#666', marginBottom: '30px' }}>
+              <div style={{ marginBottom: '10px' }}>
+                <span style={{ color: '#4caf50' }}>✓ Correct: {correctStepsRef.current}</span>
+                {' / '}
+                <span style={{ color: '#f44336' }}>✗ Incorrect: {incorrectNotesRef.current}</span>
               </div>
+              <div>Total Scoreable Notes: {scoreableNotesRef.current}</div>
+              
+              {highScore !== null && (score ?? 0) > highScore && (
+                <div style={{ 
+                  marginTop: '15px', 
+                  fontSize: '20px', 
+                  color: '#ffd700',
+                  fontWeight: 'bold'
+                }}>
+                  🏆 NEW HIGH SCORE!
+                </div>
+              )}
+              
+              {highScore !== null && (
+                <div style={{ marginTop: '10px', fontSize: '14px' }}>
+                  Previous High Score: {highScore}%
+                </div>
+              )}
             </div>
             
-            <div style={{display: 'flex', gap: '12px', justifyContent: 'center'}}>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
               <button
-                onClick={resetForNewAttempt}
+                onClick={() => {
+                  setShowScorePopup(false);
+                  startPlayback();
+                }}
                 style={{
+                  padding: '12px 24px',
+                  fontSize: '16px',
                   background: '#4caf50',
                   color: 'white',
                   border: 'none',
-                  padding: '14px 32px',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
+                  borderRadius: '6px',
                   cursor: 'pointer',
-                  transition: 'all 0.2s'
+                  fontWeight: 'bold'
                 }}
-                onMouseOver={(e) => e.currentTarget.style.background = '#45a049'}
-                onMouseOut={(e) => e.currentTarget.style.background = '#4caf50'}
               >
                 Try Again
               </button>
+              
               <button
-                onClick={() => setShowMistakeLimit(false)}
+                onClick={() => setShowScorePopup(false)}
                 style={{
+                  padding: '12px 24px',
+                  fontSize: '16px',
                   background: '#666',
                   color: 'white',
                   border: 'none',
-                  padding: '14px 32px',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
+                  borderRadius: '6px',
+                  cursor: 'pointer'
                 }}
-                onMouseOver={(e) => e.currentTarget.style.background = '#555'}
-                onMouseOut={(e) => e.currentTarget.style.background = '#666'}
               >
                 Close
               </button>
@@ -1028,181 +1043,8 @@ function SASRTechnique() {
           </div>
         </div>
       )}
-
-      {/* COMPLETION MODAL */}
-      {showCompletionModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.9)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10001
-        }}>
-          <div style={{
-            background: 'white',
-            padding: '40px',
-            borderRadius: '16px',
-            maxWidth: '600px',
-            width: '90%',
-            textAlign: 'center',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-          }}>
-            <h2 style={{color: '#4caf50', marginBottom: '20px', fontSize: '28px'}}>
-              🎉 Lesson Completed!
-            </h2>
-            <p style={{fontSize: '18px', marginBottom: '15px'}}>
-              Congratulations! You finished the piece!
-            </p>
-            <p style={{marginBottom: '30px', color: '#666', fontSize: '16px'}}>
-              {score && score >= 90 ? 'Excellent performance!' : 
-               score && score >= 70 ? 'Great job!' :
-               score && score >= 50 ? 'Good effort!' :
-               'Keep practicing!'}
-            </p>
-            
-            <div style={{
-              background: '#f5f5f5',
-              padding: '20px',
-              borderRadius: '12px',
-              marginBottom: '25px'
-            }}>
-              <div style={{fontSize: '18px', marginBottom: '15px'}}>
-                <strong>Your Performance:</strong>
-              </div>
-              <div style={{fontSize: '16px', color: '#666', marginBottom: '8px'}}>
-                Total Beats: <strong>{totalStepsRef.current}</strong>
-              </div>
-              <div style={{fontSize: '16px', color: '#666', marginBottom: '8px'}}>
-                Correct Notes: <strong style={{color: '#4caf50'}}>{correctStepsRef.current}</strong>
-              </div>
-              <div style={{fontSize: '16px', color: '#666', marginBottom: '15px'}}>
-                Mistakes: <strong style={{color: mistakeCount > 0 ? '#f44336' : '#4caf50'}}>{mistakeCount}</strong>
-              </div>
-              <div style={{
-                fontSize: '48px',
-                fontWeight: 'bold',
-                color: score && score >= 90 ? '#4caf50' : 
-                       score && score >= 70 ? '#2196f3' :
-                       score && score >= 50 ? '#ff9800' : '#f44336',
-                marginTop: '15px'
-              }}>
-                {score}%
-              </div>
-              <div style={{fontSize: '14px', color: '#999', marginTop: '5px'}}>
-                FINAL SCORE
-              </div>
-              
-              {/* High Score Indicator */}
-              {highScore !== null && score !== null && score >= highScore && (
-                <div style={{
-                  marginTop: '15px',
-                  padding: '10px',
-                  background: 'linear-gradient(135deg, #ffd700 0%, #ffed4e 100%)',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  color: '#333'
-                }}>
-                  🏆 New High Score!
-                </div>
-              )}
-            </div>
-            
-            {/* Show mistakes if any */}
-            {mistakesRef.current.length > 0 && (
-              <div style={{marginBottom: '25px', textAlign: 'left'}}>
-                <strong style={{fontSize: '16px'}}>Mistakes to Review:</strong>
-                <div style={{
-                  maxHeight: '180px',
-                  overflowY: 'auto',
-                  marginTop: '12px',
-                  fontSize: '14px'
-                }}>
-                  {mistakesRef.current.map((mistake, idx) => (
-                    <div key={idx} style={{
-                      padding: '12px',
-                      background: idx % 2 === 0 ? '#fafafa' : 'white',
-                      borderRadius: '6px',
-                      marginBottom: '6px',
-                      border: '1px solid #eee'
-                    }}>
-                      <div style={{marginBottom: '4px'}}>
-                        <strong>Mistake {idx + 1}:</strong> Measure {mistake.measure}, Beat {mistake.beatInMeasure}
-                      </div>
-                      <div style={{color: '#666', fontSize: '13px'}}>
-                        Expected: <strong>{mistake.expectedNotes.map(m => midiToNoteName(m)).join(', ')}</strong>
-                      </div>
-                      <div style={{color: '#f44336', fontSize: '13px'}}>
-                        Played: <strong>{midiToNoteName(mistake.playedNote)}</strong>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {/* Perfect score message */}
-            {mistakesRef.current.length === 0 && (
-              <div style={{
-                marginBottom: '25px',
-                padding: '20px',
-                background: 'linear-gradient(135deg, #4caf50 0%, #8bc34a 100%)',
-                borderRadius: '12px',
-                color: 'white'
-              }}>
-                <div style={{fontSize: '24px', marginBottom: '8px'}}>✨ Perfect Performance! ✨</div>
-                <div style={{fontSize: '14px'}}>You played all notes correctly without any mistakes!</div>
-              </div>
-            )}
-            
-            <div style={{display: 'flex', gap: '12px', justifyContent: 'center'}}>
-              <button
-                onClick={resetForNewAttempt}
-                style={{
-                  background: '#4caf50',
-                  color: 'white',
-                  border: 'none',
-                  padding: '14px 32px',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.background = '#45a049'}
-                onMouseOut={(e) => e.currentTarget.style.background = '#4caf50'}
-              >
-                Play Again
-              </button>
-              <button
-                onClick={() => setShowCompletionModal(false)}
-                style={{
-                  background: '#2196f3',
-                  color: 'white',
-                  border: 'none',
-                  padding: '14px 32px',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.background = '#1976d2'}
-                onMouseOut={(e) => e.currentTarget.style.background = '#2196f3'}
-              >
-                Continue
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       
-      {/* Debug info */}
+      {/* Enhanced Debug Panel */}
       <div style={{
         position: 'fixed',
         top: '10px',
@@ -1213,21 +1055,54 @@ function SASRTechnique() {
         borderRadius: '6px',
         fontSize: '12px',
         fontFamily: 'monospace',
-        zIndex: 10000
+        zIndex: 10000,
+        maxWidth: '280px'
       }}>
         {(() => {
           const info = getCurrentBeatInfo();
+          const currentScore = scoreableNotesRef.current > 0 
+            ? Math.round((correctStepsRef.current / scoreableNotesRef.current) * 100) 
+            : 0;
+          const penalty = incorrectNotesRef.current * 5;
+          const projectedScore = Math.max(0, currentScore - penalty);
+          
           return info ? (
             <>
+              <div style={{fontWeight: 'bold', marginBottom: '8px', borderBottom: '1px solid #444', paddingBottom: '4px'}}>
+                🎵 Current Position
+              </div>
               <div>Beat: {info.beatIndex + 1}/{totalSteps}</div>
               <div>Measure: {info.measure}, Beat: {info.beatInMeasure}</div>
               <div>Expected: {info.expectedNotes || 'Rest'}</div>
-              <div style={{marginTop: '5px', borderTop: '1px solid #444', paddingTop: '5px'}}>
-                Mistakes: {mistakeCount}/{MAX_MISTAKES}
+              
+              <div style={{marginTop: '10px', fontWeight: 'bold', borderTop: '1px solid #444', paddingTop: '8px', borderBottom: '1px solid #444', paddingBottom: '4px'}}>
+                📊 Scoring
               </div>
-              <div>Correct: {correctStepsRef.current} / {totalStepsRef.current}</div>
-              <div>Score: {totalStepsRef.current > 0 ? Math.round((correctStepsRef.current / totalStepsRef.current) * 100) : 0}%</div>
-              <div style={{marginTop: '5px', borderTop: '1px solid #444', paddingTop: '5px'}}>
+              <div>Scoreable Notes: {scoreableNotesRef.current}</div>
+              <div style={{color: '#4caf50'}}>✓ Correct: {correctStepsRef.current}</div>
+              <div style={{color: '#f44336'}}>✗ Incorrect: {incorrectNotesRef.current}</div>
+              <div style={{
+                color: totalMistakesRef.current >= 2 ? '#ff9800' : '#fff',
+                fontWeight: totalMistakesRef.current >= 2 ? 'bold' : 'normal'
+              }}>
+                🚫 Total Mistakes: {totalMistakesRef.current}/{MAX_MISTAKES}
+              </div>
+              <div style={{marginTop: '4px', paddingTop: '4px', borderTop: '1px solid #333'}}>
+                Base Score: {currentScore}%
+              </div>
+              <div>Penalty: -{penalty}%</div>
+              <div style={{fontWeight: 'bold', color: projectedScore >= 80 ? '#4caf50' : projectedScore >= 60 ? '#ff9800' : '#f44336'}}>
+                Score: {projectedScore}%
+              </div>
+              
+              <div style={{marginTop: '10px', borderTop: '1px solid #444', paddingTop: '8px'}}>
+                <div style={{fontSize: '11px'}}>
+                  <div style={{color: '#ffd700'}}>🏆 High: {highScore !== null ? `${highScore}%` : 'None'}</div>
+                  <div style={{color: '#90caf9', marginTop: '2px'}}>📝 Last: {lastScore !== null ? `${lastScore}%` : 'None'}</div>
+                </div>
+              </div>
+              
+              <div style={{marginTop: '10px', borderTop: '1px solid #444', paddingTop: '8px'}}>
                 <label style={{display: 'block', marginBottom: '4px'}}>Tempo: {tempo} BPM</label>
                 <input 
                   type="range" 
@@ -1252,7 +1127,7 @@ function SASRTechnique() {
 export default function Test2HybridFull() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <SASRTechnique />
+      <Test2HybridFullContent />
     </Suspense>
   );
 }
