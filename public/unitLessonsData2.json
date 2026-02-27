@@ -12,7 +12,9 @@
           { "id": "7", "lessontitle": "C song", "link": "/lessons","file":"1A/halfNotes(R&L).mxl","source":"Method-1A","level":"Advanced" },
           { "id": "8", "lessontitle": "C song", "link": "/lessons","file":"1A/Quarter(R&L).mxl","source":"Method-1A","level":"Advanced" },
           { "id": "9", "lessontitle": "C song", "link": "/lessons","file":"1A/Quarter(R&L)no2.mxl","source":"Method-1A","level":"Professional" },
-          { "id": "10", "lessontitle": "C song", "link": "/lessons","file":"1A/CSong(R&L).mxl","source":"Method-1A","level":"Professional" }
+          { "id": "10", "lessontitle": "C song", "link": "/lessons","file":"1A/CSong(R&L).mxl","source":"Method-1A","level":"Professional" },
+          { "id": "11", "lessontitle": "pattern", "link": "/lessons","file":"1A/The_Five_Finger_Mountain_10_Measure_Exercise-Piano.mxl","source":"Method-1A","level":"Professional" }
+
     ]
   },
   {

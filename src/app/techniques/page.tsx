@@ -22,12 +22,12 @@ type UnitLesson = {
 type UniteLesson2 = {
   fkid: string;
   unitlessons: [
-    { id: string; lessontitle: string; link: string; file?: string, source: string }
+    { id: string; lessontitle: string; link: string; file?: string; source: string; completed?: boolean }
   ];
 };
 
 // Main component
-export default function PianoLesson() {
+export default function Techniques() {
   const [classId, setClassId] = useState<string>("");
   const router = useRouter();
   const [methodName, setMethodName] = useState("1A");
@@ -49,32 +49,32 @@ export default function PianoLesson() {
   }, [unitdataurl]);
 
   useEffect(() => {
-    fetch( "/unitLessonsData2.json")
+    fetch("/techniques.json")
       .then((res) => res.json())
       .then((data) => {
-        console.log("Data", data.Lessons);
-        setUnitLessonsData2(data.Lessons);
-        setClassId(data.Lessons[0].fkid);
+        console.log("Data", data.Techniques);
+        setUnitLessonsData2(data.Techniques);
+        setClassId(data.Techniques[0].fkid);
       });
   }, []);
 
   // Static lesson selectors (first row)
   const topLessons = [
-    { id: "1", title: "1A", description: "Finding Middle C:", link: "/musicsheet" },
-    { id: "2", title: "1B", description: "Basic Scales and Finger Exercises", link: "/scales" },
-    { id: "3", title: "1C", description: "Reading Sheet Music", link: "/sheetmusic" },
-    { id: "4", title: "1D", description: "Simple Songs for Beginners", link: "/beginnersongs" },
-    { id: "5", title: "1E", description: "Chord Progressions", link: "/chords" },
-    { id: "6", title: "2A", description: "New Excercises", link: "/scales" },
-    { id: "7", title: "2B", description: "New Excercises 2", link: "/sheetmusic" },
-    { id: "8", title: "2C", description: "New Excercises 3", link: "/beginnersongs" },
-    { id: "9", title: "2D", description: "New Excercises 4", link: "/chords" },
-    { id: "10", title: "2E", description: "New Excercises 4", link: "/chords" },
-    { id: "11", title: "3A", description: "New Excercises 4", link: "/chords" },
-    { id: "12", title: "3B", description: "New Excercises 4", link: "/chords" },
-    { id: "13", title: "3C", description: "New Excercises 4", link: "/chords" },
-    { id: "14", title: "3D", description: "New Excercises 4", link: "/chords" },
-    { id: "15", title: "3E", description: "New Excercises 4", link: "/chords" },
+    { alllessoncomplete:false,id: "1", title: "1A", description: "Finding Middle C:", link: "/musicsheet" },
+    { alllessoncomplete:true,id: "2", title: "1B", description: "Basic Scales and Finger Exercises", link: "/scales" },
+    { alllessoncomplete:false,id: "3", title: "1C", description: "Reading Sheet Music", link: "/sheetmusic" },
+    { alllessoncomplete:false,id: "4", title: "1D", description: "Simple Songs for Beginners", link: "/beginnersongs" },
+    { alllessoncomplete:false,id: "5", title: "1E", description: "Chord Progressions", link: "/chords" },
+    { alllessoncomplete:true,id: "6", title: "2A", description: "New Excercises", link: "/scales" },
+    { alllessoncomplete:false,id: "7", title: "2B", description: "New Excercises 2", link: "/sheetmusic" },
+    { alllessoncomplete:false,id: "8", title: "2C", description: "New Excercises 3", link: "/beginnersongs" },
+    { alllessoncomplete:false,id: "9", title: "2D", description: "New Excercises 4", link: "/chords" },
+    { alllessoncomplete:false,id: "10", title: "2E", description: "New Excercises 4", link: "/chords" },
+    { alllessoncomplete:false,id: "11", title: "3A", description: "New Excercises 4", link: "/chords" },
+    { alllessoncomplete:false,id: "12", title: "3B", description: "New Excercises 4", link: "/chords" },
+    { alllessoncomplete:false,id: "13", title: "3C", description: "New Excercises 4", link: "/chords" },
+    { alllessoncomplete:false,id: "14", title: "3D", description: "New Excercises 4", link: "/chords" },
+    { alllessoncomplete:false,id: "15", title: "3E", description: "New Excercises 4", link: "/chords" }
   ];
 
   const handleClick = (id: string) => {
@@ -110,7 +110,7 @@ export default function PianoLesson() {
                 : "text-xl text-[40px] text-center w-full bg-[#FEFEFE] primary-color-text"
             }`}
           >
-            <span className="font-medium">Methods</span>
+            <span className="font-medium">Techniques </span>
             <span className="font-bold primary-color-text"> - {methodName} </span>
           </span>
         </div>
@@ -133,9 +133,9 @@ export default function PianoLesson() {
                     });
                     router.push(`${lesson.link}?${params.toString()}`);
                   }}
-                  className={`group cursor-pointer flex px-4 py-1 items-center hover:rounded-2xl hover:bg-[#D4AF37] ${
-                    isActive ? "bg-[#D4AF37] mb-1 border-b-0 rounded-2xl" : ""
-                  }`}
+                  className={`group cursor-pointer flex px-4 py-1 items-center  ${lesson.completed ? "flex" : "hover:rounded-2xl hover:bg-[#D4AF37]"} ${
+    isActive && !lesson.completed ? "bg-[#D4AF37] mb-1 border-b-0 rounded-2xl" : ""
+  }`}
                 >
                   <div>
                     <Image
@@ -143,10 +143,17 @@ export default function PianoLesson() {
                       width={56}
                       height={56}
                       alt="icon"
-                      className={`${
-                        isActive ? "visible" : "invisible"
-                      } group-hover:visible group-active:visible`}
+                      className={`${isActive ? "visible" : "invisible"} group-hover:visible group-active:visible ${lesson.completed ? "hidden" : "flex"}`}
                     />
+                    <Image
+                      src="/star-3.svg"
+                      width={65}
+                      height={65}
+                      alt="icon"
+                      key={lesson.id}
+      className={`${lesson.completed ? "flex" : "hidden"}`}                    
+      />
+                    
                   </div>
                   <div
                     className={`${
@@ -163,13 +170,15 @@ export default function PianoLesson() {
                       {lesson.id}. {lesson.lessontitle}
                     </span>
                     <button
+                      key={lesson.id}
                       className={`${
-                        isMobile
-                          ? "bg-[#0a0a0a] rounded-2xl py-1 border-none mt-2"
-                          : "bg-[#0a0a0a] rounded-2xl py-2 px-6 border-none h-[36px]"
-                      }`}
-                    >
-                      <span className="text-[#FEFEFE]">Incomplete</span>
+        isMobile
+          ? `rounded-2xl py-1 border-none mt-2 ${lesson.completed ? "bg-[#84FF10]" : "bg-[#0a0a0a]"}`
+          : `rounded-2xl py-2 px-6 border-none h-[36px] ${lesson.completed ? "bg-[#84FF10]" : "bg-[#0a0a0a]"}`
+      }`}>
+                      <span className={`${lesson.completed ? "text-[#151517]" : "text-white"} font-medium text-sm`}>
+        {lesson.completed ? "Completed" : "Incomplete"}
+      </span>
                     </button>
                   </div>
                 </li>
@@ -238,8 +247,8 @@ export default function PianoLesson() {
                             }`}
                           ></div>
                         )}
-                        <span className="mt-auto bg-[#e9e9ea] shadow-[inset_0px_0px_4px_#0A254059] primary-color-text font-bold rounded w-[49px] h-[36px] text-center flex text-[20px] justify-center items-center text-sm">
-                          {lesson.title}
+                        <span className={`mt-auto bg-[#e9e9ea] shadow-[inset_0px_0px_4px_#0A254059] primary-color-text font-bold rounded ${lesson.alllessoncomplete ? "w-[86px] h-[36px]" : "w-[49px] h-[36px]"}  text-center flex text-[20px] justify-center items-center text-sm`}>
+                          <Image key={lesson.id} src="/star-3.svg" height={40} width={40} alt="star" className={`${lesson.alllessoncomplete ? "flex" : "hidden"}`}/>{lesson.title}
                         </span>
                       </motion.div>
                     </div>
