@@ -624,88 +624,50 @@ function Test2HybridFullContent() {
   }, []);
 
   // ========== NOTE TRACKING ==========
-  function trackAndHighlightNote(midi: number) {
-     const actualCurrentBeatIndex = currentCursorStepRef.current;
-
+function trackAndHighlightNote(midi: number) {
+  const actualCurrentBeatIndex = currentCursorStepRef.current;
   if (!beatCursorRef.current || !playModeRef.current) return;
 
   const currentBeat = beatCursorRef.current.getBeatAt(actualCurrentBeatIndex);
   if (!currentBeat) return;
 
-  // ✅ Use getCurrentExpectedMIDI() which applies transposeOffset correctly
-  // transposeOffset = 12 in BeatCursor, so this returns halfTone + 12
   const expectedMIDI = beatCursorRef.current.getCurrentExpectedMIDI();
-  
-  const noteName = midiToNoteName(midi);
-  const expectedNames = expectedMIDI.map((m: number) => midiToNoteName(m)).join(", ");
-
   const isNoteStart = currentBeat.isNoteStart === true;
   const exactMatch = expectedMIDI.includes(midi);
   const isCorrect = exactMatch && isNoteStart;
 
-    // Prevent double scoring the same beat
-    if (scoredStepsRef.current.has(actualCurrentBeatIndex)) {
-      return;
-    }
+  if (scoredStepsRef.current.has(actualCurrentBeatIndex)) return;
 
-    console.log("🎹 Note pressed:", {
-      played: `${noteName} (${midi})`,
-      beat: actualCurrentBeatIndex,
-      beatX: currentBeat?.staffEntryX?.toFixed(2),
-      expected: expectedNames || "Rest",
-      expectedMIDI: expectedMIDI,
-      isNoteStart: isNoteStart,
-      exactMatch: exactMatch,
-      isCorrect: isCorrect,
-    });
-
-    if (isNoteStart) {
-      scoredStepsRef.current.add(actualCurrentBeatIndex);
-
-      if (isCorrect) {
-        correctStepsRef.current += 1;
-        console.log(`✅ CORRECT: ${correctStepsRef.current}`);
-      } else {
-        incorrectNotesRef.current += 1;
-        console.log(`❌ INCORRECT at beat ${actualCurrentBeatIndex}`);
-      }
-    } else if (!exactMatch) {
-      // Wrong note during sustain
-      incorrectNotesRef.current += 1;
-      console.log(`❌ Wrong sustain note`);
-    }
-
-    // ✅ FIX: Try finding graphical notes with raw midi first,
-    // then fall back to midi - 12 (OSMD internal representation)
-    let graphicalNotes: any[] = [];
-
+  if (isNoteStart) {
+    scoredStepsRef.current.add(actualCurrentBeatIndex);
     if (isCorrect) {
-      graphicalNotes =
-        beatCursorRef.current.findGraphicalNotesAtCurrentBeat(midi);
-
-      console.log(`🔍 Found ${graphicalNotes.length} graphical notes for highlighting`);
+      correctStepsRef.current += 1;
+    } else {
+      incorrectNotesRef.current += 1;
     }
-
-    const playedNote: PlayedNote = {
-      midi,
-      timestamp: Date.now(),
-      cursorStep: actualCurrentBeatIndex,
-      wasCorrect: isCorrect,
-      graphicalNotes: graphicalNotes,
-    };
-
-    playedNotesRef.current.push(playedNote);
-
-    if (!isNoteStart && exactMatch) {
-      console.log(
-        `⚠️ Correct note but wrong timing (continuation beat) - marking as incorrect`
-      );
-    }
-
-    console.log(`${isCorrect ? "✅" : "❌"} Drawing feedback`);
-
-    drawFeedbackDot(osmdRef.current, midi, isCorrect, currentBeat, graphicalNotes);
+  } else if (!exactMatch) {
+    incorrectNotesRef.current += 1;
   }
+
+  let graphicalNotes: any[] = [];
+
+  if (isCorrect) {
+    graphicalNotes = beatCursorRef.current.findGraphicalNotesAtCurrentBeat(midi);
+    console.log(`🔍 Correct: found ${graphicalNotes.length} graphical notes`);
+  }
+  // For incorrect notes: graphicalNotes stays empty → falls through to position calculation
+
+  const playedNote: PlayedNote = {
+    midi,
+    timestamp: Date.now(),
+    cursorStep: actualCurrentBeatIndex,
+    wasCorrect: isCorrect,
+    graphicalNotes,
+  };
+
+  playedNotesRef.current.push(playedNote);
+  drawFeedbackDot(osmdRef.current, midi, isCorrect, currentBeat, graphicalNotes);
+}
 
   function midiToNoteName(midi: number): string {
     const noteNames = [
@@ -716,167 +678,240 @@ function Test2HybridFullContent() {
     return `${noteName}${octave}`;
   }
 
-  function drawFeedbackDot(
-    osmd: any,
-    midi: number,
-    isCorrect: boolean,
-    beat: any,
-    graphicalNotes?: any[]
-  ) {
-    if (!osmd?.drawer?.backend) {
-      console.warn("⚠️ No OSMD backend");
-      return;
-    }
+function drawFeedbackDot(
+  osmd: any,
+  midi: number,
+  isCorrect: boolean,
+  beat: any,
+  graphicalNotes?: any[]
+) {
+  if (!osmd?.drawer?.backend) return;
+  const svg = osmd.drawer.backend.getSvgElement();
+  if (!svg) return;
 
-    const svg = osmd.drawer.backend.getSvgElement();
-    if (!svg) {
-      console.warn("⚠️ No SVG element");
-      return;
-    }
-
-    const graphicSheet = osmd.GraphicSheet;
-
-    // Calculate unit conversion
-    let unitInPixels = 10;
-    const innerElement = osmd.drawer?.backend?.getInnerElement?.();
-    if (
-      innerElement?.offsetWidth &&
-      graphicSheet?.ParentMusicSheet?.pageWidth
-    ) {
-      unitInPixels =
-        innerElement.offsetWidth / graphicSheet.ParentMusicSheet.pageWidth;
-    }
-
-    // METHOD 1: Use graphical notes if available (MOST ACCURATE)
-if (graphicalNotes && graphicalNotes.length > 0) {
-  console.log(`✨ Drawing dots using SVG bbox`);
-
-  for (const gNote of graphicalNotes) {
-    // ✅ vfnote is always an array in this OSMD version - use index [0]
-    const vfNote = Array.isArray(gNote?.vfnote) 
-      ? gNote.vfnote[0] 
-      : (gNote?.vfnote ?? gNote?.VexFlowNote);
-
-    const noteEl: SVGGraphicsElement | null = vfNote?.attrs?.el ?? null;
-
-    if (!noteEl) {
-      console.warn("⚠️ No SVG element for note, vfnote:", gNote?.vfnote);
-      continue;
-    }
-
-    // ✅ Find the notehead specifically, not the whole StaveNote group
-    // StaveNote group contains: stem, notehead, accidentals, dots
-    // We want just the notehead circle/ellipse
-    let cx: number;
-    let cy: number;
-
-    const noteheadEl = noteEl.querySelector('.vf-notehead') as SVGGraphicsElement
-      ?? noteEl.querySelector('path') as SVGGraphicsElement
-      ?? noteEl.querySelector('use') as SVGGraphicsElement;
-
-    if (noteheadEl) {
-      const bbox = noteheadEl.getBBox();
-      cx = bbox.x + bbox.width / 2;
-      cy = bbox.y + bbox.height / 2;
-      console.log(`🎯 Using notehead element bbox: X=${cx.toFixed(1)}, Y=${cy.toFixed(1)}`);
-    } else {
-      // Fallback: use full group bbox but adjust Y to bottom half (where notehead is)
-      const bbox = noteEl.getBBox();
-      cx = bbox.x + bbox.width / 2;
-      // Notehead is at the bottom of the group for notes above middle,
-      // and at the top for notes below - use 75% down as approximation
-      cy = bbox.y + bbox.height * 0.75;
-      console.log(`🎯 Using full group bbox (adjusted): X=${cx.toFixed(1)}, Y=${cy.toFixed(1)}`);
-    }
-
-    const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    el.setAttribute("cx", cx.toString());
-    el.setAttribute("cy", cy.toString());
-    el.setAttribute("r", "7");
-    el.classList.add(isCorrect ? "midi-ghost-note-correct" : "midi-ghost-note-incorrect");
-    el.setAttribute("stroke-width", "2");
-    svg.appendChild(el);
-    activeHighlightsRef.current.add(el);
-
-    console.log(`🎯 Dot placed at: X=${cx.toFixed(1)}, Y=${cy.toFixed(1)}, correct=${isCorrect}`);
+  const graphicSheet = osmd.GraphicSheet;
+  let unitInPixels = 10;
+  const innerElement = osmd.drawer?.backend?.getInnerElement?.();
+  if (innerElement?.offsetWidth && graphicSheet?.ParentMusicSheet?.pageWidth) {
+    unitInPixels = innerElement.offsetWidth / graphicSheet.ParentMusicSheet.pageWidth;
   }
 
-  graphicalNotes = beatCursorRef.current?.findGraphicalNotesAtCurrentBeat(midi);
+  // METHOD 1: SVG bbox — only for correct notes (exact graphical match)
+  if (graphicalNotes && graphicalNotes.length > 0) {
+    for (const gNote of graphicalNotes) {
+      const vfNote = Array.isArray(gNote?.vfnote)
+        ? gNote.vfnote[0]
+        : (gNote?.vfnote ?? gNote?.VexFlowNote);
+      const noteEl: SVGGraphicsElement | null = vfNote?.attrs?.el ?? null;
+      if (!noteEl) continue;
 
-if (graphicalNotes?.length === 0) {
-  // If wrong note played, find the EXPECTED note position instead
-  // so the dot shows where the correct note should have been
-  const expectedMIDI = beatCursorRef.current?.getCurrentExpectedMIDI();
-  if ((expectedMIDI ?? []).length > 0) {
-    graphicalNotes = beatCursorRef.current?.findGraphicalNotesAtCurrentBeat((expectedMIDI ?? [])[0]);
-    console.log(`🔍 Using expected note position for incorrect dot`);
+      const noteheadEl =
+        noteEl.querySelector('.vf-notehead') as SVGGraphicsElement ??
+        noteEl.querySelector('path') as SVGGraphicsElement ??
+        noteEl.querySelector('use') as SVGGraphicsElement;
+
+      let cx: number, cy: number;
+      if (noteheadEl) {
+        const bbox = noteheadEl.getBBox();
+        cx = bbox.x + bbox.width / 2;
+        cy = bbox.y + bbox.height / 2;
+      } else {
+        const bbox = noteEl.getBBox();
+        cx = bbox.x + bbox.width / 2;
+        cy = bbox.y + bbox.height * 0.75;
+      }
+
+      const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      el.setAttribute("cx", cx.toString());
+      el.setAttribute("cy", cy.toString());
+      el.setAttribute("r", "7");
+      el.classList.add("midi-ghost-note-correct");
+      el.setAttribute("stroke-width", "2");
+      const systemGroup = noteEl
+  ? findSystemGroup(noteEl)
+  : null;
+
+(systemGroup ?? svg).appendChild(el);
+      activeHighlightsRef.current.add(el);
+    }
+    return;
+  }
+
+  // METHOD 2: Incorrect notes — find closest rendered note as Y anchor
+  if (!beat) return;
+
+  // ✅ Determine which staff the played note belongs to
+  // bass clef = staffIdx 1 (lower notes), treble = staffIdx 0 (higher notes)
+  const staffIndex = midi < 60 ? 1 : 0;
+  const osmdHalfTone = midi - 12; // BeatCursor transposeOffset = 12
+
+  // ✅ Scan ALL notes in the whole piece on the correct staff
+  // to build a halfTone→SVG_Y calibration map
+  const calibration: { halfTone: number; cy: number }[] = [];
+
+  for (let mIdx = 0; mIdx < graphicSheet.MeasureList.length; mIdx++) {
+    const staffMeasures = graphicSheet.MeasureList[mIdx];
+    const measure = staffMeasures?.[staffIndex];
+    if (!measure) continue;
+
+    for (const staffEntry of measure.staffEntries ?? []) {
+      for (const gve of staffEntry.graphicalVoiceEntries ?? []) {
+        for (const gn of gve.notes ?? []) {
+          const isRest = gn.sourceNote?.isRest?.() || gn.sourceNote?.IsRest || false;
+          if (isRest) continue;
+          const ht = gn.sourceNote?.halfTone;
+          if (ht == null) continue;
+
+          // Already have this pitch? skip
+          if (calibration.find(c => c.halfTone === ht)) continue;
+
+          const vfNote = Array.isArray(gn?.vfnote) ? gn.vfnote[0] : (gn?.vfnote ?? gn?.VexFlowNote);
+          const noteEl: SVGGraphicsElement | null = vfNote?.attrs?.el ?? null;
+          if (!noteEl) continue;
+
+          const noteheadEl =
+            noteEl.querySelector('.vf-notehead') as SVGGraphicsElement ??
+            noteEl.querySelector('path') as SVGGraphicsElement ??
+            noteEl.querySelector('use') as SVGGraphicsElement;
+
+          const target = noteheadEl ?? noteEl;
+          const bbox = target.getBBox();
+          if (bbox.height === 0 && bbox.width === 0) continue;
+
+          calibration.push({
+            halfTone: ht,
+            cy: bbox.y + bbox.height / 2,
+          });
+        }
+      }
+    }
+  }
+
+  console.log(`📊 Calibration (staff ${staffIndex}): ${calibration.length} points`, 
+    calibration.sort((a,b) => a.halfTone - b.halfTone).map(c => `ht${c.halfTone}=Y${c.cy.toFixed(1)}`).join(', ')
+  );
+
+  if (calibration.length === 0) {
+    console.warn(`⚠️ No calibration points for staff ${staffIndex}, cannot draw incorrect dot`);
+    return;
+  }
+
+// ✅ Use X from beat position
+
+
+let cy: number;
+
+// Find the closest calibration point for the current osmdHalfTone
+let noteEl: SVGGraphicsElement | null = null;
+let minDist = Number.POSITIVE_INFINITY;
+for (let mIdx = 0; mIdx < graphicSheet.MeasureList.length; mIdx++) {
+  const staffMeasures = graphicSheet.MeasureList[mIdx];
+  const measure = staffMeasures?.[staffIndex];
+  if (!measure) continue;
+
+  for (const staffEntry of measure.staffEntries ?? []) {
+    for (const gve of staffEntry.graphicalVoiceEntries ?? []) {
+      for (const gn of gve.notes ?? []) {
+        const isRest = gn.sourceNote?.isRest?.() || gn.sourceNote?.IsRest || false;
+        if (isRest) continue;
+        const ht = gn.sourceNote?.halfTone;
+        if (ht == null) continue;
+
+        const dist = Math.abs(ht - osmdHalfTone);
+        if (dist < minDist) {
+          minDist = dist;
+          const vfNote = Array.isArray(gn?.vfnote) ? gn.vfnote[0] : (gn?.vfnote ?? gn?.VexFlowNote);
+          noteEl = vfNote?.attrs?.el ?? null;
+        }
+      }
+    }
   }
 }
 
-console.log(`🔍 Found ${graphicalNotes?.length} graphical notes for highlighting`);
+// ✅ Exact match in calibration
+const exact = calibration.find(c => c.halfTone === osmdHalfTone);
+if (exact) {
+  cy = exact.cy;
+  console.log(`✅ Exact calibration: ht=${osmdHalfTone} → Y=${cy.toFixed(1)}`);
+} else {
+  // ✅ Interpolate between two nearest calibration points
+  const sorted = [...calibration].sort((a, b) => a.halfTone - b.halfTone);
 
-  return;
+  let lower = sorted[0];
+  let upper = sorted[sorted.length - 1];
+
+  for (let i = 0; i < sorted.length - 1; i++) {
+    if (sorted[i].halfTone <= osmdHalfTone && sorted[i + 1].halfTone >= osmdHalfTone) {
+      lower = sorted[i];
+      upper = sorted[i + 1];
+      break;
+    }
+  }
+
+  if (lower.halfTone === upper.halfTone) {
+    cy = lower.cy;
+  } else {
+    // Higher halfTone = higher on staff = lower Y in SVG
+    const t = (osmdHalfTone - lower.halfTone) / (upper.halfTone - lower.halfTone);
+    cy = lower.cy + t * (upper.cy - lower.cy);
+  }
+
+  console.log(`📐 Interpolated: ht=${osmdHalfTone} between ht${lower.halfTone}(Y=${lower.cy.toFixed(1)}) and ht${upper.halfTone}(Y=${upper.cy.toFixed(1)}) → Y=${cy.toFixed(1)}`);
 }
 
-    // FALLBACK METHOD: Calculate position (less accurate)
-    console.log(`⚠️ No graphical notes found, using fallback positioning`);
+function getGroupTranslate(g: SVGGElement) {
+  const tf = g.getAttribute("transform");
+  if (!tf) return { x: 0, y: 0 };
 
-    if (!beat || beat.staffEntryX === undefined) {
-      console.warn("⚠️ Cannot draw dot - invalid beat position");
-      return;
+  const match = tf.match(/translate\(([^,]+),\s*([^)]+)\)/);
+  if (!match) return { x: 0, y: 0 };
+
+  return {
+    x: parseFloat(match[1]),
+    y: parseFloat(match[2]),
+  };
+}
+if (!beat.staffEntryX) return;
+
+let cx = beat.staffEntryX;
+const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+el.setAttribute("cx", cx.toString());
+el.setAttribute("cy", cy.toString());
+el.setAttribute("r", "7");
+el.classList.add("midi-ghost-note-incorrect");
+el.setAttribute("stroke-width", "2");
+const systemGroup = noteEl
+  ? findSystemGroup(noteEl)
+  : null;
+
+(systemGroup ?? svg).appendChild(el);
+activeHighlightsRef.current.add(el);
+
+
+// Convert to local system coordinates
+if (systemGroup) {
+  const t = getGroupTranslate(systemGroup);
+  cx = cx - t.x;
+}
+
+console.log(`🔴 Incorrect dot drawn: MIDI=${midi}, ht=${osmdHalfTone}, staff=${staffIndex}, X=${cx.toFixed(1)}, Y=${cy.toFixed(1)}`);
+}
+
+function findSystemGroup(el: SVGElement): SVGGElement | null {
+  let node: Element | null = el;
+
+  while (node) {
+    if (node.tagName.toLowerCase() === "g") {
+      const tf = node.getAttribute("transform");
+      if (tf && tf.includes("translate")) {
+        return node as SVGGElement;
+      }
     }
-
-    const measureList = graphicSheet?.MeasureList?.[beat.measureIndex];
-    const measure = measureList?.[0];
-
-    if (!measure) {
-      console.warn("⚠️ No measure found");
-      return;
-    }
-
-    const lineSpacing = 10;
-    const measureY =
-      (measure.PositionAndShape?.AbsolutePosition?.y ?? 0) * unitInPixels;
-
-    const midiToDiatonic = (midi: number) => {
-      const pitchClass = midi % 12;
-      const octave = Math.floor(midi / 12) - 1;
-      const chromaticToDiatonic = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
-      const diatonicPitch = chromaticToDiatonic[pitchClass];
-      return octave * 7 + diatonicPitch;
-    };
-
-    const clef = measure.InitiallyActiveClef?.clefType;
-    let referenceDiatonic, referenceY;
-
-    if (clef === 1) {
-      referenceDiatonic = midiToDiatonic(50);
-      referenceY = measureY + 2 * lineSpacing;
-    } else {
-      referenceDiatonic = midiToDiatonic(71);
-      referenceY = measureY + 2 * lineSpacing;
-    }
-
-    const noteDiatonic = midiToDiatonic(midi);
-    const diatonicSteps = referenceDiatonic - noteDiatonic;
-    const y = referenceY + diatonicSteps * (lineSpacing / 2);
-
-    const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    el.setAttribute("cx", beat.staffEntryX.toString());
-    el.setAttribute("cy", y.toString());
-    el.setAttribute("r", "8");
-    el.classList.add(
-      isCorrect ? "midi-ghost-note-correct" : "midi-ghost-note-incorrect"
-    );
-    el.setAttribute("stroke-width", "2.5");
-
-    svg.appendChild(el);
-    activeHighlightsRef.current.add(el);
-
-    console.log(
-      `🔴 Fallback dot drawn at X=${beat.staffEntryX.toFixed(1)}, Y=${y.toFixed(1)}, correct=${isCorrect}`
-    );
+    node = node.parentElement;
   }
+
+  return null;
+}
 
   function clearAllTracking() {
     playedNotesRef.current = [];
