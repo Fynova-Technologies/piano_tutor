@@ -686,231 +686,249 @@ function drawFeedbackDot(
   graphicalNotes?: any[]
 ) {
   if (!osmd?.drawer?.backend) return;
+
   const svg = osmd.drawer.backend.getSvgElement();
   if (!svg) return;
 
   const graphicSheet = osmd.GraphicSheet;
+  const measureList = graphicSheet.MeasureList; // capital M — consistent with BeatCursor
+
   let unitInPixels = 10;
   const innerElement = osmd.drawer?.backend?.getInnerElement?.();
   if (innerElement?.offsetWidth && graphicSheet?.ParentMusicSheet?.pageWidth) {
     unitInPixels = innerElement.offsetWidth / graphicSheet.ParentMusicSheet.pageWidth;
   }
 
-  // METHOD 1: SVG bbox — only for correct notes (exact graphical match)
-  if (graphicalNotes && graphicalNotes.length > 0) {
+  /* ===============================
+     METHOD 1 — Correct Notes
+  =============================== */
+
+  if (isCorrect && graphicalNotes?.length) {
     for (const gNote of graphicalNotes) {
       const vfNote = Array.isArray(gNote?.vfnote)
         ? gNote.vfnote[0]
-        : (gNote?.vfnote ?? gNote?.VexFlowNote);
+        : gNote?.vfnote ?? gNote?.VexFlowNote;
+
       const noteEl: SVGGraphicsElement | null = vfNote?.attrs?.el ?? null;
       if (!noteEl) continue;
 
-      const noteheadEl =
-        noteEl.querySelector('.vf-notehead') as SVGGraphicsElement ??
-        noteEl.querySelector('path') as SVGGraphicsElement ??
-        noteEl.querySelector('use') as SVGGraphicsElement;
+      const notehead =
+        (noteEl.querySelector(".vf-notehead") as SVGGraphicsElement) ??
+        (noteEl.querySelector("path") as SVGGraphicsElement) ??
+        (noteEl.querySelector("use") as SVGGraphicsElement);
 
-      let cx: number, cy: number;
-      if (noteheadEl) {
-        const bbox = noteheadEl.getBBox();
-        cx = bbox.x + bbox.width / 2;
-        cy = bbox.y + bbox.height / 2;
-      } else {
-        const bbox = noteEl.getBBox();
-        cx = bbox.x + bbox.width / 2;
-        cy = bbox.y + bbox.height * 0.75;
-      }
+      const bbox = (notehead ?? noteEl).getBBox();
+      const cx = bbox.x + bbox.width / 2;
+      const cy = bbox.y + bbox.height / 2;
 
       const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
       el.setAttribute("cx", cx.toString());
       el.setAttribute("cy", cy.toString());
-      el.setAttribute("r", "7");
+      el.setAttribute("r", "5");
       el.classList.add("midi-ghost-note-correct");
       el.setAttribute("stroke-width", "2");
-      const systemGroup = noteEl
-  ? findSystemGroup(noteEl)
-  : null;
-
-(systemGroup ?? svg).appendChild(el);
+      svg.appendChild(el);
       activeHighlightsRef.current.add(el);
     }
     return;
   }
 
-  // METHOD 2: Incorrect notes — find closest rendered note as Y anchor
-  if (!beat) return;
+  /* ===============================
+     METHOD 2 — Incorrect Notes
+  =============================== */
 
-  // ✅ Determine which staff the played note belongs to
-  // bass clef = staffIdx 1 (lower notes), treble = staffIdx 0 (higher notes)
-  const staffIndex = midi < 60 ? 1 : 0;
-  const osmdHalfTone = midi - 12; // BeatCursor transposeOffset = 12
+  if (!beat?.staffEntryX) return;
 
-  // ✅ Scan ALL notes in the whole piece on the correct staff
-  // to build a halfTone→SVG_Y calibration map
-  const calibration: { halfTone: number; cy: number }[] = [];
+  const osmdHT = midi - 12;
+  const EPSILON = 1e-6;
+  const beatTime = beat.timestamp?.RealValue ?? 0;
 
-  for (let mIdx = 0; mIdx < graphicSheet.MeasureList.length; mIdx++) {
-    const staffMeasures = graphicSheet.MeasureList[mIdx];
-    const measure = staffMeasures?.[staffIndex];
+  function halfToneToDiatonic(ht: number): number {
+    const map = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
+    const oct = Math.floor(ht / 12);
+    const chr = ((ht % 12) + 12) % 12;
+    return oct * 7 + map[chr];
+  }
+
+  /* ===============================
+     Resolve staffIndex by pitch proximity
+     — same logic as BeatCursor.findGraphicalNotesAtCurrentBeat
+  =============================== */
+
+  const beatMeasureStaves = measureList?.[beat.measureIndex];
+  const numStaves = beatMeasureStaves?.length ?? 1;
+  let staffIndex = 0;
+  let foundStaff = false;
+
+  for (let s = 0; s < numStaves && !foundStaff; s++) {
+    const measure = beatMeasureStaves?.[s];
     if (!measure) continue;
 
     for (const staffEntry of measure.staffEntries ?? []) {
+      const entryTime =
+        staffEntry.timestamp?.RealValue ??
+        staffEntry.sourceStaffEntry?.Timestamp?.RealValue;
+
+      if (entryTime == null || Math.abs(entryTime - beatTime) > EPSILON) continue;
+
       for (const gve of staffEntry.graphicalVoiceEntries ?? []) {
         for (const gn of gve.notes ?? []) {
-          const isRest = gn.sourceNote?.isRest?.() || gn.sourceNote?.IsRest || false;
-          if (isRest) continue;
+          const ht = gn.sourceNote?.halfTone;
+          if (ht == null) continue;
+          if (Math.abs(ht - osmdHT) < 12) {
+            staffIndex = s;
+            foundStaff = true;
+            break;
+          }
+        }
+        if (foundStaff) break;
+      }
+      if (foundStaff) break;
+    }
+  }
+
+  // Fallback: pick staff whose notes are closest in pitch to played note
+  if (!foundStaff) {
+    let bestPitchDist = Infinity;
+    for (let s = 0; s < numStaves; s++) {
+      const measure = beatMeasureStaves?.[s];
+      for (const se of measure?.staffEntries ?? []) {
+        for (const gve of se.graphicalVoiceEntries ?? []) {
+          for (const gn of gve.notes ?? []) {
+            const ht = gn.sourceNote?.halfTone;
+            if (ht == null) continue;
+            const dist = Math.abs(ht - osmdHT);
+            if (dist < bestPitchDist) {
+              bestPitchDist = dist;
+              staffIndex = s;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  console.log("staffIndex:", staffIndex, "foundStaff:", foundStaff, "numStaves:", numStaves);
+
+  /* ===============================
+     Get parentStaffLine from beat's measure
+     — use beat.measureIndex directly (no search needed)
+  =============================== */
+
+  const targetMeasure = measureList[beat.measureIndex]?.[staffIndex];
+  const parentStaffLine = targetMeasure?.parentStaffLine;
+
+  /* ===============================
+     Find anchor notes for Y calibration
+     — only within the same staff system
+  =============================== */
+
+  type NoteRef = { ht: number; y: number; beatDist: number };
+  let bestAnchor: NoteRef | null = null;
+  let ref2: NoteRef | null = null;
+
+  for (let m = 0; m < measureList.length; m++) {
+    const measure = measureList[m]?.[staffIndex];
+    if (!measure) continue;
+    if (measure.parentStaffLine !== parentStaffLine) continue; // same system only
+
+    for (const staffEntry of measure.staffEntries ?? []) {
+      const entryBeat = staffEntry.sourceStaffEntry?.Timestamp?.RealValue;
+      if (entryBeat == null) continue;
+      const dist = Math.abs(entryBeat - beatTime);
+
+      for (const gve of staffEntry.graphicalVoiceEntries ?? []) {
+        for (const gn of gve.notes ?? []) {
+          if (gn.sourceNote?.isRest?.()) continue;
           const ht = gn.sourceNote?.halfTone;
           if (ht == null) continue;
 
-          // Already have this pitch? skip
-          if (calibration.find(c => c.halfTone === ht)) continue;
+          const vf = Array.isArray(gn.vfnote) ? gn.vfnote[0] : gn.vfnote;
+          if (!vf) continue;
+          console.log("VF NOTE KEYS:", Object.keys(vf ?? {}));
+console.log("VF stave:", vf?.stave);
+console.log("VF getYs:", vf?.getYs?.());
+console.log("VF getY:", vf?.getY?.());
+console.log("VF ys:", vf?.ys);
 
-          const vfNote = Array.isArray(gn?.vfnote) ? gn.vfnote[0] : (gn?.vfnote ?? gn?.VexFlowNote);
-          const noteEl: SVGGraphicsElement | null = vfNote?.attrs?.el ?? null;
-          if (!noteEl) continue;
+const noteYs: number[] = vf.ys ?? vf.getYs?.() ?? [];
+if (!noteYs.length) continue;
+          const el: SVGGraphicsElement | null = vf?.attrs?.el ?? null;
+          if (!el) continue;
 
-          const noteheadEl =
-            noteEl.querySelector('.vf-notehead') as SVGGraphicsElement ??
-            noteEl.querySelector('path') as SVGGraphicsElement ??
-            noteEl.querySelector('use') as SVGGraphicsElement;
+          const head =
+            el.querySelector(".vf-notehead") ??
+            el.querySelector("path") ??
+            el.querySelector("use");
+          if (!head) continue;
 
-          const target = noteheadEl ?? noteEl;
-          const bbox = target.getBBox();
-          if (bbox.height === 0 && bbox.width === 0) continue;
+          const box = (head as SVGGraphicsElement).getBBox();
+          if (!box.height) continue;
 
-          calibration.push({
-            halfTone: ht,
-            cy: bbox.y + bbox.height / 2,
-          });
+          const ctm = (head as SVGGraphicsElement).getCTM();
+          const svgRoot = svg as SVGSVGElement;
+          const y = noteYs[0]; // First notehead Y — already in SVG coordinates
+
+          if (ctm && svgRoot.createSVGPoint) {
+            const pt = svgRoot.createSVGPoint();
+            pt.x = box.x + box.width / 2;
+            pt.y = box.y + box.height / 2;
+            const screenPt = pt.matrixTransform(ctm);
+          } 
+
+          if (!bestAnchor || dist < bestAnchor.beatDist - EPSILON) {
+            if (bestAnchor && bestAnchor.ht !== ht) ref2 = { ...bestAnchor };
+            bestAnchor = { ht, y, beatDist: dist };
+          } else if (!ref2 && ht !== bestAnchor?.ht) {
+            ref2 = { ht, y, beatDist: dist };
+          }else if (!ref2 && ht !== bestAnchor.ht) {
+  ref2 = { ht, y, beatDist: dist };
+}
         }
       }
     }
   }
 
-  console.log(`📊 Calibration (staff ${staffIndex}): ${calibration.length} points`, 
-    calibration.sort((a,b) => a.halfTone - b.halfTone).map(c => `ht${c.halfTone}=Y${c.cy.toFixed(1)}`).join(', ')
-  );
-
-  if (calibration.length === 0) {
-    console.warn(`⚠️ No calibration points for staff ${staffIndex}, cannot draw incorrect dot`);
+  if (!bestAnchor) {
+    console.warn("No anchor for incorrect note");
     return;
   }
 
-// ✅ Use X from beat position
+  /* ===============================
+     Derive step height
+  =============================== */
 
+  let step = unitInPixels * 0.5; // fallback
 
-let cy: number;
-
-// Find the closest calibration point for the current osmdHalfTone
-let noteEl: SVGGraphicsElement | null = null;
-let minDist = Number.POSITIVE_INFINITY;
-for (let mIdx = 0; mIdx < graphicSheet.MeasureList.length; mIdx++) {
-  const staffMeasures = graphicSheet.MeasureList[mIdx];
-  const measure = staffMeasures?.[staffIndex];
-  if (!measure) continue;
-
-  for (const staffEntry of measure.staffEntries ?? []) {
-    for (const gve of staffEntry.graphicalVoiceEntries ?? []) {
-      for (const gn of gve.notes ?? []) {
-        const isRest = gn.sourceNote?.isRest?.() || gn.sourceNote?.IsRest || false;
-        if (isRest) continue;
-        const ht = gn.sourceNote?.halfTone;
-        if (ht == null) continue;
-
-        const dist = Math.abs(ht - osmdHalfTone);
-        if (dist < minDist) {
-          minDist = dist;
-          const vfNote = Array.isArray(gn?.vfnote) ? gn.vfnote[0] : (gn?.vfnote ?? gn?.VexFlowNote);
-          noteEl = vfNote?.attrs?.el ?? null;
-        }
-      }
-    }
-  }
-}
-
-// ✅ Exact match in calibration
-const exact = calibration.find(c => c.halfTone === osmdHalfTone);
-if (exact) {
-  cy = exact.cy;
-  console.log(`✅ Exact calibration: ht=${osmdHalfTone} → Y=${cy.toFixed(1)}`);
-} else {
-  // ✅ Interpolate between two nearest calibration points
-  const sorted = [...calibration].sort((a, b) => a.halfTone - b.halfTone);
-
-  let lower = sorted[0];
-  let upper = sorted[sorted.length - 1];
-
-  for (let i = 0; i < sorted.length - 1; i++) {
-    if (sorted[i].halfTone <= osmdHalfTone && sorted[i + 1].halfTone >= osmdHalfTone) {
-      lower = sorted[i];
-      upper = sorted[i + 1];
-      break;
-    }
+  if (ref2) {
+    const d1 = halfToneToDiatonic(bestAnchor.ht);
+    const d2 = halfToneToDiatonic(ref2.ht);
+    const diff = d1 - d2;
+    if (diff !== 0) step = (bestAnchor.y - ref2.y) / diff;
+  } else if (parentStaffLine?.staffHeight) {
+    step = (parentStaffLine.staffHeight * unitInPixels) / 8;
   }
 
-  if (lower.halfTone === upper.halfTone) {
-    cy = lower.cy;
-  } else {
-    // Higher halfTone = higher on staff = lower Y in SVG
-    const t = (osmdHalfTone - lower.halfTone) / (upper.halfTone - lower.halfTone);
-    cy = lower.cy + t * (upper.cy - lower.cy);
-  }
+  /* ===============================
+     Project & Draw
+  =============================== */
 
-  console.log(`📐 Interpolated: ht=${osmdHalfTone} between ht${lower.halfTone}(Y=${lower.cy.toFixed(1)}) and ht${upper.halfTone}(Y=${upper.cy.toFixed(1)}) → Y=${cy.toFixed(1)}`);
-}
+  const aD = halfToneToDiatonic(bestAnchor.ht);
+  const nD = halfToneToDiatonic(osmdHT);
+  const cx = beat.staffEntryX;
+  const cy = bestAnchor.y - (nD - aD) * step;
 
-function getGroupTranslate(g: SVGGElement) {
-  const tf = g.getAttribute("transform");
-  if (!tf) return { x: 0, y: 0 };
-
-  const match = tf.match(/translate\(([^,]+),\s*([^)]+)\)/);
-  if (!match) return { x: 0, y: 0 };
-
-  return {
-    x: parseFloat(match[1]),
-    y: parseFloat(match[2]),
-  };
-}
-if (!beat.staffEntryX) return;
-
-let cx = beat.staffEntryX;
-const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-el.setAttribute("cx", cx.toString());
-el.setAttribute("cy", cy.toString());
-el.setAttribute("r", "7");
-el.classList.add("midi-ghost-note-incorrect");
-el.setAttribute("stroke-width", "2");
-const systemGroup = noteEl
-  ? findSystemGroup(noteEl)
-  : null;
-
-(systemGroup ?? svg).appendChild(el);
-activeHighlightsRef.current.add(el);
+  const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  dot.setAttribute("cx", cx.toString());
+  dot.setAttribute("cy", cy.toString());
+  dot.setAttribute("r", "5");
+  dot.setAttribute("fill", "red");
+  dot.setAttribute("opacity", "1");
+  dot.classList.add("midi-ghost-note-incorrect");
+  svg.appendChild(dot);
+  activeHighlightsRef.current.add(dot);
 
 
-// Convert to local system coordinates
-if (systemGroup) {
-  const t = getGroupTranslate(systemGroup);
-  cx = cx - t.x;
-}
-
-console.log(`🔴 Incorrect dot drawn: MIDI=${midi}, ht=${osmdHalfTone}, staff=${staffIndex}, X=${cx.toFixed(1)}, Y=${cy.toFixed(1)}`);
-}
-
-function findSystemGroup(el: SVGElement): SVGGElement | null {
-  let node: Element | null = el;
-
-  while (node) {
-    if (node.tagName.toLowerCase() === "g") {
-      const tf = node.getAttribute("transform");
-      if (tf && tf.includes("translate")) {
-        return node as SVGGElement;
-      }
-    }
-    node = node.parentElement;
-  }
-
-  return null;
 }
 
   function clearAllTracking() {
