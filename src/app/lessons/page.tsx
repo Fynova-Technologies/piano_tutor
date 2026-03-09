@@ -691,7 +691,7 @@ function drawFeedbackDot(
   if (!svg) return;
 
   const graphicSheet = osmd.GraphicSheet;
-  const measureList = graphicSheet.MeasureList; // capital M — consistent with BeatCursor
+  const measureList = graphicSheet.MeasureList;
 
   let unitInPixels = 10;
   const innerElement = osmd.drawer?.backend?.getInnerElement?.();
@@ -751,245 +751,192 @@ function drawFeedbackDot(
   }
 
   /* ===============================
-     Resolve staffIndex by pitch proximity
-     — same logic as BeatCursor.findGraphicalNotesAtCurrentBeat
+     Resolve staffIndex by pitch range
   =============================== */
 
-  const beatMeasureStaves = measureList?.[beat.measureIndex];
-  const numStaves = beatMeasureStaves?.length ?? 1;
-  let staffIndex = 0;
-  const staffPitchRanges: { min: number; max: number }[] = [];
   const numStavesTotal = measureList[0]?.length ?? 1;
+  let staffIndex = 0;
+
+  const staffPitchRanges: { min: number; max: number }[] = [];
   for (let s = 0; s < numStavesTotal; s++) {
-  let min = Infinity, max = -Infinity;
-  for (let m = 0; m < measureList.length; m++) {
-    const measure = measureList[m]?.[s];
-    for (const se of measure?.staffEntries ?? []) {
-      for (const gve of se.graphicalVoiceEntries ?? []) {
-        for (const gn of gve.notes ?? []) {
-          const ht = gn.sourceNote?.halfTone;
-          if (ht == null || gn.sourceNote?.isRest?.()) continue;
-          if (ht < min) min = ht;
-          if (ht > max) max = ht;
-        }
-      }
-    }
-  }
-  staffPitchRanges[s] = { min, max };
-}
-
-// Pick staff whose pitch range is closest to played note
-let bestDist = Infinity;
-for (let s = 0; s < staffPitchRanges.length; s++) {
-  const { min, max } = staffPitchRanges[s];
-  if (min === Infinity) continue;
-  const mid = (min + max) / 2;
-  const dist = Math.abs(mid - osmdHT);
-  if (dist < bestDist) {
-    bestDist = dist;
-    staffIndex = s;
-  }
-}
-
-console.log("staffIndex:", staffIndex, "ranges:", staffPitchRanges, "osmdHT:", osmdHT);
-let foundStaff = false;
-
-// First pass: exact beat match with tight pitch window (within one octave)
-for (let s = 0; s < numStaves && !foundStaff; s++) {
-  const measure = beatMeasureStaves?.[s];
-  if (!measure) continue;
-
-  for (const staffEntry of measure.staffEntries ?? []) {
-    const entryTime =
-      staffEntry.timestamp?.RealValue ??
-      staffEntry.sourceStaffEntry?.Timestamp?.RealValue;
-    if (entryTime == null || Math.abs(entryTime - beatTime) > EPSILON) continue;
-
-    // Find the closest pitch in this staff to the played note
-    let closestHT = Infinity;
-    for (const gve of staffEntry.graphicalVoiceEntries ?? []) {
-      for (const gn of gve.notes ?? []) {
-        const ht = gn.sourceNote?.halfTone;
-        if (ht == null) continue;
-        if (Math.abs(ht - osmdHT) < Math.abs(closestHT - osmdHT)) {
-          closestHT = ht;
-        }
-      }
-    }
-
-    // Use this staff if it has a note within 7 semitones (half octave)
-    if (Math.abs(closestHT - osmdHT) <= 7) {
-      staffIndex = s;
-      foundStaff = true;
-      break;
-    }
-  }
-}
-
-// Second pass: pick staff with overall closest pitch (any beat)
-if (!foundStaff) {
-  let bestPitchDist = Infinity;
-  for (let s = 0; s < numStaves; s++) {
-    const measure = beatMeasureStaves?.[s];
-    for (const se of measure?.staffEntries ?? []) {
-      for (const gve of se.graphicalVoiceEntries ?? []) {
-        for (const gn of gve.notes ?? []) {
-          const ht = gn.sourceNote?.halfTone;
-          if (ht == null) continue;
-          const dist = Math.abs(ht - osmdHT);
-          if (dist < bestPitchDist) {
-            bestPitchDist = dist;
-            staffIndex = s;
+    let min = Infinity, max = -Infinity;
+    for (let m = 0; m < measureList.length; m++) {
+      for (const se of measureList[m]?.[s]?.staffEntries ?? []) {
+        for (const gve of se.graphicalVoiceEntries ?? []) {
+          for (const gn of gve.notes ?? []) {
+            const ht = gn.sourceNote?.halfTone;
+            if (ht == null || gn.sourceNote?.isRest?.()) continue;
+            if (ht < min) min = ht;
+            if (ht > max) max = ht;
           }
         }
       }
     }
+    staffPitchRanges[s] = { min, max };
   }
-}
 
-  console.log("staffIndex:", staffIndex, "foundStaff:", foundStaff, "numStaves:", numStaves);
+  let bestDist = Infinity;
+  for (let s = 0; s < staffPitchRanges.length; s++) {
+    const { min, max } = staffPitchRanges[s];
+    if (min === Infinity) continue;
+    const mid = (min + max) / 2;
+    const dist = Math.abs(mid - osmdHT);
+    if (dist < bestDist) {
+      bestDist = dist;
+      staffIndex = s;
+    }
+  }
 
   /* ===============================
-     Get parentStaffLine from beat's measure
-     — use beat.measureIndex directly (no search needed)
+     Get parentStaffLine for current system
   =============================== */
 
   const targetMeasure = measureList[beat.measureIndex]?.[staffIndex];
   const parentStaffLine = targetMeasure?.parentStaffLine;
 
   /* ===============================
-     Find anchor notes for Y calibration
-     — only within the same staff system
+     Find best anchor note (closest beat, same system)
   =============================== */
 
   type NoteRef = { ht: number; y: number; beatDist: number; vf: any };
-let bestAnchor: NoteRef | null = null;
+  let bestAnchor: NoteRef | null = null;
 
-for (let m = 0; m < measureList.length; m++) {
-  const measure = measureList[m]?.[staffIndex];
-  if (!measure) continue;
-  if (measure.parentStaffLine !== parentStaffLine) continue;
+  for (let m = 0; m < measureList.length; m++) {
+    const measure = measureList[m]?.[staffIndex];
+    if (!measure || measure.parentStaffLine !== parentStaffLine) continue;
 
-  for (const staffEntry of measure.staffEntries ?? []) {
-    const entryBeat = staffEntry.sourceStaffEntry?.Timestamp?.RealValue;
-    if (entryBeat == null) continue;
-    const dist = Math.abs(entryBeat - beatTime);
+    for (const staffEntry of measure.staffEntries ?? []) {
+      const entryBeat = staffEntry.sourceStaffEntry?.Timestamp?.RealValue;
+      if (entryBeat == null) continue;
+      const dist = Math.abs(entryBeat - beatTime);
 
-    for (const gve of staffEntry.graphicalVoiceEntries ?? []) {
-      for (const gn of gve.notes ?? []) {
-        if (gn.sourceNote?.isRest?.()) continue;
-        const ht = gn.sourceNote?.halfTone;
-        if (ht == null) continue;
+      for (const gve of staffEntry.graphicalVoiceEntries ?? []) {
+        for (const gn of gve.notes ?? []) {
+          if (gn.sourceNote?.isRest?.()) continue;
+          const ht = gn.sourceNote?.halfTone;
+          if (ht == null) continue;
 
-        const vf = Array.isArray(gn.vfnote) ? gn.vfnote[0] : gn.vfnote;
-        if (!vf) continue;
+          const vf = Array.isArray(gn.vfnote) ? gn.vfnote[0] : gn.vfnote;
+          if (!vf) continue;
 
-        const vfStave = vf.stave ?? vf.getStave?.();
-        const noteYs: number[] = vf.ys ?? vf.getYs?.() ?? [];
-        console.log("stave Y:", vfStave?.y, "ys[0]:", noteYs[0], "lineSpacing:", vfStave?.getSpacingBetweenLines?.(), vfStave?.options?.spacing_between_lines_px);
-        const staveY: number = vfStave?.y ?? vfStave?.getY?.() ?? 0;
+          const noteEl: SVGGraphicsElement | null = vf?.attrs?.el ?? null;
+if (!noteEl) continue;
 
-        if (!noteYs.length) continue;
+const notehead =
+  (noteEl.querySelector(".vf-notehead") as SVGGraphicsElement) ??
+  (noteEl.querySelector("path") as SVGGraphicsElement) ??
+  (noteEl.querySelector("use") as SVGGraphicsElement);
 
-        // noteYs[0] is relative to stave top — add staveY for absolute SVG Y
-        const y =  noteYs[0];
+const bbox = (notehead ?? noteEl).getBBox();
+const anchorCenterY = bbox.y + bbox.height / 2;
 
-        if (!bestAnchor || dist < bestAnchor.beatDist - EPSILON) {
-          bestAnchor = { ht, y, beatDist: dist, vf };
+if (!bestAnchor || dist < bestAnchor.beatDist - EPSILON) {
+  bestAnchor = { ht, y: anchorCenterY, beatDist: dist, vf };
+}
         }
       }
     }
   }
+
+  if (!bestAnchor) {
+    console.warn("No anchor for incorrect note");
+    return;
+  }
+
+  /* ===============================
+     Get stave references for current system
+     (treble = top, bass = bottom)
+  =============================== */
+
+  const currentMeasureRow = measureList[beat.measureIndex];
+  const systemStavesBySlot: any[] = [];
+  const currentSystemStaffLines: any[] = [];
+  for (let s = 0; s < (currentMeasureRow?.length ?? 0); s++) {
+  currentSystemStaffLines[s] = currentMeasureRow[s]?.parentStaffLine ?? null;
 }
 
-if (!bestAnchor) {
-  console.warn("No anchor for incorrect note");
-  return;
+  for (let s = 0; s < (currentMeasureRow?.length ?? 0); s++) {
+  const targetStaffLine = currentSystemStaffLines[s];
+
+  // Only search measures that share the same parentStaffLine (same system)
+  for (let m = 0; m < measureList.length; m++) {
+    const ms = measureList[m]?.[s];
+    if (!ms) continue;
+
+    // Skip measures not in the same system as current beat
+    if (targetStaffLine && ms.parentStaffLine !== targetStaffLine) continue;
+
+    if (ms.stave?.y != null) {
+      systemStavesBySlot[s] = ms.stave;
+      break;
+    }
+
+    for (const se of ms.staffEntries ?? []) {
+      for (const gve of se.graphicalVoiceEntries ?? []) {
+        for (const gn of gve.notes ?? []) {
+          const vf = Array.isArray(gn.vfnote) ? gn.vfnote[0] : gn.vfnote;
+          if (vf?.stave?.y != null) {
+            systemStavesBySlot[s] = vf.stave;
+            break;
+          }
+        }
+        if (systemStavesBySlot[s]) break;
+      }
+      if (systemStavesBySlot[s]) break;
+    }
+    if (systemStavesBySlot[s]) break;
+  }
 }
 
-// Get step from VexFlow stave spacing — ground truth, no calibration needed
-const USE_BASS_FOR_HT_BELOW = 48; // C4 and below → bass stave
-const vfStave = bestAnchor.vf?.stave ?? bestAnchor.vf?.getStave?.();
-const staveHeight: number = vfStave?.height ?? 40;
-const numLines: number = vfStave?.getNumLines?.() ?? vfStave?.options?.num_lines ?? 5;
-const staveTop = vfStave?.y ?? 0;
-const staveBottom = staveTop + staveHeight;
-const padding = staveHeight * 1.5; // allow 1.5x stave height above/below
-const lineSpacing: number = 
-  vfStave?.getSpacingBetweenLines?.() ?? 
-  vfStave?.options?.spacing_between_lines_px ?? 
-  (unitInPixels * 1.0);
-const trebleStave = bestAnchor.vf?.stave ?? bestAnchor.vf?.getStave?.();
-const lineGapPx = staveHeight / (numLines - 1); // 12.5px
-const step = lineGapPx / 2; // 6.25px
+  const sortedStaves = systemStavesBySlot
+    .filter(Boolean)
+    .sort((a, b) => a.y - b.y);
 
-// Decide: use treble or bass stave for projection?
-// Notes more than 3 steps below treble anchor → use bass stave
+  const trebleStaveObj = sortedStaves[0];
+  const bassStaveObj = sortedStaves[sortedStaves.length - 1];
 
+  /* ===============================
+     Project & Draw
+  =============================== */
 
+  const aD = halfToneToDiatonic(bestAnchor.ht);
+  const nD = halfToneToDiatonic(osmdHT);
 
-const aD = halfToneToDiatonic(bestAnchor.ht);
-const nD = halfToneToDiatonic(osmdHT);
-const stepsFromAnchor = nD - aD; // negative = below anchor
-const USE_BASS_THRESHOLD = -4; // more than 4 steps below = bass territory
+const TREBLE_STAFF_LINES = 4; // spaces between 5 lines
+
+const trebleLineGap = (trebleStaveObj.getBottomY() - trebleStaveObj.getYForLine(0)) / TREBLE_STAFF_LINES;
+const trebleStep = trebleLineGap / 2;
+const NOTEHEAD_CENTER_OFFSET = trebleStep * 0.5;
 
 let cy: number;
-let bassStaveRef: any = null;
 
-outer: for (let m = 0; m < measureList.length; m++) {
-  const bm = measureList[m]?.[1];
-  if (!bm) continue;
-  
-  // Try direct stave property on measure first
-  if (bm.stave?.y) { 
-    bassStaveRef = bm.stave; 
-    break; 
-  }
-  
-  // Search through notes
-  for (const se of bm.staffEntries ?? []) {
-    for (const gve of se.graphicalVoiceEntries ?? []) {
-      for (const gn of gve.notes ?? []) {
-        const vf = Array.isArray(gn.vfnote) ? gn.vfnote[0] : gn.vfnote;
-        if (vf?.stave?.y) { 
-          bassStaveRef = vf.stave; 
-          break outer; 
-        }
-      }
-    }
-  }
-}
+if (bassStaveObj && bassStaveObj.y !== trebleStaveObj?.y && osmdHT < 48) {
 
-console.log("bassStaveRef found:", !!bassStaveRef, "y:", bassStaveRef?.y);
+  const bassTopLineY = bassStaveObj.getYForLine(0);
+  const bassStep = (bassStaveObj.getYForLine(4) - bassTopLineY) / 4 / 2;
 
-/* ===============================
-   ... anchor search ...
-=============================== */
+  cy =
+  bassTopLineY +
+  (halfToneToDiatonic(43) - nD) * bassStep +
+  bassStep * 0.9;
 
-// Then at cy calculation:
-console.log("BRANCH CHECK", { 
-  osmdHT, 
-  bassStaveRefExists: !!bassStaveRef, 
-  bassY: bassStaveRef?.y,
-  willUseBass: !!bassStaveRef && osmdHT < 48 
-});
-
-if (bassStaveRef && osmdHT < 48) {
-  const bassTopLineHT = 45;
-  const bassTopLineY: number = bassStaveRef.y;
-  const bassLineGap: number = (bassStaveRef.height ?? 50) / 4;
-  const bassStep = bassLineGap / 2;
-  const bassTopD = halfToneToDiatonic(bassTopLineHT);
-  const playedD = halfToneToDiatonic(osmdHT);
-  cy = bassTopLineY + (bassTopD - playedD) * bassStep;
-  console.log("BASS CY", { bassTopLineY, bassTopD, playedD, bassStep, cy });
 } else {
-  cy = bestAnchor.y - (nD - aD) * step;
-  console.log("TREBLE CY", { anchorY: bestAnchor.y, nD, aD, step, cy });
+
+  const trebleTopLineY = trebleStaveObj.getYForLine(0);
+  const trebleStep =
+    (trebleStaveObj.getYForLine(4) - trebleTopLineY) / 4 / 2;
+
+  cy =
+  trebleTopLineY +
+  (halfToneToDiatonic(64) - nD) * trebleStep +
+  trebleStep * 0.95;
 }
 
-const cx = beat.staffEntryX;
 
+
+
+
+  const cx = beat.staffEntryX;
 
   const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
   dot.setAttribute("cx", cx.toString());
@@ -1000,63 +947,6 @@ const cx = beat.staffEntryX;
   dot.classList.add("midi-ghost-note-incorrect");
   svg.appendChild(dot);
   activeHighlightsRef.current.add(dot);
-
-  const bassStaveMeasure = measureList[beat.measureIndex]?.[1];
-const bassParentStaffLine = bassStaveMeasure?.parentStaffLine;
-
-// Get bass stave geometry from VexFlow directly via the stave element
-if (bassStaveMeasure) {
-  outer:
-  for (let m = 0; m < measureList.length; m++) {
-    const bm = measureList[m]?.[1];
-    if (!bm || bm.parentStaffLine !== bassParentStaffLine) continue;
-    for (const se of bm.staffEntries ?? []) {
-      for (const gve of se.graphicalVoiceEntries ?? []) {
-        for (const gn of gve.notes ?? []) {
-          const vf = Array.isArray(gn.vfnote) ? gn.vfnote[0] : gn.vfnote;
-          if (vf?.stave) { bassStaveRef = vf.stave; break outer; }
-        }
-      }
-    }
-    // Also check the raw stave object on the measure
-    if (bm.stave) { bassStaveRef = bm.stave; break; }
-  }
-}
-
-// TEMP: draw markers at each bass staff line to calibrate
-if (bassStaveRef) {
-  const lineYs = [0,1,2,3,4].map(i => bassStaveRef.y + i * (bassStaveRef.height / 4));
-  // Bass clef lines from top: G3, B2, D2... wait — standard bass clef lines:
-  // Line 1 (top) = A3 (ht=45), Line 2 = F3 (ht=41), Line 3 = D3 (ht=38)
-  // Line 4 = B2 (ht=35), Line 5 (bottom) = G2 (ht=31)
-  const bassLineNotes = [45, 41, 38, 35, 31]; // A3 F3 D3 B2 G2
-  lineYs.forEach((y, i) => {
-    const marker = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    marker.setAttribute("cx", "200");
-    marker.setAttribute("cy", y.toString());
-    marker.setAttribute("r", "4");
-    marker.setAttribute("fill", "blue");
-    marker.setAttribute("opacity", "0.5");
-    svg.appendChild(marker);
-    activeHighlightsRef.current.add(marker);
-    console.log(`Bass line ${i+1}: y=${y.toFixed(1)}, note ht=${bassLineNotes[i]}, diatonic=${halfToneToDiatonic(bassLineNotes[i])}`);
-  });
-}
-
-console.log("BASS PROJECTION", {
-  bassStaveY: bassStaveRef?.y,        // 326.5
-  bassStaveHeight: bassStaveRef?.height, // 50
-  bassTopLineY: bassStaveRef?.y,      
-  bassBottomLineY: (bassStaveRef?.y ?? 0) + (bassStaveRef?.height ?? 50),
-  osmdHT,
-  nD,
-  bassTopLineHT: 45,
-  bassTopD: halfToneToDiatonic(45),
-  stepsFromBassTop: halfToneToDiatonic(45) - halfToneToDiatonic(osmdHT),
-  projectedCY: bassStaveRef?.y + (halfToneToDiatonic(45) - halfToneToDiatonic(osmdHT)) * 6.25
-});
-
-
 }
 
   function clearAllTracking() {

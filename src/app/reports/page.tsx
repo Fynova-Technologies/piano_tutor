@@ -9,18 +9,10 @@ import {
   getWeeklyActivity,
   getMonthlyActivity,
 } from "@/datastore/weekormonthactivity";
-
-
-// const sasrData = [
-//   { date: "05/22", score: 90 },
-//   { date: "05/23", score: 60 },
-//   { date: "05/24", score: 10 },
-//   { date: "05/25", score: 25 },
-//   { date: "05/26", score: 70 },
-//   { date: "05/27", score: 55 },
-//   { date: "05/28", score: 45 },
-//   { date: "05/29", score: 20 },
-// ];
+import {
+  getSessions,
+  PracticeSession,
+  } from "@/datastore/sessionstorage";
 
 
 
@@ -60,7 +52,6 @@ import {
 
 export default function Reports() {
   const router = useRouter();
-  const [month] = useState("June 2025");
   const [attempts] = useState(15);
   const [highestScore] = useState(240);
   const [lastScore] = useState(100);
@@ -68,34 +59,81 @@ export default function Reports() {
   const [activityData, setActivityData] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
   // Add this inside your Reports component, after the existing state declarations
-const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [playedDays, setPlayedDays] = useState<Set<string>>(new Set());
+  const [days, setDays] = useState<string[]>([]);
+  const [currentDate, setCurrentDate] = useState(new Date());
 
-// Add this useEffect to handle clicking outside the dropdown
+  function nextMonth() {
+  setCurrentDate((prev) => {
+    const d = new Date(prev);
+    d.setMonth(d.getMonth() + 1);
+    return d;
+  });
+}
+
+function prevMonth() {
+  setCurrentDate((prev) => {
+    const d = new Date(prev);
+    d.setMonth(d.getMonth() - 1);
+    return d;
+  });
+}
+
+
 useEffect(() => {
-  function handleClickOutside(event: MouseEvent) {
-    if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-      setIsDropdownOpen(false);
+  const data = getSessions();
+
+  const uniqueDays = new Set(
+    data.map((s: PracticeSession) =>
+      new Date(s.startedAt).toISOString().split("T")[0]
+    )
+  );
+
+  setPlayedDays(uniqueDays);
+  setDays(getMonthDays(currentDate));
+}, [currentDate]);
+
+
+function getMonthDays(date: Date) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+
+  const totalDays = new Date(year, month + 1, 0).getDate();
+
+  return Array.from({ length: totalDays }, (_, i) => {
+    const d = new Date(year, month, i + 1);
+    return d.toISOString().split("T")[0];
+  });
+}
+
+
+  // Add this useEffect to handle clicking outside the dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
     }
-  }
-  document.addEventListener("mousedown", handleClickOutside);
-  return () => {
-    document.removeEventListener("mousedown", handleClickOutside);
-  };
-}, []);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
 
- useEffect(() => {
-  if (viewMode === "week") {
-    const data = getWeeklyActivity();
-    console.log("Weekly data:", data); // Add this
-    setActivityData(data);
-  } else {
-    const data = getMonthlyActivity();
-    console.log("Monthly data:", data); // Add this
-    setActivityData(data);
-  }
-}, [viewMode]);
+  useEffect(() => {
+    if (viewMode === "week") {
+      const data = getWeeklyActivity();
+      console.log("Weekly data:", data); // Add this
+      setActivityData(data);
+    } else {
+      const data = getMonthlyActivity();
+      console.log("Monthly data:", data); // Add this
+      setActivityData(data);
+    }
+  }, [viewMode]);
 
 
 
@@ -106,55 +144,54 @@ useEffect(() => {
         
         {/* Activity Chart */}
         <div className="bg-white shadow-[2px_4px_8px_1px_#0000003B] rounded-2xl p-4 border-4 border-[#C0BABA] border-r-[#BCBCBC]">
-  
-  <div className="flex justify-between items-center mb-2">
-    <h2 className="text-[#151517] text-[16px] font-medium">Activity Chart</h2>
-    
-    {/* Dropdown */}
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="bg-[#E4E4E4] rounded-lg px-4 py-2 text-sm text-[#151517] cursor-pointer flex items-center gap-2"
-      >
-        {viewMode === "week" ? "Week" : "Month"}
-        <Image 
-          src="/Icon3.svg" 
-          alt="dropdown" 
-          width={12} 
-          height={12} 
-          className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
-        />
-      </button>
-      
-      {/* Dropdown Menu */}
-      {isDropdownOpen && (
-        <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-          <button
-            onClick={() => {
-              setViewMode("week");
-              setIsDropdownOpen(false);
-            }}
-            className={`w-full text-left px-4 py-2 text-sm rounded-t-lg hover:bg-gray-100 ${
-              viewMode === "week" ? "bg-white text-[#000000]  font-medium" : "text-[#151517]"
-            }`}
-          >
-            Week
-          </button>
-          <button
-            onClick={() => {
-              setViewMode("month");
-              setIsDropdownOpen(false);
-            }}
-            className={`w-full text-left px-4 py-2 text-sm rounded-b-lg hover:bg-gray-100 ${
-              viewMode === "month" ? "bg-white text-[#000000] font-medium" : "text-[#151517]"
-            }`}
-          >
-            Month
-          </button>
-        </div>
-      )}
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-[#151517] text-[16px] font-medium">Activity Chart</h2>
+
+            {/* Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="bg-[#E4E4E4] rounded-lg px-4 py-2 text-sm text-[#151517] cursor-pointer flex items-center gap-2"
+        >
+          {viewMode === "week" ? "Week" : "Month"}
+          <Image 
+            src="/Icon3.svg" 
+            alt="dropdown" 
+            width={12} 
+            height={12} 
+            className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {/* Dropdown Menu */}
+        {isDropdownOpen && (
+          <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+            <button
+              onClick={() => {
+                setViewMode("week");
+                setIsDropdownOpen(false);
+              }}
+              className={`w-full text-left px-4 py-2 text-sm rounded-t-lg hover:bg-gray-100 ${
+                viewMode === "week" ? "bg-white text-[#000000]  font-medium" : "text-[#151517]"
+              }`}
+            >
+              Week
+            </button>
+            <button
+              onClick={() => {
+                setViewMode("month");
+                setIsDropdownOpen(false);
+              }}
+              className={`w-full text-left px-4 py-2 text-sm rounded-b-lg hover:bg-gray-100 ${
+                viewMode === "month" ? "bg-white text-[#000000] font-medium" : "text-[#151517]"
+              }`}
+            >
+              Month
+            </button>
+          </div>
+        )}
+      </div>
     </div>
-  </div>
 
   <div className="h-60 mt-8">
     <ResponsiveContainer width="100%" height={300}>
@@ -241,26 +278,37 @@ useEffect(() => {
           <div className="flex justify-between mb-3">
             <h3 className="font-medium text-[16px] text-[#151517]">Streak</h3>
             <div className="flex items-center gap-2">
-              <ChevronLeft className="w-4 h-4 text-gray-600" />
-              <span className="text-gray-700 text-sm font-medium">{month}</span>
-              <ChevronRight className="w-4 h-4 text-gray-600" />
-            </div>
+  <ChevronLeft
+    className="w-4 h-4 text-gray-600 cursor-pointer"
+    onClick={prevMonth}
+  />
+
+  <span className="text-gray-700 text-sm font-medium">
+    {currentDate.getFullYear()}
+  </span>
+
+  <ChevronRight
+    className="w-4 h-4 text-gray-600 cursor-pointer"
+    onClick={nextMonth}
+  />
+</div>
           </div>
 
-          <table className="w-full text-center text-sm text-gray-700">
-            <thead>
-              <tr className="font-semibold">
-                <th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td>29</td><td>30</td><td>31</td><td>1</td><td>2</td><td>3⭐</td><td>4⭐</td></tr>
-              <tr><td>5⭐</td><td>6</td><td>7⭐</td><td>8⭐</td><td>9⭐</td><td>10⭐</td><td>11</td></tr>
-              <tr><td className="bg-purple-800 text-white rounded-full w-8 h-8">12</td><td>13</td><td>14</td><td>15⭐</td><td>16⭐</td><td>17⭐</td><td>18⭐</td></tr>
-              <tr><td>19</td><td>20⭐</td><td>21⭐</td><td>22⭐</td><td>23⭐</td><td>24⭐</td><td>25⭐</td></tr>
-              <tr><td>26⭐</td><td>27</td><td>28</td><td>29</td><td>30⭐</td><td>1</td><td>2</td></tr>
-            </tbody>
-          </table>
+          <div className="grid grid-cols-7 gap-2 max-w-md p-4">
+      {days.map((day) => {
+  const played = playedDays.has(day);
+  const dayNumber = new Date(day).getDate();
+
+  return (
+    <div
+      key={day}
+      className={`h-10 flex items-center justify-center rounded-lg text-sm font-medium text-[#151517]`}
+    >
+      {played ? "⭐" + dayNumber : dayNumber}
+    </div>
+  );
+})}
+    </div>
         </div>
 
         {/* Sight Reading */}

@@ -14,7 +14,10 @@ export default function ActivitiesReportPage() {
     const pathname = usePathname();
     const breadcrumbs = pathname.split('/').filter((segment) => segment);
     const [query, setQuery] = useState("");
-    const [sessions, setSessions] = useState<PracticeSession[]>([]);    
+    const [sessions, setSessions] = useState<PracticeSession[]>([]);
+    const itemsPerPage = 5;
+    const [currentPage, setCurrentPage] = useState(1);
+    const startIndex = (currentPage - 1) * itemsPerPage;
 
     const thisWeek = sessions.filter((s) =>
       isThisWeek(s.startedAt)
@@ -112,6 +115,9 @@ export default function ActivitiesReportPage() {
   );
 }, [lessonStats, query]);
 
+const currentItems = filteredLessons.slice(startIndex, startIndex + itemsPerPage);
+const totalPages = Math.ceil(filteredLessons.length / itemsPerPage);
+
   return (
     <div className="p-16 bg-[#F8F6F1] h-[100vh]" >
       <div className="gap-2 p-2 flex items-center ">
@@ -119,7 +125,7 @@ export default function ActivitiesReportPage() {
         <Image src="/Vector.svg" alt="arrow" width={8} height={8} className="inline-block mx-2"/>
         <span className="text-2xl text-[#151517] font-medium">My Activity</span>
       </div>
-      <div className="bg-[#FEFEFE] w-full h-[577px] rounded-2xl p-6 mt-4">
+      <div className="bg-[#FEFEFE] w-full rounded-2xl p-6 mt-4">
         {/* info and print section */}
         <div className="flex justify-between pt-4">
           <div className="flex flex-col gap-4 p-6 border-b border-[#E3E3E3] text-[#151517] text-[18px] font-medium" >
@@ -174,7 +180,7 @@ export default function ActivitiesReportPage() {
 
         </div>
         {/* contents */}
-        <div className="mt-6 ml-4">
+        <div className="mt-6 ml-4 h-full">
           <div className="rounded-xl border  bg-white">
             <table className="w-full border-collapse">
               <thead className="text-sm text-gray-500 border-b border-[#DEDEDE]">
@@ -207,7 +213,7 @@ export default function ActivitiesReportPage() {
               </thead>
 
               <tbody>
-                {filteredLessons.map(lesson => (
+                {currentItems.map(lesson => (
                   <tr key={lesson.id} className="border-b border-gray-200 text-sm last:border-none odd:bg-white even:bg-[#F7F7F7] hover:bg-gray-100transition">
 
                     <td className="px-6 py-4 font-medium text-gray-900">
@@ -231,7 +237,7 @@ export default function ActivitiesReportPage() {
                   </tr>
                 ))}
 
-                {filteredLessons.length === 0 && (
+                {currentItems.length === 0 && (
                   <tr>
                     <td colSpan={7} className="px-6 py-8 text-center text-gray-400">
                       No results found
@@ -243,8 +249,10 @@ export default function ActivitiesReportPage() {
 
             {/* Pagination UI */}
             <div className="flex justify-end gap-6 px-6 py-4 mr-16 "> 
-              <button className=" text-[14px] text-[#09090B] font-medium">Previous</button>
-              <button className=" text-[14px] text-[#09090B] font-medium">Next</button>
+              <button onClick={() => setCurrentPage((p) => p - 1)}
+          disabled={currentPage === 1} className=" disabled:opacity-50 text-[14px] text-[#09090B] font-medium">Previous</button>
+              <button onClick={() => setCurrentPage((p) => p + 1)}
+          disabled={currentPage === totalPages} className={`disabled:opacity-50 text-[14px] text-[#09090B] font-medium`} >Next</button>
             </div>
           </div>
         </div>

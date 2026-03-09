@@ -30,6 +30,11 @@ export default function SASRReportPage() {
   );
 }, [sessions]);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  
+
 useEffect(() => {
   const data = getSessions();
   setSessions(data);
@@ -122,6 +127,8 @@ const filteredSessions = useMemo(() => {
   function printReport() {
     window.print();
   }
+  const currentItems = filteredSessions.slice(startIndex, startIndex + itemsPerPage);
+  const totalpages = Math.ceil(filteredSessions.length / itemsPerPage);
 
   return (
     <div className="p-16 bg-[#F8F6F1] min-h-screen">
@@ -272,7 +279,7 @@ const filteredSessions = useMemo(() => {
               </thead>
 
               <tbody>
-  {filteredSessions.map((session) => (
+  {currentItems.map((session) => (
     <tr
       key={session.id}
       className="border-b border-gray-200 text-sm last:border-none odd:bg-white even:bg-[#F7F7F7] hover:bg-gray-100 transition"
@@ -368,16 +375,22 @@ const filteredSessions = useMemo(() => {
             </table>
 
             {/* Pagination UI */}
-            {filteredSessions.length > 0 && (
+            {currentItems.length > 0 && (
               <div className="flex justify-between items-center px-6 py-4 border-t border-gray-200">
                 <div className="text-sm text-gray-600">
-                  Showing {filteredSessions.length} of {sessions.length} sessions
+                  Showing {currentItems.length} of {sessions.length} sessions
                 </div>
                 <div className="flex gap-6">
-                  <button className="text-[14px] text-[#09090B] font-medium hover:text-purple-600 transition-colors">
+                  <button
+                  disabled={currentPage === 1}
+                   onClick={() => setCurrentPage((p) => p - 1)}
+                  className="text-[14px] text-[#09090B] font-medium disabled:opacity-50 transition-colors">
                     Previous
                   </button>
-                  <button className="text-[14px] text-[#09090B] font-medium hover:text-purple-600 transition-colors">
+                  <button
+                    disabled={currentPage === totalpages}
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                    className="text-[14px] text-[#09090B] font-medium disabled:opacity-50 transition-colors">
                     Next
                   </button>
                 </div>

@@ -13,8 +13,17 @@
           { "id": "8", "lessontitle": "C song", "link": "/lessons","file":"1A/Quarter(R&L).mxl","source":"Method-1A","level":"Advanced" },
           { "id": "9", "lessontitle": "C song", "link": "/lessons","file":"1A/Quarter(R&L)no2.mxl","source":"Method-1A","level":"Professional" },
           { "id": "10", "lessontitle": "C song", "link": "/lessons","file":"1A/CSong(R&L).mxl","source":"Method-1A","level":"Professional" },
-          { "id": "11", "lessontitle": "pattern", "link": "/lessons","file":"1A/The_Five_Finger_Mountain_10_Measure_Exercise-Piano.mxl","source":"Method-1A","level":"Professional" }
-
+          { "id": "11", "lessontitle": "pattern1", "link": "/lessons","file":"1A/11.mxl.zip","source":"Method-1A","level":"Professional" },
+          { "id": "12", "lessontitle": "pattern2", "link": "/lessons","file":"1A/12.mxl.zip","source":"Method-1A","level":"Professional" },
+          { "id": "13", "lessontitle": "pattern3", "link": "/lessons","file":"1A/13.mxl.zip","source":"Method-1A","level":"Professional" },
+          { "id": "14", "lessontitle": "pattern4", "link": "/lessons","file":"1A/14.mxl.zip","source":"Method-1A","level":"Professional" },
+          { "id": "15", "lessontitle": "pattern5", "link": "/lessons","file":"1A/15.mxl.zip","source":"Method-1A","level":"Professional" },
+          { "id": "16", "lessontitle": "pattern6", "link": "/lessons","file":"1A/16.mxl.zip","source":"Method-1A","level":"Professional" },
+          { "id": "17", "lessontitle": "pattern7", "link": "/lessons","file":"1A/17.mxl.zip","source":"Method-1A","level":"Professional" },
+          { "id": "18", "lessontitle": "pattern8", "link": "/lessons","file":"1A/18.mxl.zip","source":"Method-1A","level":"Professional" },
+          { "id": "19", "lessontitle": "pattern9", "link": "/lessons","file":"1A/19.mxl.zip","source":"Method-1A","level":"Professional" },
+          { "id": "20", "lessontitle": "pattern10", "link": "/lessons","file":"1A/20.mxl.zip","source":"Method-1A","level":"Professional" },
+          { "id": "21", "lessontitle": "pattern11", "link": "/lessons","file":"1A/The_Five_Finger_Mountain_10_Measure_Exercise-Piano.mxl","source":"Method-1A","level":"Professional" }
     ]
   },
   {
