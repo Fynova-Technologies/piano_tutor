@@ -6,7 +6,6 @@ import React, { Suspense, useEffect, useRef, useState } from "react";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import * as Tone from "tone";
 import { Sampler } from "tone";
-import scoreNotePlayed from "@/features/scores/scorenoteplayed";
 import CursorControls from "@/features/components/cursorcontrols";
 import { useSearchParams } from "next/navigation";
 import { BeatCursor } from "@/features/playback/beatcursor";

@@ -43,15 +43,14 @@ function collectMeasurePositions(
   console.log("🔍 === COLLECTING MEASURE POSITIONS ===");
   console.log(`Unit conversion: ${unitInPixels.toFixed(2)} px/unit`);
 
-  for (
-    let measureIdx = 0;
-    measureIdx < graphicSheet.MeasureList.length;
-    measureIdx++
-  ) {
+  for (let measureIdx = 0; measureIdx < graphicSheet.MeasureList.length; measureIdx++) {
     const measureList = graphicSheet.MeasureList[measureIdx];
     if (!measureList || measureList.length === 0) continue;
 
-    const measure = measureList[0];
+    // ✅ Find first non-null measure instead of blindly taking [0]
+    const measure = measureList.find((m: any) => m != null);
+    if (!measure) continue;  // ← This was the missing guard
+
     const position = measure.PositionAndShape?.AbsolutePosition;
     const size = measure.PositionAndShape?.Size;
 
@@ -179,16 +178,40 @@ function buildBeatTimeline(osmd: any): Beat[] {
     }
   }
 
-  // Collect graphical entries
   const graphicalEntries = collectGraphicalEntries(osmd, measureStarts);
   const beatAnchors = buildBeatAnchors(osmd, graphicalEntries);
 
-  graphicalEntries.sort((a, b) => a.absTime - b.absTime);
-  console.log("🎼 Graphical entries:", graphicalEntries.length);
+  // ✅ Step 1: Collect all note onset absolute times from cursor iterator
+  const noteOnsetTimes = new Set<string>();
 
-  // Build beats
-  let beatIndex = 0;
-  let absoluteTimestamp = new Fraction(0, 1);
+  if (osmd.cursor) {
+    osmd.cursor.reset();
+    const iterator = osmd.cursor.Iterator;
+    let safety = 0;
+
+    while (!iterator.EndReached && safety < 10000) {
+      safety++;
+      const measureIndex = iterator.CurrentMeasureIndex;
+      const currentVoiceEntries = iterator.CurrentVoiceEntries;
+
+      if (currentVoiceEntries?.length > 0) {
+        const firstEntry = currentVoiceEntries[0];
+        const relTime = firstEntry.Timestamp?.RealValue ?? 0;
+        const absTime = measureStarts[measureIndex] + relTime;
+        noteOnsetTimes.add(absTime.toFixed(6));
+      }
+
+      iterator.moveToNext();
+    }
+
+    osmd.cursor.hide();
+  }
+
+  console.log(`🎼 Found ${noteOnsetTimes.size} unique note onsets`);
+
+  // ✅ Step 2: Build merged timeline — beat grid + note onsets
+  // Collect all unique absolute times
+  const allTimestamps = new Map<string, { absTime: number; measureIndex: number; isNoteOnset: boolean }>();
 
   for (let m = 0; m < measures.length; m++) {
     const measure = measures[m];
@@ -197,54 +220,105 @@ function buildBeatTimeline(osmd: any): Beat[] {
       Denominator: 4,
     };
     const beatsPerMeasure = ts.Numerator;
-    const beatDuration = new Fraction(1, ts.Denominator);
+    const beatDuration = 1 / ts.Denominator;
 
+    // Add every metrical beat in this measure
     for (let b = 0; b < beatsPerMeasure; b++) {
-      const beatTime = absoluteTimestamp.RealValue;
-
-      const beat: Beat = {
-        index: beatIndex++,
-        measureIndex: m,
-        beatInMeasure: b,
-        timestamp: absoluteTimestamp.clone(),
-        expectedNotes: [],
-        isNoteStart: false,
-        noteDuration: 0,
-      };
-
-      const sourceMeasure = measures[m];
-      const measureDuration =
-        sourceMeasure.Duration?.RealValue ??
-        sourceMeasure.ActiveTimeSignature.Numerator *
-          (1 / sourceMeasure.ActiveTimeSignature.Denominator);
-
-      const localTime = (beatTime - measureStarts[m]) / measureDuration;
-      const x = getCursorX(beatAnchors, m, localTime);
-      const measurePos = measurePositions.get(m);
-
-      if (x != null && measurePos && x > measurePos.x + 5) {
-        beat.staffEntryX = x;
-        beat.staffEntryY = measurePos.y;
-        beat.systemHeight = measurePos.height;
-      } else if (measurePos) {
-        // Fallback case
-        const measureDur =
-          measures[m].Duration?.RealValue ??
-          measures[m].ActiveTimeSignature.Numerator *
-            (1 / measures[m].ActiveTimeSignature.Denominator);
-        const local = (beatTime - measureStarts[m]) / measureDur;
-        const clamped = Math.max(0, Math.min(1, local));
-        beat.staffEntryX = measurePos.x + measurePos.width * clamped;
-        beat.staffEntryY = measurePos.y;
-        beat.systemHeight = measurePos.height;
+      const absTime = measureStarts[m] + b * beatDuration;
+      const key = absTime.toFixed(6);
+      if (!allTimestamps.has(key)) {
+        allTimestamps.set(key, {
+          absTime,
+          measureIndex: m,
+          isNoteOnset: noteOnsetTimes.has(key),
+        });
       }
-
-      beats.push(beat);
-      absoluteTimestamp = absoluteTimestamp.Add(beatDuration);
     }
   }
 
-  console.log(`✅ Built ${beats.length} beats`);
+  // Add note onsets that fall between beats (subdivisions like 8th/16th notes)
+  if (osmd.cursor) {
+    osmd.cursor.reset();
+    const iterator = osmd.cursor.Iterator;
+    let safety = 0;
+
+    while (!iterator.EndReached && safety < 10000) {
+      safety++;
+      const measureIndex = iterator.CurrentMeasureIndex;
+      const currentVoiceEntries = iterator.CurrentVoiceEntries;
+
+      if (currentVoiceEntries?.length > 0) {
+        const firstEntry = currentVoiceEntries[0];
+        const relTime = firstEntry.Timestamp?.RealValue ?? 0;
+        const absTime = measureStarts[measureIndex] + relTime;
+        const key = absTime.toFixed(6);
+
+        if (!allTimestamps.has(key)) {
+          allTimestamps.set(key, {
+            absTime,
+            measureIndex,
+            isNoteOnset: true,
+          });
+        }
+      }
+
+      iterator.moveToNext();
+    }
+
+    osmd.cursor.hide();
+  }
+
+  // ✅ Step 3: Sort all timestamps and build Beat objects
+  const sortedEntries = [...allTimestamps.values()].sort(
+    (a, b) => a.absTime - b.absTime
+  );
+
+  let beatIndex = 0;
+
+  for (const entry of sortedEntries) {
+    const { absTime, measureIndex, isNoteOnset } = entry;
+    const measure = measures[measureIndex];
+    const ts = measure.ActiveTimeSignature || {
+      Numerator: 4,
+      Denominator: 4,
+    };
+    const beatDuration = 1 / ts.Denominator;
+    const relTime = absTime - measureStarts[measureIndex];
+    const beatInMeasure = relTime / beatDuration;
+
+    const measureDuration =
+      measure.Duration?.RealValue ??
+      ts.Numerator * (1 / ts.Denominator);
+
+    const localTime = relTime / measureDuration;
+    const x = getCursorX(beatAnchors, measureIndex, localTime);
+    const measurePos = measurePositions.get(measureIndex);
+
+    const beat: Beat = {
+      index: beatIndex++,
+      measureIndex,
+      beatInMeasure,
+      timestamp: new Fraction(Math.round(absTime * 1920), 1920),
+      expectedNotes: [],
+      isNoteStart: isNoteOnset,
+      noteDuration: 0,
+    };
+
+    if (x != null && measurePos && x > measurePos.x + 5) {
+      beat.staffEntryX = x;
+      beat.staffEntryY = measurePos.y;
+      beat.systemHeight = measurePos.height;
+    } else if (measurePos) {
+      const clamped = Math.max(0, Math.min(1, localTime));
+      beat.staffEntryX = measurePos.x + measurePos.width * clamped;
+      beat.staffEntryY = measurePos.y;
+      beat.systemHeight = measurePos.height;
+    }
+
+    beats.push(beat);
+  }
+
+  console.log(`✅ Built ${beats.length} merged beats (grid + onsets)`);
   enrichBeatsWithNotes(osmd, beats);
   return beats;
 }

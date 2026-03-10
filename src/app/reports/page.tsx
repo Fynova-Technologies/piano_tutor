@@ -61,8 +61,9 @@ export default function Reports() {
   // Add this inside your Reports component, after the existing state declarations
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  // const [days, setDays] = useState<string[]>([]);
   const [playedDays, setPlayedDays] = useState<Set<string>>(new Set());
-  const [days, setDays] = useState<string[]>([]);
+  const [calendarDays, setCalendarDays] = useState<(string | null)[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
 
   function nextMonth() {
@@ -85,27 +86,48 @@ function prevMonth() {
 useEffect(() => {
   const data = getSessions();
 
-  const uniqueDays = new Set(
-    data.map((s: PracticeSession) =>
-      new Date(s.startedAt).toISOString().split("T")[0]
-    )
+  const uniqueDays = new Set<string>(
+    data.map((s: PracticeSession) => {
+      const d = new Date(s.startedAt);
+      return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    })
   );
 
   setPlayedDays(uniqueDays);
-  setDays(getMonthDays(currentDate));
+}, []);
+
+useEffect(() => {
+  generateCalendar(currentDate);
 }, [currentDate]);
 
+const monthLabel = currentDate.toLocaleString("default", {
+  month: "long",
+  year: "numeric",
+});
 
-function getMonthDays(date: Date) {
+
+
+function generateCalendar(date: Date) {
   const year = date.getFullYear();
   const month = date.getMonth();
 
+  const firstDayIndex = new Date(year, month, 1).getDay();
   const totalDays = new Date(year, month + 1, 0).getDate();
 
-  return Array.from({ length: totalDays }, (_, i) => {
-    const d = new Date(year, month, i + 1);
-    return d.toISOString().split("T")[0];
-  });
+  const days: (string | null)[] = [];
+
+  // Empty cells before month starts
+  for (let i = 0; i < firstDayIndex; i++) {
+    days.push(null);
+  }
+
+  // Actual days
+  for (let i = 1; i <= totalDays; i++) {
+    const d = new Date(year, month, i);
+    days.push(`${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+  }
+
+  setCalendarDays(days);
 }
 
 
@@ -134,6 +156,8 @@ function getMonthDays(date: Date) {
       setActivityData(data);
     }
   }, [viewMode]);
+  const today = new Date();
+const todayKey = `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
 
 
 
@@ -274,42 +298,88 @@ function getMonthDays(date: Date) {
       <div className="flex p-8 w-full h-full">
         <div className="flex w-full space-x-8 h-full">
         {/* Streak Calendar */}
-        <div className="bg-white shadow-md rounded-xl p-6 border-4 border-[#C0BABA] border-r-[#BCBCBC] h-[345px] w-[360px]">
-          <div className="flex justify-between mb-3">
-            <h3 className="font-medium text-[16px] text-[#151517]">Streak</h3>
-            <div className="flex items-center gap-2">
-  <ChevronLeft
-    className="w-4 h-4 text-gray-600 cursor-pointer"
-    onClick={prevMonth}
-  />
+        <div className="bg-white shadow-md rounded-xl p-6 border-4 border-[#C0BABA] w-[360px]">
 
-  <span className="text-gray-700 text-sm font-medium">
-    {currentDate.getFullYear()}
-  </span>
+  {/* Header */}
+  <div className="flex justify-between items-center mb-4">
+    <div className="flex items-center gap-16">
+      <h3 className="font-medium text-[16px] text-[#151517]">Streak</h3>
+      
 
-  <ChevronRight
-    className="w-4 h-4 text-gray-600 cursor-pointer"
-    onClick={nextMonth}
-  />
+    </div>
+    
+
+    <div className="flex items-center gap-4">
+      <span className=" text-[13px] font-medium text-[#151517]">
+        {monthLabel}
+      </span>
+      <ChevronLeft
+        className="w-6 h-6 text-[#151517] cursor-pointer"
+        onClick={prevMonth}
+        strokeWidth={3}
+      
+      />
+
+      
+
+      <ChevronRight
+        className="w-6 h-6 text-[#151517] cursor-pointer"
+        onClick={nextMonth}
+        strokeWidth={3}
+      />
+    </div>
+  </div>
+
+  {/* Weekday header */}
+  <div className="grid grid-cols-7 text-xs text-[#151517] mb-2 text-center">
+    <div>Sun</div>
+    <div>Mon</div>
+    <div>Tue</div>
+    <div>Wed</div>
+    <div>Thu</div>
+    <div>Fri</div>
+    <div>Sat</div>
+  </div>
+
+  {/* Calendar grid */}
+  <div className="grid grid-cols-7 border-[0.35px] border-[#6E6E73]">
+
+  {calendarDays.map((day, i) => {
+
+    if (!day) {
+      return (
+        <div key={i} className="h-12 border-[0.35px] border-[#6E6E73] text-[#151517]"></div>
+      );
+    }
+
+    const played = playedDays.has(day);
+    const isToday = day === todayKey;
+    const dayNumber = parseInt(day.split("-")[2]);
+
+    return (
+      <div
+        key={day}
+        className={`h-12 flex flex-col items-center justify-center
+        ${
+          isToday
+            ? "bg-[#581845] text-white border-[#581845]"
+            : played
+            ? "border-1 border-yellow-400 bg-yellow-50"
+            : "border-[0.35px] border-[#6E6E73]"
+        }`}
+      >
+        <span className={`${played && isToday ? "text-white" : "text-[#151517]"} text-sm`}>{dayNumber}</span>
+
+        {played && (
+          <span className="text-xs text-yellow-500 leading-none">⭐</span>
+        )}
+      </div>
+    );
+  })}
+
 </div>
-          </div>
 
-          <div className="grid grid-cols-7 gap-2 max-w-md p-4">
-      {days.map((day) => {
-  const played = playedDays.has(day);
-  const dayNumber = new Date(day).getDate();
-
-  return (
-    <div
-      key={day}
-      className={`h-10 flex items-center justify-center rounded-lg text-sm font-medium text-[#151517]`}
-    >
-      {played ? "⭐" + dayNumber : dayNumber}
-    </div>
-  );
-})}
-    </div>
-        </div>
+</div>
 
         {/* Sight Reading */}
         <div className="bg-white shadow-md rounded-xl p-6 border-4 border-[#C0BABA] border-r-[#BCBCBC] h-[345px] w-[360px]">
