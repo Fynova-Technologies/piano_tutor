@@ -346,9 +346,8 @@ function collectGraphicalEntries(osmd: any, measureStarts: number[]) {
     const staffMeasures = sheet.MeasureList[m];
     console.log(`📏 Measure ${m}:`);
 
-    for (let i = 0; i < staffMeasures.length; i++) {
-      const measure = staffMeasures[i];
-      if (!measure.PositionAndShape) continue;
+    for (const measure of staffMeasures || []) {
+  if (!measure || !measure.PositionAndShape) continue;
 
       const measureX = measure.PositionAndShape.AbsolutePosition.x * unit;
       let measureWidth = measure.PositionAndShape.Size.width * unit;
@@ -1194,15 +1193,23 @@ export function useBeatCursor(
   const [totalBeats, setTotalBeats] = React.useState(0);
 
   React.useEffect(() => {
-    if (!osmdRef.current) return;
-    console.log("🎬 Initializing BeatCursor from useBeatCursor hook");
-    const cursor = new BeatCursor(osmdRef.current);
-    setBeatCursor(cursor);
-    setTotalBeats(cursor.getTotalBeats());
-    return () => {
-      cursor.destroy();
-    };
-  }, [osmdRef.current]);
+  const osmd = osmdRef.current;
+
+  if (!osmd || !osmd.Sheet || !osmd.GraphicSheet) {
+    console.log("⏳ OSMD not ready yet...");
+    return;
+  }
+
+  console.log("🎬 Initializing BeatCursor AFTER OSMD ready");
+
+  const cursor = new BeatCursor(osmd);
+  setBeatCursor(cursor);
+  setTotalBeats(cursor.getTotalBeats());
+
+  return () => {
+    cursor.destroy();
+  };
+}, [osmdRef.current?.GraphicSheet]);
 
   const next = () => {
     if (beatCursor?.next()) {
