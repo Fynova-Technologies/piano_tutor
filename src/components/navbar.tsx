@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import LogoutButton from '@/app/logout/page';
 import { supabase } from '@/lib/supabaseClient';
+import UserPopup from '@/features/components/userpopup';
+import NotificationPopup from '@/features/components/notification';
 
 const navItems = [
   { name: 'Dashboard', href: '/' },
@@ -23,6 +24,9 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const [userLoggedIn, setUserLoggedIn] = useState(false);
+  const [userPopupOpen, setUserPopupOpen] = useState(false);
+  const [notificationOpen, setnotificationOpen] = useState(false);
+
   useEffect(() => {
   const getSession = async () => {
         try {
@@ -64,17 +68,29 @@ export default function Navbar() {
         <div className="flex items-center space-x-4 mr-10">
           {/* Notification */}
           <button className="relative text-gray-600 hover:text-blue-600 bg-transparent border-none">
-            <Image src={"/assets/Icon.svg" } width={26} height={30} alt='bell'/>
+            <Image src={"/assets/Icon.svg" } width={26} height={30} alt='bell' onClick={()=> setnotificationOpen(!notificationOpen)}/>
             <span className="absolute top-0 right-0 inline-block w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
+          <div>
+            {notificationOpen &&
+            <div className='absolute right-0 top-0 mt-24 z-20 p-8 w-[600px] rounded-[16px] bg-[#FEFEFE]'>
+              <NotificationPopup notificationOpen={notificationOpen} setNotificationOpen={setnotificationOpen} />
+
+            </div>
+            }
+          </div>
 
           {/* Profile */}
-          <div className=" rounded-full overflow-hidden bg-transparent border-none">
-            <Image src="/assets/user.png" alt="User" width={50} height={50} />
+          <div className=" rounded-full cursor-pointer overflow-hidden bg-transparent border-none">
+            <Image src="/assets/user.png" alt="User" width={50} height={50} onClick={()=> setUserPopupOpen(!userPopupOpen)} />
           </div>
           <div>
-            {userLoggedIn ? <LogoutButton /> : <a href="/login" className="bg-gray-200 text-black px-4 py-2 rounded-lg hover:bg-gray-300"
->Login</a>}
+            
+            {userPopupOpen && 
+              <div className="absolute right-0 mt-12 w-80 bg-[#FEFEFE] rounded-[16px] shadow-lg py-2 z-20">
+                <UserPopup userPopupOpen={userPopupOpen} setUserPopupOpen={setUserPopupOpen} userLoggedIn={userLoggedIn} />
+              </div>
+            }
           </div>
 
           {/* Mobile Menu Toggle */}

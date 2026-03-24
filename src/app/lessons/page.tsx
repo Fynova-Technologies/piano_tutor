@@ -63,6 +63,17 @@ function Test2HybridFullContent() {
   const activeHighlightsRef = useRef<Set<any>>(new Set());
   const beatCursorRef = useRef<BeatCursor | null>(null);
   const [currentBeatIndex, setCurrentBeatIndex] = useState<number>(0);
+  const tempoRef = useRef(100);
+  const [tempo, setTempo] = useState(100); // BPM
+  const rafRef = useRef<number | null>(null);
+  const beatStartTimeRef = useRef<number>(0);
+  const beatAdvancedRef = useRef<boolean>(false);
+
+
+  useEffect(() => {
+  tempoRef.current = tempo;
+}, [tempo]);
+
 
   useEffect(() => {
     const hsStr = localStorage.getItem("highScore");
@@ -401,7 +412,6 @@ function Test2HybridFullContent() {
 
   // ========== PLAYBACK CONTROL ==========
   const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [tempo, setTempo] = useState(120); // BPM
 
   function startPlayback() {
     if (!beatCursorRef.current) {
@@ -423,6 +433,9 @@ function Test2HybridFullContent() {
 
     const totalBeats = beatCursorRef.current.getTotalBeats();
     let scoreableCount = 0;
+
+    beatAdvancedRef.current = false;
+    beatStartTimeRef.current = 0;
 
     for (let i = 0; i < totalBeats; i++) {
       const beat = beatCursorRef.current.getBeatAt(i);
@@ -466,108 +479,124 @@ function Test2HybridFullContent() {
   }
 
   function startAutomaticPlayback() {
-    if (playbackIntervalRef.current) {
-      clearInterval(playbackIntervalRef.current);
-    }
-
-    const beatDuration = (60 / tempo) * 1000;
-    console.log(
-      `🎵 Starting automatic playback at ${tempo} BPM (${beatDuration}ms per beat)`
-    );
-
-    playbackIntervalRef.current = setInterval(() => {
-      if (!playModeRef.current || !beatCursorRef.current) {
-        if (playbackIntervalRef.current) {
-          clearInterval(playbackIntervalRef.current);
-          playbackIntervalRef.current = null;
-        }
-        return;
-      }
-
-      const currentIdx = beatCursorRef.current.getCurrentIndex();
-      console.log(`⏱️ Auto-advance from beat ${currentIdx}`);
-
-      const moved = beatCursorRef.current.next();
-      if (moved) {
-        const newIndex = beatCursorRef.current.getCurrentIndex();
-
-        setCurrentBeatIndex(newIndex);
-        currentCursorStepRef.current = newIndex;
-        setPlayIndex(newIndex);
-
-        const expectedMIDI = beatCursorRef.current.getCurrentExpectedMIDI();
-        setCurrentStepNotes(expectedMIDI);
-        currentStepNotesRef.current = expectedMIDI;
-
-        console.log(`⏭️ Auto-advanced to beat ${newIndex}`);
-      } else {
-        console.log("🏁 Reached end of piece");
-        if (playbackIntervalRef.current) {
-          clearInterval(playbackIntervalRef.current);
-          playbackIntervalRef.current = null;
-        }
-        handleEndOfPiece();
-      }
-    }, beatDuration);
+  if (playbackIntervalRef.current) {
+    clearInterval(playbackIntervalRef.current);
+    playbackIntervalRef.current = null;
   }
+  if (rafRef.current) {
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+  }
+
+  const beatDuration = (60 / tempoRef.current) * 1000;
+  beatStartTimeRef.current = performance.now();
+
+  console.log(`🎵 Starting RAF playback at ${tempoRef.current} BPM`);
+
+function tick(now: number) {
+  if (!playModeRef.current || !beatCursorRef.current) return;
+
+  const beatDuration = (60 / tempoRef.current) * 1000;
+  const elapsed = now - beatStartTimeRef.current;
+  const progress = elapsed / beatDuration;
+
+  beatCursorRef.current.setInterpolatedPosition(progress);
+
+  const MOVE_FRACTION = 0.7;
+
+  if (elapsed >= beatDuration * MOVE_FRACTION && !beatAdvancedRef.current) {
+  beatAdvancedRef.current = true;
+
+  const nextIndex = beatCursorRef.current.getCurrentIndex() + 1;
+  const nextBeat = beatCursorRef.current.getBeatAt(nextIndex);
+
+  if (nextBeat) {
+    const nextMIDI = nextBeat.expectedNotes.map((ht: number) => ht + 12);
+    setCurrentStepNotes(nextMIDI);
+    currentStepNotesRef.current = nextMIDI;
+    currentCursorStepRef.current = nextIndex;
+
+    // Set color based on what the NEXT beat actually is
+    beatCursorRef.current.setDefaultColor(nextIndex);
+  }
+}
+
+  if (elapsed >= beatDuration) {
+    beatStartTimeRef.current = now;
+    beatAdvancedRef.current = false;
+
+    const moved = beatCursorRef.current.next();
+    if (moved) {
+      const newIndex = beatCursorRef.current.getCurrentIndex();
+      setCurrentBeatIndex(newIndex);
+      setPlayIndex(newIndex);
+    } else {
+      handleEndOfPiece();
+      return;
+    }
+  }
+
+  rafRef.current = requestAnimationFrame(tick);
+}
+  rafRef.current = requestAnimationFrame(tick);
+
+}
 
   function pausePlayback() {
-    setIsPlaying(false);
-    playModeRef.current = false;
+  setIsPlaying(false);
+  playModeRef.current = false;
 
-    if (playbackIntervalRef.current) {
-      clearInterval(playbackIntervalRef.current);
-      playbackIntervalRef.current = null;
-    }
-
-    if (beatCursorRef.current) {
-      beatCursorRef.current.stopPlayback();
-    }
-
-    console.log("⏸️ Playback paused");
+  if (rafRef.current) {
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+  }
+  if (playbackIntervalRef.current) {
+    clearInterval(playbackIntervalRef.current);
+    playbackIntervalRef.current = null;
   }
 
+  if (beatCursorRef.current) {
+    beatCursorRef.current.stopPlayback();
+  }
+}
+
   function handleEndOfPiece() {
-    setIsPlaying(false);
-    playModeRef.current = false;
+  setIsPlaying(false);
+  playModeRef.current = false;
 
-    if (playbackIntervalRef.current) {
-      clearInterval(playbackIntervalRef.current);
-      playbackIntervalRef.current = null;
-    }
+  if (rafRef.current) {
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+  }
 
-    if (beatCursorRef.current) {
-      beatCursorRef.current.stopPlayback();
-    }
+  if (beatCursorRef.current) {
+    beatCursorRef.current.stopPlayback();
+  }
 
-    const baseScore =
-      scoreableNotesRef.current > 0
-        ? (correctStepsRef.current / scoreableNotesRef.current) * 100
-        : 0;
+  const correct = correctStepsRef.current;
+  const incorrect = incorrectNotesRef.current;
+  const scoreable = scoreableNotesRef.current;
 
-    const incorrectPenalty = incorrectNotesRef.current * 5;
-    const finalScore = Math.max(0, Math.round(baseScore - incorrectPenalty));
+  let finalScore = 0;
 
-    console.log("📊 Score Update:", {
-      currentHighScore: highScore,
-      currentLastScore: lastScore,
-      newScore: finalScore,
-      willUpdateHighScore: highScore === null || finalScore > highScore,
-    });
+  if (scoreable > 0) {
+    const precision = correct + incorrect > 0
+      ? correct / (correct + incorrect)   // accuracy of what you played
+      : 0;
 
-    setScore(finalScore);
-    setLastScore(finalScore);
-    localStorage.setItem("lastScore", finalScore.toString());
+    const recall = correct / scoreable;   // coverage of required notes
 
-    if (highScore === null || finalScore > highScore) {
-      console.log(`🏆 NEW HIGH SCORE! ${finalScore} (previous: ${highScore})`);
-      setHighScore(finalScore);
-      localStorage.setItem("highScore", finalScore.toString());
-    } else {
-      console.log(
-        `📊 Score ${finalScore} did not beat high score of ${highScore}`
-      );
-    }
+    finalScore = Math.round(precision * recall * 100);
+  }
+
+  setScore(finalScore);
+  setLastScore(finalScore);
+  localStorage.setItem("lastScore", finalScore.toString());
+
+  if (highScore === null || finalScore > highScore) {
+    setHighScore(finalScore);
+    localStorage.setItem("highScore", finalScore.toString());
+  }
 
     const endTime = Date.now();
     const startTime = sessionStartRef.current ?? endTime;
@@ -605,13 +634,6 @@ function Test2HybridFullContent() {
     };
 
     saveSession(session);
-
-    console.log("🎉 Piece complete!");
-    console.log(`   Correct notes: ${correctStepsRef.current}/${scoreableNotesRef.current}`);
-    console.log(`   Incorrect notes: ${incorrectNotesRef.current}`);
-    console.log(`   Base score: ${baseScore.toFixed(1)}%`);
-    console.log(`   Penalty: -${incorrectPenalty}%`);
-    console.log(`   Final score: ${finalScore}%`);
   }
 
   useEffect(() => {
@@ -624,7 +646,7 @@ function Test2HybridFullContent() {
 
   // ========== NOTE TRACKING ==========
 function trackAndHighlightNote(midi: number) {
-  const actualCurrentBeatIndex = currentCursorStepRef.current;
+   const actualCurrentBeatIndex = currentCursorStepRef.current;
   if (!beatCursorRef.current || !playModeRef.current) return;
 
   const currentBeat = beatCursorRef.current.getBeatAt(actualCurrentBeatIndex);
@@ -641,11 +663,14 @@ function trackAndHighlightNote(midi: number) {
     scoredStepsRef.current.add(actualCurrentBeatIndex);
     if (isCorrect) {
       correctStepsRef.current += 1;
+      beatCursorRef.current.flashCorrect(); // ← immediate color change
     } else {
       incorrectNotesRef.current += 1;
+      beatCursorRef.current.flashIncorrect(); // ← immediate color change
     }
   } else if (!exactMatch) {
     incorrectNotesRef.current += 1;
+    beatCursorRef.current.flashIncorrect();
   }
 
   let graphicalNotes: any[] = [];

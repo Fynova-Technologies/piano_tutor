@@ -870,77 +870,35 @@ export class BeatCursor {
   }
 
   private updateCursorPosition() {
-    if (!this.cursorElement) {
-      console.warn("⚠️ Cursor element not initialized");
-      return;
-    }
-
-    if (!this.isVisible) {
-      this.cursorElement.setAttribute("display", "none");
-      return;
-    }
-
-    const beat = this.beats[this.currentBeatIndex];
-    if (!beat) {
-      console.error(`❌ No beat found at index ${this.currentBeatIndex}`);
-      return;
-    }
-
-    if (beat.staffEntryX === undefined || beat.staffEntryX <= 0) {
-      console.warn("⚠️ Missing X at beat", this.currentBeatIndex);
-      return;
-    }
-
-    this.cursorElement.setAttribute("display", "block");
-
-    // Visual feedback based on beat type
-    if (beat.isNoteStart) {
-      this.cursorElement.setAttribute("opacity", "0.8");
-      this.cursorElement.setAttribute("fill", "rgba(255, 0, 0, 0.20)");
-      this.cursorElement.setAttribute("stroke", "#FF0000");
-      this.cursorElement.setAttribute("stroke-width", "2.5");
-    } else if (beat.expectedNotes.length > 0) {
-      this.cursorElement.setAttribute("opacity", "0.5");
-      this.cursorElement.setAttribute("fill", "rgba(255, 165, 0, 0.15)");
-      this.cursorElement.setAttribute("stroke", "#FF8800");
-      this.cursorElement.setAttribute("stroke-width", "2");
-    } else {
-      this.cursorElement.setAttribute("opacity", "0.25");
-      this.cursorElement.setAttribute("fill", "rgba(128, 128, 128, 0.10)");
-      this.cursorElement.setAttribute("stroke", "#888888");
-      this.cursorElement.setAttribute("stroke-width", "1.5");
-    }
-
-    const cursorWidth = 25;
-    const x = beat.staffEntryX - 12;
-    const y = (beat.staffEntryY ?? 0) - 10;
-    const height = (beat.systemHeight ?? 100) + 20;
-
-    if (isNaN(x) || isNaN(y) || isNaN(height)) {
-      console.error(
-        `❌ Invalid cursor position values: x=${x}, y=${y}, height=${height}`
-      );
-      return;
-    }
-
-    this.cursorElement.setAttribute("x", x.toString());
-    this.cursorElement.setAttribute("y", y.toString());
-    this.cursorElement.setAttribute("width", cursorWidth.toString());
-    this.cursorElement.setAttribute("height", height.toString());
-
-    // Ensure cursor is on top
-    const parent = this.cursorElement.parentNode;
-    if (parent) {
-      parent.removeChild(this.cursorElement);
-      parent.appendChild(this.cursorElement);
-    }
-
-    console.log(
-      `🎯 Cursor at beat ${this.currentBeatIndex} (t=${beat.timestamp.RealValue.toFixed(4)}): X=${x.toFixed(1)} (staffEntryX=${beat.staffEntryX.toFixed(1)}), Y=${y.toFixed(1)}, Expected notes: [${beat.expectedNotes.join(",")}]`
-    );
-
-    this.scrollIntoView(beat.staffEntryX);
+  if (!this.cursorElement) return;
+  if (!this.isVisible) {
+    this.cursorElement.setAttribute("display", "none");
+    return;
   }
+
+  const beat = this.beats[this.currentBeatIndex];
+  if (!beat?.staffEntryX || beat.staffEntryX <= 0) return;
+
+  this.cursorElement.setAttribute("display", "block");
+
+  // Position only — no color logic here at all
+  const x = beat.staffEntryX - 12;
+  const y = (beat.staffEntryY ?? 0) - 10;
+  const height = (beat.systemHeight ?? 100) + 20;
+
+  this.cursorElement.setAttribute("x", x.toString());
+  this.cursorElement.setAttribute("y", y.toString());
+  this.cursorElement.setAttribute("width", "25");
+  this.cursorElement.setAttribute("height", height.toString());
+
+  const parent = this.cursorElement.parentNode;
+  if (parent) {
+    parent.removeChild(this.cursorElement);
+    parent.appendChild(this.cursorElement);
+  }
+
+  this.scrollIntoView(beat.staffEntryX);
+}
 
   private scrollIntoView(x: number) {
     const container = this.osmd.container;
@@ -1136,6 +1094,67 @@ findGraphicalNotesAtCurrentBeat(midiNote: number, staffIndexFilter?: number): an
   }
 
   return matchingNotes;
+}
+
+setInterpolatedPosition(progress: number) {
+  if (!this.cursorElement) return;
+
+  const currentBeat = this.beats[this.currentBeatIndex];
+  const nextBeat = this.beats[this.currentBeatIndex + 1];
+
+  if (!currentBeat?.staffEntryX) return;
+
+  const currentX = currentBeat.staffEntryX - 12;
+  const nextX = (nextBeat?.staffEntryX && nextBeat.staffEntryY === currentBeat.staffEntryY)
+    ? nextBeat.staffEntryX - 12
+    : currentX;
+
+  // Move fast across 70% of the beat duration, then hold for the last 30%
+  const MOVE_FRACTION = 0.7;
+  const clampedProgress = Math.min(progress / MOVE_FRACTION, 1.0);
+
+  const interpolatedX = currentX + (nextX - currentX) * clampedProgress;
+  this.cursorElement.setAttribute("x", interpolatedX.toString());
+}
+
+flashCorrect() {
+  if (!this.cursorElement) return;
+  this.cursorElement.setAttribute("fill", "rgba(76, 175, 80, 0.35)");
+  this.cursorElement.setAttribute("stroke", "#4caf50");
+  this.cursorElement.setAttribute("stroke-width", "2.5");
+}
+
+flashIncorrect() {
+  if (!this.cursorElement) return;
+  this.cursorElement.setAttribute("fill", "rgba(244, 67, 54, 0.35)");
+  this.cursorElement.setAttribute("stroke", "#f44336");
+  this.cursorElement.setAttribute("stroke-width", "2.5");
+}
+
+setDefaultColor(beatIndex: number) {
+  if (!this.cursorElement) return;
+  const beat = this.beats[beatIndex];
+  if (!beat) return;
+
+  if (beat.isNoteStart && beat.expectedNotes.length > 0) {
+    // Beat has notes — bright red, fully opaque
+    this.cursorElement.setAttribute("fill", "rgba(255, 0, 0, 0.20)");
+    this.cursorElement.setAttribute("stroke", "#FF0000");
+    this.cursorElement.setAttribute("stroke-width", "2.5");
+    this.cursorElement.setAttribute("opacity", "0.9");
+  } else if (beat.expectedNotes.length > 0) {
+    // Mid-note beat — softer orange
+    this.cursorElement.setAttribute("fill", "rgba(255, 165, 0, 0.15)");
+    this.cursorElement.setAttribute("stroke", "#FF8800");
+    this.cursorElement.setAttribute("stroke-width", "2");
+    this.cursorElement.setAttribute("opacity", "0.5");
+  } else {
+    // Rest beat — gray, very subtle
+    this.cursorElement.setAttribute("fill", "rgba(128, 128, 128, 0.10)");
+    this.cursorElement.setAttribute("stroke", "#888888");
+    this.cursorElement.setAttribute("stroke-width", "1.5");
+    this.cursorElement.setAttribute("opacity", "0.25");
+  }
 }
 
 getExpectedNotesByStaff(): { treble: number[], bass: number[] } {

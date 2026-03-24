@@ -5,8 +5,6 @@ import playCursor from "../playback/playcursor";
 import pauseCursor from "../playback/pausecursor";
 import clearHighlight from "../notes/clearhighlight";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
-// import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-// import { faPlay, faPause } from '@fortawesome/free-solid-svg-icons';
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";

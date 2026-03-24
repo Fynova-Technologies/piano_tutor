@@ -22,7 +22,7 @@ interface PlayedNote {
   graphicalNotes?: any[];
 }
 
-function Test2HybridFullContent() {
+function SasrLesson() {
   const [uploadedMusicXML, setUploadedMusicXML] = useState<string | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -72,6 +72,8 @@ function Test2HybridFullContent() {
   const totalMistakesRef = useRef(0); // ✅ CHANGED: Track total mistakes, not consecutive
   const [mistakeCountState, setMistakeCountState] = useState(0); // ✅ State for UI updates
   const MAX_MISTAKES = 3;
+  const tempoRef = useRef(120);
+  const [tempo, setTempo] = useState(120);
   
   useEffect(() => {
     const hsStr = localStorage.getItem("highScore");
@@ -372,7 +374,6 @@ function Test2HybridFullContent() {
 
   // ========== PLAYBACK CONTROL ==========
   const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const [tempo, setTempo] = useState(120); // BPM
 
 function startPlayback() {
   if (!beatCursorRef.current) {
@@ -733,115 +734,232 @@ function handleEndOfPiece() {
   }
 
 function drawFeedbackDot(
-  osmd: any, 
-  midi: number, 
-  isCorrect: boolean, 
+  osmd: any,
+  midi: number,
+  isCorrect: boolean,
   beat: any,
   graphicalNotes?: any[]
 ) {
-  if (!osmd?.drawer?.backend) {
-    console.warn('⚠️ No OSMD backend');
-    return;
-  }
+  if (!osmd?.drawer?.backend) return;
 
   const svg = osmd.drawer.backend.getSvgElement();
-  if (!svg) {
-    console.warn('⚠️ No SVG element');
-    return;
-  }
+  if (!svg) return;
 
   const graphicSheet = osmd.GraphicSheet;
-  
-  // Calculate unit conversion
+  const measureList = graphicSheet.MeasureList;
+
   let unitInPixels = 10;
   const innerElement = osmd.drawer?.backend?.getInnerElement?.();
   if (innerElement?.offsetWidth && graphicSheet?.ParentMusicSheet?.pageWidth) {
     unitInPixels = innerElement.offsetWidth / graphicSheet.ParentMusicSheet.pageWidth;
   }
 
-  // 🎯 METHOD 1: Use graphical notes if available (MOST ACCURATE)
-  if (graphicalNotes && graphicalNotes.length > 0) {
-    console.log(`✨ Drawing dots at graphical note positions`);
-    
+  /* ===============================
+     METHOD 1 — Correct Notes (VexFlow getBBox)
+  =============================== */
+  if (isCorrect && graphicalNotes?.length) {
     for (const gNote of graphicalNotes) {
-      const posAndShape = gNote.PositionAndShape;
-      if (!posAndShape?.AbsolutePosition) {
-        console.warn('⚠️ Graphical note missing position');
-        continue;
-      }
-      
-      const noteX = posAndShape.AbsolutePosition.x * unitInPixels;
-      const noteY = posAndShape.AbsolutePosition.y * unitInPixels;
-      
+      const vfNote = Array.isArray(gNote?.vfnote)
+        ? gNote.vfnote[0]
+        : gNote?.vfnote ?? gNote?.VexFlowNote;
+
+      const noteEl: SVGGraphicsElement | null = vfNote?.attrs?.el ?? null;
+      if (!noteEl) continue;
+
+      const notehead =
+        (noteEl.querySelector(".vf-notehead") as SVGGraphicsElement) ??
+        (noteEl.querySelector("path") as SVGGraphicsElement) ??
+        (noteEl.querySelector("use") as SVGGraphicsElement);
+
+      const bbox = (notehead ?? noteEl).getBBox();
+      const cx = bbox.x + bbox.width / 2;
+      const cy = bbox.y + bbox.height / 2;
+
       const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      el.setAttribute("cx", noteX.toString());
-      el.setAttribute("cy", noteY.toString());
-      el.setAttribute("r", "8");
-      el.classList.add(isCorrect ? "midi-ghost-note-correct" : "midi-ghost-note-incorrect");
-      el.setAttribute("stroke-width", "2.5");
-      
+      el.setAttribute("cx", cx.toString());
+      el.setAttribute("cy", cy.toString());
+      el.setAttribute("r", "5");
+      el.classList.add("midi-ghost-note-correct");
+      el.setAttribute("stroke-width", "2");
       svg.appendChild(el);
       activeHighlightsRef.current.add(el);
-      
-      console.log(`🔴 Dot drawn at ACTUAL NOTE position: X=${noteX.toFixed(1)}, Y=${noteY.toFixed(1)}, correct=${isCorrect}`);
     }
-    
     return;
   }
 
-  // 🎯 FALLBACK METHOD: Calculate position (less accurate)
-  console.log(`⚠️ No graphical notes found, using fallback positioning`);
-  
-  if (!beat || beat.staffEntryX === undefined) {
-    console.warn('⚠️ Cannot draw dot - invalid beat position');
+  /* ===============================
+     METHOD 2 — Incorrect Notes (stave pitch projection)
+  =============================== */
+  if (!beat?.staffEntryX) return;
+
+  const osmdHT = midi - 12;
+  const EPSILON = 1e-6;
+  const beatTime = beat.timestamp?.RealValue ?? 0;
+
+  function halfToneToDiatonic(ht: number): number {
+    const map = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
+    const oct = Math.floor(ht / 12);
+    const chr = ((ht % 12) + 12) % 12;
+    return oct * 7 + map[chr];
+  }
+
+  // Resolve staffIndex by pitch range
+  const numStavesTotal = measureList[0]?.length ?? 1;
+  let staffIndex = 0;
+
+  const staffPitchRanges: { min: number; max: number }[] = [];
+  for (let s = 0; s < numStavesTotal; s++) {
+    let min = Infinity, max = -Infinity;
+    for (let m = 0; m < measureList.length; m++) {
+      for (const se of measureList[m]?.[s]?.staffEntries ?? []) {
+        for (const gve of se.graphicalVoiceEntries ?? []) {
+          for (const gn of gve.notes ?? []) {
+            const ht = gn.sourceNote?.halfTone;
+            if (ht == null || gn.sourceNote?.isRest?.()) continue;
+            if (ht < min) min = ht;
+            if (ht > max) max = ht;
+          }
+        }
+      }
+    }
+    staffPitchRanges[s] = { min, max };
+  }
+
+  let bestDist = Infinity;
+  for (let s = 0; s < staffPitchRanges.length; s++) {
+    const { min, max } = staffPitchRanges[s];
+    if (min === Infinity) continue;
+    const mid = (min + max) / 2;
+    const dist = Math.abs(mid - osmdHT);
+    if (dist < bestDist) {
+      bestDist = dist;
+      staffIndex = s;
+    }
+  }
+
+  // Get parentStaffLine for current system
+  const targetMeasure = measureList[beat.measureIndex]?.[staffIndex];
+  const parentStaffLine = targetMeasure?.parentStaffLine;
+
+  // Find best anchor note
+  type NoteRef = { ht: number; y: number; beatDist: number; vf: any };
+  let bestAnchor: NoteRef | null = null;
+
+  for (let m = 0; m < measureList.length; m++) {
+    const measure = measureList[m]?.[staffIndex];
+    if (!measure || measure.parentStaffLine !== parentStaffLine) continue;
+
+    for (const staffEntry of measure.staffEntries ?? []) {
+      const entryBeat = staffEntry.sourceStaffEntry?.Timestamp?.RealValue;
+      if (entryBeat == null) continue;
+      const dist = Math.abs(entryBeat - beatTime);
+
+      for (const gve of staffEntry.graphicalVoiceEntries ?? []) {
+        for (const gn of gve.notes ?? []) {
+          if (gn.sourceNote?.isRest?.()) continue;
+          const ht = gn.sourceNote?.halfTone;
+          if (ht == null) continue;
+
+          const vf = Array.isArray(gn.vfnote) ? gn.vfnote[0] : gn.vfnote;
+          if (!vf) continue;
+
+          const noteEl: SVGGraphicsElement | null = vf?.attrs?.el ?? null;
+          if (!noteEl) continue;
+
+          const notehead =
+            (noteEl.querySelector(".vf-notehead") as SVGGraphicsElement) ??
+            (noteEl.querySelector("path") as SVGGraphicsElement) ??
+            (noteEl.querySelector("use") as SVGGraphicsElement);
+
+          const bbox = (notehead ?? noteEl).getBBox();
+          const anchorCenterY = bbox.y + bbox.height / 2;
+
+          if (!bestAnchor || dist < bestAnchor.beatDist - EPSILON) {
+            bestAnchor = { ht, y: anchorCenterY, beatDist: dist, vf };
+          }
+        }
+      }
+    }
+  }
+
+  if (!bestAnchor) {
+    console.warn("No anchor for incorrect note");
     return;
   }
 
-  const measureList = graphicSheet?.MeasureList?.[beat.measureIndex];
-  const measure = measureList?.[0];
-  
-  if (!measure) {
-    console.warn('⚠️ No measure found');
-    return;
+  // Get stave references for current system
+  const currentMeasureRow = measureList[beat.measureIndex];
+  const systemStavesBySlot: any[] = [];
+  const currentSystemStaffLines: any[] = [];
+  for (let s = 0; s < (currentMeasureRow?.length ?? 0); s++) {
+    currentSystemStaffLines[s] = currentMeasureRow[s]?.parentStaffLine ?? null;
   }
 
-  const lineSpacing = 10;
-  const measureY = (measure.PositionAndShape?.AbsolutePosition?.y ?? 0) * unitInPixels;
-  
-  const midiToDiatonic = (midi: number) => {
-    const pitchClass = midi % 12;
-    const octave = Math.floor(midi / 12) - 1;
-    const chromaticToDiatonic = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
-    const diatonicPitch = chromaticToDiatonic[pitchClass];
-    return octave * 7 + diatonicPitch;
-  };
-  
-  const clef = measure.InitiallyActiveClef?.clefType;
-  let referenceDiatonic, referenceY;
-  
-  if (clef === 1) {
-    referenceDiatonic = midiToDiatonic(50);
-    referenceY = measureY + (2 * lineSpacing);
+  for (let s = 0; s < (currentMeasureRow?.length ?? 0); s++) {
+    const targetStaffLine = currentSystemStaffLines[s];
+
+    for (let m = 0; m < measureList.length; m++) {
+      const ms = measureList[m]?.[s];
+      if (!ms) continue;
+      if (targetStaffLine && ms.parentStaffLine !== targetStaffLine) continue;
+
+      if (ms.stave?.y != null) {
+        systemStavesBySlot[s] = ms.stave;
+        break;
+      }
+
+      for (const se of ms.staffEntries ?? []) {
+        for (const gve of se.graphicalVoiceEntries ?? []) {
+          for (const gn of gve.notes ?? []) {
+            const vf = Array.isArray(gn.vfnote) ? gn.vfnote[0] : gn.vfnote;
+            if (vf?.stave?.y != null) {
+              systemStavesBySlot[s] = vf.stave;
+              break;
+            }
+          }
+          if (systemStavesBySlot[s]) break;
+        }
+        if (systemStavesBySlot[s]) break;
+      }
+      if (systemStavesBySlot[s]) break;
+    }
+  }
+
+  const sortedStaves = systemStavesBySlot
+    .filter(Boolean)
+    .sort((a, b) => a.y - b.y);
+
+  const trebleStaveObj = sortedStaves[0];
+  const bassStaveObj = sortedStaves[sortedStaves.length - 1];
+
+  const TREBLE_STAFF_LINES = 4;
+  const trebleLineGap = (trebleStaveObj.getBottomY() - trebleStaveObj.getYForLine(0)) / TREBLE_STAFF_LINES;
+  const trebleStep = trebleLineGap / 2;
+
+  const nD = halfToneToDiatonic(osmdHT);
+  let cy: number;
+
+  if (bassStaveObj && bassStaveObj.y !== trebleStaveObj?.y && osmdHT < 48) {
+    const bassTopLineY = bassStaveObj.getYForLine(0);
+    const bassStep = (bassStaveObj.getYForLine(4) - bassTopLineY) / 4 / 2;
+    cy = bassTopLineY + (halfToneToDiatonic(43) - nD) * bassStep + bassStep * 0.9;
   } else {
-    referenceDiatonic = midiToDiatonic(71);
-    referenceY = measureY + (2 * lineSpacing);
+    const trebleTopLineY = trebleStaveObj.getYForLine(0);
+    const trebleStep2 = (trebleStaveObj.getYForLine(4) - trebleTopLineY) / 4 / 2;
+    cy = trebleTopLineY + (halfToneToDiatonic(64) - nD) * trebleStep2 + trebleStep2 * 0.95;
   }
-  
-  const noteDiatonic = midiToDiatonic(midi);
-  const diatonicSteps = referenceDiatonic - noteDiatonic;
-  const y = referenceY + (diatonicSteps * (lineSpacing / 2));
 
-  const el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  el.setAttribute("cx", beat.staffEntryX.toString());
-  el.setAttribute("cy", y.toString());
-  el.setAttribute("r", "8");
-  el.classList.add(isCorrect ? "midi-ghost-note-correct" : "midi-ghost-note-incorrect");
-  el.setAttribute("stroke-width", "2.5");
-  
-  svg.appendChild(el);
-  activeHighlightsRef.current.add(el);
-  
-  console.log(`🔴 Fallback dot drawn at X=${beat.staffEntryX.toFixed(1)}, Y=${y.toFixed(1)}, correct=${isCorrect}`);
+  const cx = beat.staffEntryX;
+
+  const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  dot.setAttribute("cx", cx.toString());
+  dot.setAttribute("cy", cy.toString());
+  dot.setAttribute("r", "5");
+  dot.setAttribute("fill", "red");
+  dot.setAttribute("opacity", "1");
+  dot.classList.add("midi-ghost-note-incorrect");
+  svg.appendChild(dot);
+  activeHighlightsRef.current.add(dot);
 }
 
 function clearAllTracking() {
@@ -1127,7 +1245,7 @@ function clearAllTracking() {
 export default function Test2HybridFull() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <Test2HybridFullContent />
+      <SasrLesson />
     </Suspense>
   );
 }
