@@ -1,0 +1,397 @@
+[
+  {
+    "id": "sm_000001",
+    "slug": "arabesque_L",
+    "title": "Arabesque_L._66_No._1",
+    "subtitle": "Bagatelle No. 25 in A minor",
+    "variant": "beginner",
+    "file": "/library/Arabesque_L._66_No._1_in_E_Major.mxl",
+
+    "artist": {
+      "id": "art_0001",
+      "name": "Ludwig van Beethoven Arabesque_L",
+      "slug": "arabesque_L"
+    },
+
+    "categories": {
+      "genres": [
+        {
+          "id": "gen_001",
+          "name": "Classical",
+          "slug": "classical"
+        }
+      ],
+      "difficulty": {
+        "id": "diff_001",
+        "level": "beginner",
+        "rank": 1
+      }
+    },
+
+    "status": {
+      "id": "stat_001",
+      "published": true,
+      "featured": true,
+      "new": true
+    }
+  },
+  {
+    "id": "sm_000002",
+    "slug": "Ave_Maria",
+    "title": "Ave Maria",
+    "subtitle": "D839 - Schubert - Solo Piano Arrangement",
+    "variant": "beginner",
+    "file": "/library/Ave_Maria_D839_-_Schubert_-_Solo_Piano_Arrg..mxl",
+
+    "artist": {
+      "id": "art_0002",
+      "name": "Ave Maria",
+      "slug": "ave_maria"
+    },
+
+    "categories": {
+      "genres": [
+        {
+          "id": "gen_001",
+          "name": "Classical",
+          "slug": "classical"
+        }
+      ],
+      "difficulty": {
+        "id": "diff_001",
+        "level": "beginner",
+        "rank": 1
+      }
+    },
+
+    "status": {
+      "id": "stat_001",
+      "published": true,
+      "featured": true,
+      "new": true
+    }
+  },
+  {
+    "id": "sm_000003",
+    "slug": "moonlight-sonata",
+    "title": "Moonlight Sonata",
+    "subtitle": "Piano Sonata No. 14 in C-sharp minor",
+    "variant": "intermediate",
+    "file":"/library/Bach_Minuet_in_G_Major_BWV_Anh._114.mxl",
+
+    "artist": {
+      "id": "art_0003",
+      "name": "Bach Minuet",
+      "slug": "bach-minuet"
+    },
+
+    "categories": {
+      "genres": [
+        {
+          "id": "gen_001",
+          "name": "Classical",
+          "slug": "classical"
+        }
+      ],
+      "difficulty": {
+        "id": "diff_002",
+        "level": "intermediate",
+        "rank": 2
+      }
+    },
+
+    "status": {
+      "id": "stat_001",
+      "published": true,
+      "featured": true,
+      "new": true
+    } 
+  },
+    {
+        "id": "sm_000003",
+        "slug": "sympathy-for-the-devil",
+        "title": "Sympathy for the Devil",
+        "subtitle": "The Rolling Stones",
+        "variant": "beginner",
+        "file":"/library/Bach_Toccata_and_Fugue_in_D_Minor_Piano_solo.mxl",
+    
+        "artist": {
+        "id": "art_0004",
+        "name": "Bach Toccata",
+        "slug": "bach-toccata"
+        },
+    
+        "categories": {
+        "genres": [
+            {
+            "id": "gen_002",
+            "name": "Rock",
+            "slug": "rock"
+            }
+        ],
+        "difficulty": {
+            "id": "diff_001",
+            "level": "beginner",
+            "rank": 1
+        }
+        },
+    
+        "status": {
+        "id": "stat_001",
+        "published": true,
+        "featured": true,
+        "new": true
+        } 
+    },
+    {
+        "id": "sm_000005",
+        "slug": "beethoven-symphony-no-5",
+        "title": "Beethoven Symphony No. 5",
+        "subtitle": "Beethoven",
+        "variant": "intermediate",
+        "file":"/library/Beethoven_Symphony_No._5_1st_movement_Piano_solo.mxl",
+    
+        "artist": {
+        "id": "art_0005",
+        "name": "Beethoven",
+        "slug": "beethoven"
+        },
+    
+        "categories": {
+        "genres": [
+            {
+            "id": "gen_002",
+            "name": "Rock",
+            "slug": "rock"
+            }
+        ],
+        "difficulty": {
+            "id": "diff_002",
+            "level": "intermediate",
+            "rank": 2
+        }
+        },
+    
+        "status": {
+        "id": "stat_001",
+        "published": true,
+        "featured": true,
+        "new": true
+        } 
+    },
+    {
+        "id": "sm_000006",
+        "slug": "beethoven-symphony-no-9",
+        "title": "Beethoven Symphony No. 9",
+        "subtitle": "Beethoven",
+        "variant": "advanced",
+        "file":"/library/beethoven-symphony-no-9-op-125.mxl",
+    
+        "artist": {
+        "id": "art_0005",
+        "name": "Beethoven",
+        "slug": "beethoven"
+        },
+    
+        "categories": {
+        "genres": [
+            {
+            "id": "gen_002",
+            "name": "Rock",
+            "slug": "rock"
+            }
+        ],
+        "difficulty": {
+            "id": "diff_003",
+            "level": "advanced",
+            "rank": 3
+        }
+        },
+    
+        "status": {
+        "id": "stat_001",
+        "published": true,
+        "featured": true,
+        "new": true
+        } 
+    },
+    {
+        "id": "sm_000007",
+        "slug": "bella-ciao",
+        "title": "Bella Ciao La Casa de Papel",
+        "subtitle": "La Casa de Papel",
+        "variant": "advanced",
+        "file": "/library/Bella_Ciao_-_La_Casa_de_Papel.mxl",
+    
+        "artist": {
+        "id": "art_0006",
+        "name": "Queen",
+        "slug": "queen"
+        },
+    
+        "categories": {
+        "genres": [
+            {
+            "id": "gen_002",
+            "name": "Rock",
+            "slug": "rock"
+            }
+        ],
+        "difficulty": {
+            "id": "diff_003",
+            "level": "advanced",
+            "rank": 3
+        }
+        },
+    
+        "status": {
+        "id": "stat_001",
+        "published": true,
+        "featured": true,
+        "new": true
+        } 
+    },
+    {
+        "id": "sm_000008",
+        "slug": "bella-ciao",
+        "title": "Bella Ciao",
+        "subtitle": "Queen",
+        "variant": "advanced",
+        "file":"/library/Bella_Ciao.mxl",
+        "artist": {
+        "id": "art_0007",
+        "name": "Queen",
+        "slug": "queen"
+        },
+    
+        "categories": {
+        "genres": [
+            {
+            "id": "gen_002",
+            "name": "Rock",
+            "slug": "rock"
+            }
+        ],
+        "difficulty": {
+            "id": "diff_003",
+            "level": "advanced",
+            "rank": 3
+        }
+        },
+    
+        "status": {
+        "id": "stat_001",
+        "published": true,
+        "featured": true,
+        "new": true
+        } 
+    },
+    {
+        "id": "sm_000007",
+        "slug": "canon-in-d-3",
+        "title": "Canon in D 3",
+        "subtitle": "Queen",
+        "variant": "advanced",
+        "file":"/library/Canon_in_D_3.mxl",
+    
+        "artist": {
+        "id": "art_0008",
+        "name": "Queen recaps",
+        "slug": "queen-recaps"
+        },
+    
+        "categories": {
+        "genres": [
+            {
+            "id": "gen_002",
+            "name": "Rock",
+            "slug": "rock"
+            }
+        ],
+        "difficulty": {
+            "id": "diff_003",
+            "level": "advanced",
+            "rank": 3
+        }
+        },
+    
+        "status": {
+        "id": "stat_001",
+        "published": true,
+        "featured": true,
+        "new": true
+        } 
+    },
+    {
+        "id": "sm_000008",
+        "slug": "canon-in-d-3",
+        "title": "Canon in D 3",
+        "subtitle": "Queen",
+        "variant": "advanced",
+        "file":"/library/Canon_in_D_easy.mxl",
+    
+        "artist": {
+        "id": "art_0008",
+        "name": "Queen recaps",
+        "slug": "queen-recaps"
+        },
+    
+        "categories": {
+        "genres": [
+            {
+            "id": "gen_002",
+            "name": "Rock",
+            "slug": "rock"
+            }
+        ],
+        "difficulty": {
+            "id": "diff_003",
+            "level": "advanced",
+            "rank": 3
+        }
+        },
+    
+        "status": {
+        "id": "stat_001",
+        "published": true,
+        "featured": true,
+        "new": true
+        } 
+    },
+    {
+        "id": "sm_000009",
+        "slug": "canon-in-d",
+        "title": "Canon in D",
+        "subtitle": "Queen",
+        "variant": "advanced",
+        "file": "/library/Canon_in_D.mxl",
+    
+        "artist": {
+        "id": "art_0008",
+        "name": "Queen recaps",
+        "slug": "queen-recaps"
+        },
+    
+        "categories": {
+        "genres": [
+            {
+            "id": "gen_002",
+            "name": "Rock",
+            "slug": "rock"
+            }
+        ],
+        "difficulty": {
+            "id": "diff_003",
+            "level": "advanced",
+            "rank": 3
+        }
+        },
+    
+        "status": {
+        "id": "stat_001",
+        "published": true,
+        "featured": true,
+        "new": true
+        } 
+    }
+]

@@ -1,108 +1,142 @@
-import { useState, useEffect } from 'react';
-import Image from "next/image"
+'use client';
+
+import { useState, useEffect } from "react";
+import Image from "next/image";
 import HeartIcon from "../library/hearfilled";
-import GetPopupContainer from '@/components/favouritepopup/favouritepopup';
+import GetPopupContainer from "@/components/favouritepopup/favouritepopup";
 
 type SongInformation = {
-  id: number;
+  id: string;
+  slug: string;
   title: string;
-  artist: string;
-  ratings: number;
+  subtitle: string;
+  variant: string;
+  file: string;
   imageUrl: string;
+
+  artist: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+
+  categories: {
+    genres: {
+      id: string;
+      name: string;
+      slug: string;
+    }[];
+    difficulty: {
+      id: string;
+      level: string;
+      rank: number;
+    };
+  };
+
+  status: {
+    id: string;
+    published: boolean;
+    featured: boolean;
+    new: boolean;
+  };
 };
 
-// type SongData = {
-//     [category:string]: SongInformation[]
+export default function Favorite() {
+  const [liked, setLiked] = useState<Record<string, boolean>>({});
+  const [openDialogue, setOpenDialogue] = useState(false);
+  const [favorites, setFavorites] = useState<SongInformation[]>([]);
+  const [dialogueSong, setDialogueSong] = useState<SongInformation | null>(null);
 
-// }
-
-export default function Favorite(){
-    const [liked, setLiked] = useState<{ [id: string]: boolean }>({});
-    const [openDialogue, setOpenDialogue] = useState(false);
-    const [favorites,setFavorites]= useState<SongInformation[] | null>(null)
-    const [dialogueSong, setDialogueSong] = useState<SongInformation | null>(null);
-    
-    const handleClick = (id:number) => {
-     setLiked((prev) => ({
+  const handleClick = (id: string) => {
+    setLiked((prev) => ({
       ...prev,
       [id]: !prev[id],
-    })); 
+    }));
+  };
+
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      const res = await fetch("/library.json");
+      const data = await res.json();
+
+      const featuredSongs = data.filter(
+        (song: SongInformation) => song.status.featured
+      );
+      // Add imageUrl property to each song
+      const featuredSongsWithImage = featuredSongs.map((song: SongInformation) => ({
+        ...song,
+        imageUrl: `/songs/${song.slug}.jpg`,
+      }));
+
+      setFavorites(featuredSongsWithImage);
+      setFavorites(featuredSongs);
     };
 
-    useEffect(() => {
-  let isMounted = true;
+    fetchFavorites();
+  }, []);
 
-  const fetchFavorites = async () => {
-    const res = await fetch("/Songs.json");
-    const data = await res.json();
-    if (isMounted) {
-      setFavorites(data.Favorites);
-    }
-  };
+  if (!favorites.length) return <p>Loading favorites...</p>;
 
-  fetchFavorites();
+  return (
+    <div className="bg-[#F8F6F1] flex justify-center px-4 pb-8">
+      <div className="max-w-[1200px] w-full">
+        <h1 className="text-2xl font-bold mb-6 text-[#151517]">
+          Favorites
+        </h1>
 
-  return () => {
-    isMounted = false;
-  };
-}, []);
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          {favorites.map((song) => (
+            <div key={song.id} className="w-full">
+              <div className="shadow-lg rounded-2xl overflow-hidden bg-white">
+                <div className="relative group aspect-square">
+                  <Image
+                    src={`/songs/${song.slug}.jpg`}
+                    alt={song.title}
+                    fill
+                    className="object-cover transition-transform duration-300 hover:scale-105 cursor-pointer"
+                    onClick={() => {
+                      setOpenDialogue(true);
+                      setDialogueSong(song);
+                    }}
+                  />
 
-    if (!favorites) return <p>Loading favorites...</p>;
+                  <div className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-md cursor-pointer">
+                    <div onClick={() => handleClick(song.id)}>
+                      <HeartIcon isLiked={liked[song.id]} />
+                    </div>
+                  </div>
 
-    return(
-        <div className=' bg-[#F8F6F1] flex justify-center px-1 pb-4 '>
-            
-                <div className="max-w-[90%]">
-                    <h1 className="text-2xl font-bold mb-4 text-[#151517]">Favorites</h1>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 py-4">
+                  {song.status.new && (
+                    <div className="absolute top-2 left-2 bg-black text-white text-xs px-2 py-1 rounded-full">
+                      NEW
+                    </div>
+                  )}
+                </div>
 
-                      {favorites?.map((song, index) =>
-                        <div key={index} className="w-full max-h-[251.61px]">
-                          {/* Add shadow-lg for the 3D effect and transition for smooth hover */}
-                          <div className="shadow-[0_5px_10px_0px_#505050] rounded-2xl h-[251px] ">
-                            <div className="relative rounded-t-2xl overflow-hidden group w-[200px] h-[200px]">
-                              <Image
-                                src={song.imageUrl || "/songs/s1.jpg"}
-                                alt={song.title}
-                                width={400}
-                                height={400}
-                                className="object-cover w-full h-[300px] rounded-t-2xl transition-transform duration-300 hover:scale-105 cursor-pointer"
-                                onClick={() => { setOpenDialogue(!openDialogue); setDialogueSong(song); }}
-                              />
-                              <div className="absolute bottom-2 left-7 flex flex-row gap-1 ">
-                                {[...Array(5)].map((_, i) => (
-                                  <svg
-                                    key={i}
-                                    className={`w-8 h-8 ${
-                                      i < song.ratings ? "text-[#FFCC00]" : "text-gray-300"
-                                    }`}
-                                    fill="currentColor"
-                                    viewBox="0 0 20 20"
-                                  >
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.175c.969 0 1.371 1.24.588 1.81l-3.38 2.455a1 1 0 00-.364 1.118l1.286 3.967c.3.922-.755 1.688-1.538 1.118l-3.38-2.455a1 1 0 00-1.176 0l-3.38 2.455c-.783.57-1.838-.197-1.538-1.118l1.286-3.967a1 1 0 00-.364-1.118L2.049 9.394c-.783-.57-.38-1.81.588-1.81h4.175a1 1 0 00.95-.69l1.286-3.967z" />
-                                  </svg>
-                                ))}
-                              </div>
-                              <div>
-                                <div className="absolute top-2 right-2 bg-[#F8F6F1] rounded-full p-2 shadow-md w-8 h-8 " onClick={() => handleClick(song.id)}>
-                                  <HeartIcon isLiked={liked[song.id]} />
-                                </div>
-                              </div>
-                            </div>
-                            <div className="bg-white flex flex-col rounded-b-2xl text-[#151517] p-4 w-[200px]">
-                              <span className="font-semibold">{song.title}</span>
-                              <span>{song.artist}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                            {openDialogue && dialogueSong && (
-                                <GetPopupContainer dialogueSong={dialogueSong} openDialogue={openDialogue} setOpenDialogue={setOpenDialogue}/>
-                            )}
-                            
-                        </div>
-                    </div>               
+                <div className="p-4 text-[#151517]">
+                  <h3 className="font-semibold line-clamp-1">
+                    {song.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 line-clamp-1">
+                    {song.artist.name}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {song.categories.difficulty.level}
+                  </p>
+                </div>
+              </div>
             </div>
-      // 
-    )
+          ))}
+        </div>
+
+        {openDialogue && dialogueSong && (
+          <GetPopupContainer
+            dialogueSong={dialogueSong}
+            openDialogue={openDialogue}
+            setOpenDialogue={setOpenDialogue}
+          />
+        )}
+      </div>
+    </div>
+  );
 }

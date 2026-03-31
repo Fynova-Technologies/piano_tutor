@@ -14,11 +14,39 @@ interface Level {
 }
 
 type SongInformation = {
-  id: number;
-  title: string;
-  artist: string;
-  ratings: number;
   imageUrl: string;
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string;
+  variant: string;
+  file: string;
+
+  artist: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+
+  categories: {
+    genres: {
+      id: string;
+      name: string;
+      slug: string;
+    }[];
+    difficulty: {
+      id: string;
+      level: string;
+      rank: number;
+    };
+  };
+
+  status: {
+    id: string;
+    published: boolean;
+    featured: boolean;
+    new: boolean;
+  };
 };
 
 const levels: Level[] = [
@@ -30,7 +58,7 @@ const levels: Level[] = [
 
 export default function GetPopupContainer({ dialogueSong, openDialogue, setOpenDialogue }: { dialogueSong: SongInformation; openDialogue: boolean, setOpenDialogue: React.Dispatch<React.SetStateAction<boolean>>  }) {
   const [liked, setLiked] = useState<{ [id: string]: boolean }>({});
-  const handleClick = (id:number) => {
+  const handleClick = (id: string) => {
      setLiked((prev) => ({
       ...prev,
       [id]: !prev[id],
