@@ -13,13 +13,11 @@ type SongInformation = {
   variant: string;
   file: string;
   imageUrl: string;
-
   artist: {
     id: string;
     name: string;
     slug: string;
   };
-
   categories: {
     genres: {
       id: string;
@@ -32,7 +30,6 @@ type SongInformation = {
       rank: number;
     };
   };
-
   status: {
     id: string;
     published: boolean;
@@ -41,7 +38,7 @@ type SongInformation = {
   };
 };
 
-export default function Favorite() {
+export default function PartFavorite() {
   const [liked, setLiked] = useState<Record<string, boolean>>({});
   const [openDialogue, setOpenDialogue] = useState(false);
   const [favorites, setFavorites] = useState<SongInformation[]>([]);
@@ -55,27 +52,27 @@ export default function Favorite() {
   };
 
   useEffect(() => {
-    const fetchFavorites = async () => {
-      const res = await fetch("/library.json");
-      const data = await res.json();
-
-      const featuredSongs = data.filter(
-        (song: SongInformation) => song.status.featured
-      );
-      // Add imageUrl property to each song
-      const featuredSongsWithImage = featuredSongs.map((song: SongInformation) => ({
+  const fetchFavorites = async () => {
+    const res = await fetch("/library.json");
+    const data = await res.json();
+    const featuredSongs = data
+      .filter((song: SongInformation) => song.status.featured)
+      .slice(0, 4) // ← move slice here
+      .map((song: SongInformation) => ({
         ...song,
-        imageUrl: `/songs/${song.slug}.jpg`,
+        imageUrl: `${song.imageUrl}`,
       }));
+    setFavorites(featuredSongs);
+  };
+  fetchFavorites();
 
-      setFavorites(featuredSongsWithImage);
-      setFavorites(featuredSongs);
-    };
-
-    fetchFavorites();
-  }, []);
+}, []);
 
   if (!favorites.length) return <p>Loading favorites...</p>;
+
+  const visibleFavorites = favorites.slice(0, 4);
+    console.log("favorites count:", favorites.length);
+    console.log("visibleFavorites count:", visibleFavorites.length);
 
   return (
     <div className="bg-[#F8F6F1] flex justify-center px-4 pb-8">
@@ -84,13 +81,13 @@ export default function Favorite() {
           Favorites
         </h1>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-          {favorites.map((song) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {visibleFavorites.map((song) => (
             <div key={song.id} className="w-full">
               <div className="shadow-lg rounded-2xl overflow-hidden bg-white">
                 <div className="relative group aspect-square">
                   <Image
-                    src={`${song.imageUrl}`}
+                    src={song.imageUrl}
                     alt={song.title}
                     fill
                     className="object-cover transition-transform duration-300 hover:scale-105 cursor-pointer"

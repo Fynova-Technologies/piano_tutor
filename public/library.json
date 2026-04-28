@@ -6,6 +6,7 @@
     "subtitle": "Bagatelle No. 25 in A minor",
     "variant": "beginner",
     "file": "/library/Arabesque_L._66_No._1_in_E_Major.mxl",
+    "imageUrl":"/songs/s1.jpg",
 
     "artist": {
       "id": "art_0001",
@@ -42,6 +43,7 @@
     "subtitle": "D839 - Schubert - Solo Piano Arrangement",
     "variant": "beginner",
     "file": "/library/Ave_Maria_D839_-_Schubert_-_Solo_Piano_Arrg..mxl",
+    "imageUrl":"/songs/s2.jpg",
 
     "artist": {
       "id": "art_0002",
@@ -78,6 +80,7 @@
     "subtitle": "Piano Sonata No. 14 in C-sharp minor",
     "variant": "intermediate",
     "file":"/library/Bach_Minuet_in_G_Major_BWV_Anh._114.mxl",
+    "imageUrl":"/songs/s3.jpg",
 
     "artist": {
       "id": "art_0003",
@@ -108,12 +111,13 @@
     } 
   },
     {
-        "id": "sm_000003",
+        "id": "sm_000004",
         "slug": "sympathy-for-the-devil",
         "title": "Sympathy for the Devil",
         "subtitle": "The Rolling Stones",
         "variant": "beginner",
         "file":"/library/Bach_Toccata_and_Fugue_in_D_Minor_Piano_solo.mxl",
+        "imageUrl":"/songs/s4.jpg",
     
         "artist": {
         "id": "art_0004",
@@ -150,6 +154,7 @@
         "subtitle": "Beethoven",
         "variant": "intermediate",
         "file":"/library/Beethoven_Symphony_No._5_1st_movement_Piano_solo.mxl",
+        "imageUrl":"/songs/s5.jpg",
     
         "artist": {
         "id": "art_0005",
@@ -186,6 +191,7 @@
         "subtitle": "Beethoven",
         "variant": "advanced",
         "file":"/library/beethoven-symphony-no-9-op-125.mxl",
+        "imageUrl":"/songs/s1.jpg",
     
         "artist": {
         "id": "art_0005",
@@ -222,6 +228,7 @@
         "subtitle": "La Casa de Papel",
         "variant": "advanced",
         "file": "/library/Bella_Ciao_-_La_Casa_de_Papel.mxl",
+        "imageUrl":"/songs/s2.jpg",
     
         "artist": {
         "id": "art_0006",
@@ -258,6 +265,8 @@
         "subtitle": "Queen",
         "variant": "advanced",
         "file":"/library/Bella_Ciao.mxl",
+        "imageUrl":"/songs/s3.jpg",
+
         "artist": {
         "id": "art_0007",
         "name": "Queen",
@@ -287,12 +296,13 @@
         } 
     },
     {
-        "id": "sm_000007",
+        "id": "sm_000009",
         "slug": "canon-in-d-3",
         "title": "Canon in D 3",
         "subtitle": "Queen",
         "variant": "advanced",
         "file":"/library/Canon_in_D_3.mxl",
+        "imageUrl":"/songs/s4.jpg",
     
         "artist": {
         "id": "art_0008",
@@ -323,12 +333,13 @@
         } 
     },
     {
-        "id": "sm_000008",
+        "id": "sm_0000010",
         "slug": "canon-in-d-3",
         "title": "Canon in D 3",
         "subtitle": "Queen",
         "variant": "advanced",
         "file":"/library/Canon_in_D_easy.mxl",
+        "imageUrl":"/songs/s5.jpg",
     
         "artist": {
         "id": "art_0008",
@@ -359,12 +370,13 @@
         } 
     },
     {
-        "id": "sm_000009",
+        "id": "sm_0000011",
         "slug": "canon-in-d",
         "title": "Canon in D",
         "subtitle": "Queen",
         "variant": "advanced",
         "file": "/library/Canon_in_D.mxl",
+        "imageUrl":"/songs/s1.jpg",
     
         "artist": {
         "id": "art_0008",
