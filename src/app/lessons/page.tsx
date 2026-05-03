@@ -68,6 +68,7 @@ function Test2HybridFullContent() {
   const rafRef = useRef<number | null>(null);
   const beatStartTimeRef = useRef<number>(0);
   const beatAdvancedRef = useRef<boolean>(false);
+  const [showScorePopup, setShowScorePopup] = useState(false);
 
 
   useEffect(() => {
@@ -145,6 +146,8 @@ function Test2HybridFullContent() {
         rules.MinNoteDistance = 6;
         rules.VoiceSpacingMultiplierVexflow = 2.25;
         rules.StaffHeight = 12;
+        rules.RenderTitle = false;
+        rules.RenderSubtitle = false;
 
         await osmd.render();
 
@@ -187,6 +190,19 @@ function Test2HybridFullContent() {
           } catch (error) {
             console.error("❌ Failed to create beat cursor:", error);
           }
+
+          const svgEl = containerRef.current?.querySelector("svg");
+console.log("SVG element:", svgEl);
+console.log("SVG bbox:", svgEl?.getBBox());
+console.log("SVG height attr:", svgEl?.getAttribute("height"));
+console.log("SVG viewBox attr:", svgEl?.getAttribute("viewBox"));
+  if (svgEl) {
+    const bbox = svgEl.getBBox();
+    if (bbox.height > 0) {
+      svgEl.setAttribute("height", `${bbox.height + 20}`);
+      svgEl.setAttribute("viewBox", `0 0 ${svgEl.getAttribute("width")} ${bbox.height + 20}`);
+    }
+  }
         }, 200);
       } catch (e) {
         console.error("OSMD load/render error:", e);
@@ -414,6 +430,7 @@ function Test2HybridFullContent() {
   const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   function startPlayback() {
+    setShowScorePopup(false); 
     if (!beatCursorRef.current) {
       console.error("Cannot start - beat cursor not initialized");
       return;
@@ -1010,7 +1027,17 @@ if (bassStaveObj && bassStaveObj.y !== trebleStaveObj?.y && osmdHT < 48) {
   // ========== UI ==========
   return (
     <>
+    <div style={{ paddingBottom: "10px" }}>
       <CursorControls
+        onPlay={() => {
+          if (isPlaying) {
+            pausePlayback();
+          } else {
+            startPlayback();
+          }
+        }}
+         showScorePopup={showScorePopup}
+  setShowScorePopup={setShowScorePopup}
         isPlaying={isPlaying}
         setIsPlaying={setIsPlaying}
         osmdRef={osmdRef}
@@ -1058,7 +1085,9 @@ if (bassStaveObj && bassStaveObj.y !== trebleStaveObj?.y && osmdHT < 48) {
         countdown={countdown}
         progressPercent={progressPercent}
         courseTitle={courseTitle}
+        incorrectNotesRef={incorrectNotesRef}
       />
+      </div>
 
       {/* Debug Panel */}
       <div

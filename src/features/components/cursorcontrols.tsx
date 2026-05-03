@@ -44,6 +44,10 @@ type CursorControlsProps = {
     countdown: number | null,
     progressPercent: number,
     courseTitle: string,
+    onPlay: () => void;
+    incorrectNotesRef: React.MutableRefObject<number>;
+    showScorePopup: boolean;
+setShowScorePopup: (v: boolean) => void;
 }
 type UnitLesson = {
   id: string, lessontitle: string, link: string, file: string 
@@ -156,7 +160,7 @@ export default function CursorControls (props: CursorControlsProps) {
           </div>
           */}
 
-          <div className={`bg-[#FEFEFE] w-full h-[20%] flex justify-between items-center ${isPlaying ? 'hidden' : ''}`} style={{
+          <div  className={`bg-[#FEFEFE] w-full h-[20%] flex justify-between items-center ${isPlaying ? 'hidden' : ''}`} style={{
               boxShadow: '0 10px 30px rgba(50, 50, 93, 0.25)' // or use your own shadow
             }}>
                       <div className="p-5 flex-2">
@@ -183,14 +187,31 @@ export default function CursorControls (props: CursorControlsProps) {
                       </div>
             </div>
           
-
+<div style={{ paddingBottom: "80px", background: "white" }}>
       <div
         ref={containerRef}
         id="osmd-container"
-        style={{ width: "100%", minHeight: "60vh", background: "white", border: "1px solid #ddd" }}
+        style={{ width: "100%", background: "white", borderTop: "1px solid #ddd" }}
       />
-    
-    <div className="w-full h-20 flex items-center justify-center relative">
+</div>
+    <div className="fixed bottom-0 left-0 right-0 z-50 w-full h-20 flex items-center justify-center bg-[#0A0A0B]">
+    {isPlaying ? (
+    /* ── Minimal playing state ── */
+    <>
+      <button
+        className="px-5 py-4 rounded-full border border-solid hover:bg-zinc-100 cursor-pointer bg-white"
+        onClick={() => pauseCursor(osmdRef, setIsPlaying, playModeRef)}>
+        <FontAwesomeIcon icon={faPause} size="lg" color="#0A0A0B" />
+      </button>
+
+      <div className="absolute right-4 p-3">
+        <Image src="/settings.svg" width={40} height={40} alt="settings"
+          className="border-gray-300 cursor-pointer p-1"
+          onClick={() => setOpenDialogue(!openDialogue)} />
+      </div>
+    </>
+  ) : (
+    <>
       {openDialogue && <OptionPopup openDialogue={openDialogue} setOpenDialogue={setOpenDialogue} backgroundVolume={backgroundVolume} setBackgroundVolume={setBackgroundVolume} metronomeVolume={metronomeVolume} setMetronomeVolume={setMetronomeVolume}  />}
       
 
@@ -221,6 +242,7 @@ export default function CursorControls (props: CursorControlsProps) {
           if (isPlaying) {
             pauseCursor(osmdRef, setIsPlaying, playModeRef);
           } else {
+            props.onPlay();
             playCursor({
               osmdRef,
               setIsPlaying,
@@ -276,8 +298,9 @@ export default function CursorControls (props: CursorControlsProps) {
         </div>
               
         </div>
-
-    </div>      
+</>)} 
+    </div>   
+      
       {countdown !== null && (
   <div
     style={{
@@ -294,6 +317,96 @@ export default function CursorControls (props: CursorControlsProps) {
     }}
   >
     {countdown === 0 ? "GO!" : countdown}
+  </div>
+)}
+
+{props.score > 0 && !isPlaying && (
+  <div style={{
+    position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+    display: "flex", alignItems: "center", justifyContent: "center", zIndex: 99998
+  }}>
+    <div style={{
+      background: "white", borderRadius: "16px", padding: "32px 36px",
+      width: "100%", maxWidth: "420px", border: "0.5px solid #e5e5e5"
+    }}>
+      {/* Header */}
+      <div style={{ textAlign: "center", marginBottom: "24px" }}>
+        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#EAF3DE",
+          display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M9 12l2 2 4-4" stroke="#3B6D11" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="12" cy="12" r="9" stroke="#3B6D11" strokeWidth="2"/>
+          </svg>
+        </div>
+        <p style={{ fontSize: 24, color: "#0A0A0B", marginBottom: 4, fontWeight: 400 }}>{courseTitle}</p>
+        <p style={{ fontSize: 18, color:"#0A0A0B" }}>Song complete</p>
+      </div>
+
+      {/* Score cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 24 }}>
+        {[
+          { label: "Score", value: `${props.score}%` },
+          { label: "High score", value: `${highScore ?? 0}%` },
+          { label: "Last score", value: `${lastScore ?? 0}%` },
+        ].map(({ label, value }) => (
+          <div key={label} style={{ background: "#f5f5f5", borderRadius: 8, padding: 12, textAlign: "center" }}>
+            <p style={{ fontSize: 13, color: "#0A0A0B" , fontWeight: 500  }}>{label}</p>
+            <p style={{ fontSize: 24,color: "#808080", fontWeight: 500 }}>{value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Correct / Incorrect */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
+        <div style={{ background: "#EAF3DE", borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+          <p style={{ fontSize: 13, color: "#3B6D11" }}>Correct</p>
+          <p style={{ fontSize: 16, fontWeight: 500, color: "#27500A", marginLeft: "auto" }}>{props.correctStepsRef.current}</p>
+        </div>
+        <div style={{ background: "#FCEBEB", borderRadius: 8, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+          <p style={{ fontSize: 13, color: "#A32D2D" }}>Incorrect</p>
+          <p style={{ fontSize: 16, fontWeight: 500, color: "#791F1F", marginLeft: "auto" }}>{props.incorrectNotesRef.current}</p>
+        </div>
+      </div>
+
+      {/* Buttons */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <button
+          style={{ padding: 12, borderRadius: 8, border: "0.5px solid #ddd", background: "white", fontSize: 14, fontWeight: 500, cursor: "pointer" }}
+          onClick={() => { props.setScore(null); props.onPlay(); }}>
+          Retry
+        </button>
+        <button
+          style={{ padding: 12, borderRadius: 8, border: "none", background: "#D4AF37", fontSize: 14, fontWeight: 500, color: "#412402", cursor: "pointer" }}
+          onClick={() => router.push("/library")}>
+          Go to library
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{props.showScorePopup && !isPlaying && (
+  <div style={{
+    position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+    display: "flex", alignItems: "center", justifyContent: "center", zIndex: 99998
+  }}>
+    {/* ... same popup content ... */}
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <button
+        style={{ padding: 12, borderRadius: 8, border: "0.5px solid #ddd", background: "white", fontSize: 14, fontWeight: 500, cursor: "pointer" }}
+        onClick={() => { 
+          props.setShowScorePopup(false);  // ← close popup first
+          props.setScore(null); 
+          props.onPlay(); 
+        }}>
+        Retry
+      </button>
+      <button
+        style={{ padding: 12, borderRadius: 8, border: "none", background: "#D4AF37", fontSize: 14, fontWeight: 500, color: "#412402", cursor: "pointer" }}
+        onClick={() => router.push("/method")}>
+        Go to method
+      </button>
+    </div>
   </div>
 )}
         </>

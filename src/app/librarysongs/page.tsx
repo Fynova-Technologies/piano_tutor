@@ -15,6 +15,7 @@ import {
   getSegmentLabel,
   getSegmentColor,
 } from "@/utils/segmentutil";
+import { SectionSelector, useSectionSelector } from "@/components/library/sectionselector";
 
 interface PlayedNote {
   midi: number;
@@ -27,42 +28,41 @@ interface PlayedNote {
 function LibraryPlayerContent() {
   const searchparams = useSearchParams();
 
-  // ── Read from query params ──────────────────────────────────────────────────
-  const courseTitle  = searchparams.get("title")      || "Lesson";
-  const fileName     = searchparams.get("file")       || "";
-  const source       = searchparams.get("source")     || "library";
-  const cursorType   = (searchparams.get("cursor")    || "whole").toLowerCase();   // "whole" | "chopped" | "minced"
-  const difficulty   = searchparams.get("difficulty") || "";
+  const courseTitle = searchparams.get("title")      || "Lesson";
+  const fileName    = searchparams.get("file")       || "";
+  const source      = searchparams.get("source")     || "library";
+  const cursorType  = (searchparams.get("cursor")    || "whole").toLowerCase();
+  const difficulty  = searchparams.get("difficulty") || "";
 
   const xml = fileName;
 
   // ── Refs & State ────────────────────────────────────────────────────────────
-  const containerRef            = useRef<HTMLDivElement | null>(null);
-  const osmdRef                 = useRef<any>(null);
-  const hasInitializedOSMD      = useRef(false);
-  const scoreableNotesRef       = useRef(0);
-  const sessionStartRef         = useRef<number | null>(null);
-  const attemptCountRef         = useRef(0);
-  const samplerRef              = useRef<Sampler | null>(null);
-  const midiInRef               = useRef<MIDIInput | null>(null);
-  const beatCursorRef           = useRef<BeatCursor | null>(null);
-  const playModeRef             = useRef<boolean>(false);
-  const currentStepNotesRef     = useRef<number[]>([]);
-  const currentCursorStepRef    = useRef<number>(0);
-  const playbackMidiGuard       = useRef<number>(0);
-  const totalStepsRef           = useRef(0);
-  const correctStepsRef         = useRef(0);
-  const incorrectNotesRef       = useRef(0);
-  const scoredStepsRef          = useRef<Set<number>>(new Set());
-  const playedNotesRef          = useRef<PlayedNote[]>([]);
-  const activeHighlightsRef     = useRef<Set<any>>(new Set());
-  const playbackIntervalRef     = useRef<NodeJS.Timeout | null>(null);
-  const rafRef                  = useRef<number | null>(null);
-  const beatStartTimeRef        = useRef<number>(0);
-  const beatAdvancedRef         = useRef<boolean>(false);
-  const tempoRef                = useRef(100);
-  // ── NEW: segment end beat (exclusive upper bound) ──
-  const segmentEndBeatRef       = useRef<number>(0);
+  const containerRef         = useRef<HTMLDivElement | null>(null);
+  const osmdRef              = useRef<any>(null);
+  const hasInitializedOSMD   = useRef(false);
+  const scoreableNotesRef    = useRef(0);
+  const sessionStartRef      = useRef<number | null>(null);
+  const attemptCountRef      = useRef(0);
+  const samplerRef           = useRef<Sampler | null>(null);
+  const midiInRef            = useRef<MIDIInput | null>(null);
+  const beatCursorRef        = useRef<BeatCursor | null>(null);
+  const playModeRef          = useRef<boolean>(false);
+  const currentStepNotesRef  = useRef<number[]>([]);
+  const currentCursorStepRef = useRef<number>(0);
+  const playbackMidiGuard    = useRef<number>(0);
+  const totalStepsRef        = useRef(0);
+  const correctStepsRef      = useRef(0);
+  const incorrectNotesRef    = useRef(0);
+  const scoredStepsRef       = useRef<Set<number>>(new Set());
+  const playedNotesRef       = useRef<PlayedNote[]>([]);
+  const activeHighlightsRef  = useRef<Set<any>>(new Set());
+  const playbackIntervalRef  = useRef<NodeJS.Timeout | null>(null);
+  const rafRef               = useRef<number | null>(null);
+  const beatStartTimeRef     = useRef<number>(0);
+  const beatAdvancedRef      = useRef<boolean>(false);
+  const tempoRef             = useRef(100);
+  // Legacy ref kept for drawSegmentOverlay (cursorType-based segments)
+  const segmentEndBeatRef    = useRef<number>(0);
 
   const [isPlaying, setIsPlaying]               = useState(false);
   const [playIndex, setPlayIndex]               = useState(0);
@@ -75,8 +75,16 @@ function LibraryPlayerContent() {
   const [lastScore, setLastScore]               = useState<number | null>(null);
   const [currentBeatIndex, setCurrentBeatIndex] = useState<number>(0);
   const [tempo, setTempo]                       = useState(100);
-  // ── NEW: human-readable segment label ──
   const [segmentLabel, setSegmentLabel]         = useState<string>("");
+
+  // ── Section selector ────────────────────────────────────────────────────────
+  const {
+    section,
+    sectionRef,        // ← always-current; use this inside RAF/interval
+    setSection,
+    drawSectionHighlight,
+    clearSectionHighlight,
+  } = useSectionSelector(totalSteps, osmdRef, beatCursorRef);
 
   useEffect(() => { tempoRef.current = tempo; }, [tempo]);
 
@@ -113,7 +121,7 @@ function LibraryPlayerContent() {
   useEffect(() => {
     attemptCountRef.current = 0;
     if (!containerRef.current) return;
-    if (hasInitializedOSMD.current) { console.log("⚠️ OSMD already initialized, skipping"); return; }
+    if (hasInitializedOSMD.current) return;
     if (!xml) { console.error("No file param provided"); return; }
 
     const osmd = new OpenSheetMusicDisplay(containerRef.current, {
@@ -130,16 +138,16 @@ function LibraryPlayerContent() {
         await osmd.load(xml);
 
         const rules = osmd.EngravingRules;
-        rules.MinimumDistanceBetweenSystems = 5;
-        rules.MeasureLeftMargin             = 12;
-        rules.MeasureRightMargin            = 12;
-        rules.ClefLeftMargin                = 12;
-        rules.ClefRightMargin               = 12;
-        rules.PageLeftMargin                = 4;
-        rules.KeyRightMargin                = 6;
-        rules.MinNoteDistance               = 6;
-        rules.VoiceSpacingMultiplierVexflow = 2.25;
-        rules.StaffHeight                   = 12;
+        rules.MinimumDistanceBetweenSystems  = 5;
+        rules.MeasureLeftMargin              = 12;
+        rules.MeasureRightMargin             = 12;
+        rules.ClefLeftMargin                 = 12;
+        rules.ClefRightMargin                = 12;
+        rules.PageLeftMargin                 = 4;
+        rules.KeyRightMargin                 = 6;
+        rules.MinNoteDistance                = 6;
+        rules.VoiceSpacingMultiplierVexflow  = 2.25;
+        rules.StaffHeight                    = 12;
 
         await osmd.render();
         if (cancelled) return;
@@ -155,14 +163,11 @@ function LibraryPlayerContent() {
             beatCursorRef.current = beatCursor;
 
             const totalBeats = beatCursor.getTotalBeats();
-
-            // ── SEGMENT: clamp displayed/tracked beats ────────────────────
-            const segEnd = getSegmentEndBeat(totalBeats, cursorType);
+            const segEnd     = getSegmentEndBeat(totalBeats, cursorType);
             segmentEndBeatRef.current = segEnd;
 
             setTotalSteps(segEnd);
             totalStepsRef.current = segEnd;
-            // ─────────────────────────────────────────────────────────────
 
             setSegmentLabel(getSegmentLabel(cursorType));
             setCurrentBeatIndex(0);
@@ -172,11 +177,11 @@ function LibraryPlayerContent() {
             setCurrentStepNotes(expectedMIDI);
             currentStepNotesRef.current = expectedMIDI;
 
-            console.log(`✅ Beat cursor: ${totalBeats} beats | segment "${cursorType}" → 0–${segEnd}`);
-
-            // Draw dim overlay + boundary line for non-whole segments
-            // Small extra delay so OSMD's SVG is fully painted
-            setTimeout(() => drawSegmentOverlay(), 100);
+            setTimeout(() => {
+              drawSegmentOverlay();
+              // Draw initial section highlight using the default (full) range
+              drawSectionHighlight({ startBeat: 0, endBeat: segEnd });
+            }, 120);
           } catch (error) {
             console.error("❌ Failed to create beat cursor:", error);
           }
@@ -198,9 +203,8 @@ function LibraryPlayerContent() {
             newCursor.setPosition(currentIndex);
             beatCursorRef.current = newCursor;
 
-            // Re-apply segment clamp after resize
             const totalBeats = newCursor.getTotalBeats();
-            const segEnd = getSegmentEndBeat(totalBeats, cursorType);
+            const segEnd     = getSegmentEndBeat(totalBeats, cursorType);
             segmentEndBeatRef.current = segEnd;
             setTotalSteps(segEnd);
             totalStepsRef.current = segEnd;
@@ -209,8 +213,10 @@ function LibraryPlayerContent() {
             setCurrentStepNotes(expectedMIDI);
             currentStepNotesRef.current = expectedMIDI;
 
-            // Reposition overlay after resize
-            setTimeout(() => drawSegmentOverlay(), 100);
+            setTimeout(() => {
+              drawSegmentOverlay();
+              drawSectionHighlight(sectionRef.current);
+            }, 100);
           }
         }, 200);
       } catch (e) { console.error("Resize error:", e); }
@@ -311,29 +317,38 @@ function LibraryPlayerContent() {
 
     clearAllTracking();
     attemptCountRef.current += 1;
-    // Re-draw segment overlay (clearAllTracking only removes feedback dots)
-    setTimeout(() => drawSegmentOverlay(), 50);
-    beatCursorRef.current.reset();
-    setCurrentBeatIndex(0);
-    currentCursorStepRef.current = 0;
-    setPlayIndex(0);
+
+    // ── Read start/end from sectionRef (never stale) ─────────────────────────
+    const segStart = sectionRef.current.startBeat;
+    const segEnd   = sectionRef.current.endBeat || totalStepsRef.current;
+
+    // Redraw overlays after tracking is cleared
+    setTimeout(() => {
+      drawSegmentOverlay();
+      drawSectionHighlight(sectionRef.current);
+    }, 50);
+
+    // Reset cursor to the section start, not always beat 0
+    beatCursorRef.current.setPosition(segStart);
+    setCurrentBeatIndex(segStart);
+    currentCursorStepRef.current = segStart;
+    setPlayIndex(segStart);
     setIsPlaying(true);
     playModeRef.current = true;
 
-    // ── Count scoreable notes only within the segment ────────────────────────
-    const segEnd = segmentEndBeatRef.current || totalStepsRef.current;
+    // Count scoreable notes only within the section
     let scoreableCount = 0;
     beatAdvancedRef.current = false;
     beatStartTimeRef.current = 0;
 
-    for (let i = 0; i < segEnd; i++) {
+    for (let i = segStart; i < segEnd; i++) {
       const beat = beatCursorRef.current.getBeatAt(i);
       if (beat?.isNoteStart && beat.expectedNotes.length > 0) scoreableCount++;
     }
 
-    scoreableNotesRef.current  = scoreableCount;
-    correctStepsRef.current    = 0;
-    incorrectNotesRef.current  = 0;
+    scoreableNotesRef.current = scoreableCount;
+    correctStepsRef.current   = 0;
+    incorrectNotesRef.current = 0;
     scoredStepsRef.current.clear();
 
     const expectedMIDI = beatCursorRef.current.getCurrentExpectedMIDI();
@@ -365,7 +380,7 @@ function LibraryPlayerContent() {
       if (!playModeRef.current || !beatCursorRef.current) return;
 
       const beatDuration = (60 / tempoRef.current) * 1000;
-      const elapsed = now - beatStartTimeRef.current;
+      const elapsed      = now - beatStartTimeRef.current;
 
       beatCursorRef.current.setInterpolatedPosition(elapsed / beatDuration);
 
@@ -374,10 +389,10 @@ function LibraryPlayerContent() {
         beatAdvancedRef.current = true;
         const nextIndex = beatCursorRef.current.getCurrentIndex() + 1;
 
-        // ── Don't pre-load notes beyond the segment ──────────────────────────
-        const segEnd = segmentEndBeatRef.current;
+        // ── Use sectionRef — always current, safe inside RAF ─────────────────
+        const segEnd = sectionRef.current.endBeat;
         if (segEnd > 0 && nextIndex >= segEnd) {
-          // We're at the last beat of the segment — don't peek further
+          // At last beat of section — don't peek further
         } else {
           const nextBeat = beatCursorRef.current.getBeatAt(nextIndex);
           if (nextBeat) {
@@ -398,18 +413,16 @@ function LibraryPlayerContent() {
         if (moved) {
           const newIndex = beatCursorRef.current.getCurrentIndex();
 
-          // ── SEGMENT BOUNDARY CHECK ───────────────────────────────────────
-          const segEnd = segmentEndBeatRef.current;
+          // ── Section boundary check using sectionRef ──────────────────────
+          const segEnd = sectionRef.current.endBeat;
           if (segEnd > 0 && newIndex >= segEnd) {
             handleEndOfPiece();
             return;
           }
-          // ─────────────────────────────────────────────────────────────────
 
           setCurrentBeatIndex(newIndex);
           setPlayIndex(newIndex);
         } else {
-          // Natural end of the full score
           handleEndOfPiece();
           return;
         }
@@ -457,9 +470,6 @@ function LibraryPlayerContent() {
     const endTime     = Date.now();
     const startTime   = sessionStartRef.current ?? endTime;
     const durationSec = Math.round((endTime - startTime) / 1000);
-    const accuracy    = scoreableNotesRef.current > 0
-      ? Math.round((correctStepsRef.current / scoreableNotesRef.current) * 100)
-      : 0;
 
     const lessonId  = searchparams.get("lessonid") || "0";
     const lessonUID = `${source}-${lessonId}`;
@@ -481,7 +491,7 @@ function LibraryPlayerContent() {
     return () => { if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current); };
   }, []);
 
-  // ── Note tracking (unchanged) ───────────────────────────────────────────────
+  // ── Note tracking ───────────────────────────────────────────────────────────
   function trackAndHighlightNote(midi: number) {
     const actualCurrentBeatIndex = currentCursorStepRef.current;
     if (!beatCursorRef.current || !playModeRef.current) return;
@@ -600,7 +610,7 @@ function LibraryPlayerContent() {
       if (dist < bestDist) { bestDist = dist; staffIndex = s; }
     }
 
-    const targetMeasure  = measureList[beat.measureIndex]?.[staffIndex];
+    const targetMeasure   = measureList[beat.measureIndex]?.[staffIndex];
     const parentStaffLine = targetMeasure?.parentStaffLine;
 
     type NoteRef = { ht: number; y: number; beatDist: number; vf: any };
@@ -626,7 +636,7 @@ function LibraryPlayerContent() {
               (noteEl.querySelector(".vf-notehead") as SVGGraphicsElement) ??
               (noteEl.querySelector("path")         as SVGGraphicsElement) ??
               (noteEl.querySelector("use")          as SVGGraphicsElement);
-            const bbox        = (notehead ?? noteEl).getBBox();
+            const bbox          = (notehead ?? noteEl).getBBox();
             const anchorCenterY = bbox.y + bbox.height / 2;
             if (!bestAnchor || dist < bestAnchor.beatDist - EPSILON) {
               bestAnchor = { ht, y: anchorCenterY, beatDist: dist, vf };
@@ -638,7 +648,7 @@ function LibraryPlayerContent() {
 
     if (!bestAnchor) return;
 
-    const currentMeasureRow = measureList[beat.measureIndex];
+    const currentMeasureRow       = measureList[beat.measureIndex];
     const currentSystemStaffLines: any[] = [];
     for (let s = 0; s < (currentMeasureRow?.length ?? 0); s++) {
       currentSystemStaffLines[s] = currentMeasureRow[s]?.parentStaffLine ?? null;
@@ -694,15 +704,15 @@ function LibraryPlayerContent() {
     activeHighlightsRef.current.add(dot);
   }
 
-  // ── Segment boundary: single vertical line at the cut point ─────────────────
+  // ── Segment overlay (cursorType-based solid line) ───────────────────────────
+  // This is separate from the custom section highlight.
   function drawSegmentOverlay() {
-    if (cursorType === "whole") return;           // full piece — nothing to mark
+    if (cursorType === "whole") return;
     if (!osmdRef.current?.drawer?.backend) return;
 
     const svg = osmdRef.current.drawer.backend.getSvgElement() as SVGSVGElement | null;
     if (!svg) return;
 
-    // Remove any previously drawn boundary line
     svg.querySelectorAll(".segment-overlay-el").forEach((el) => el.remove());
 
     const beatCursor = beatCursorRef.current;
@@ -711,32 +721,12 @@ function LibraryPlayerContent() {
     const segEnd = segmentEndBeatRef.current;
     if (!segEnd || segEnd <= 0) return;
 
-    // Walk backwards from segEnd-1 to find the last beat with a known X position
     let cutX: number | null = null;
     for (let i = segEnd - 1; i >= 0; i--) {
       const beat = beatCursor.getBeatAt(i);
-      if (beat?.staffEntryX != null) {
-        cutX = beat.staffEntryX as number;
-        break;
-      }
+      if (beat?.staffEntryX != null) { cutX = beat.staffEntryX as number; break; }
     }
     if (cutX === null) return;
-
-    const LINE_X    = cutX + 18;
-    const svgHeight = svg.viewBox?.baseVal?.height || svg.getBoundingClientRect().height;
-    const color     = getSegmentColor(cursorType);
-
-    // ── Solid vertical line ──────────────────────────────────────────────────
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line.setAttribute("x1",             LINE_X.toString());
-    line.setAttribute("y1",             "0");
-    line.setAttribute("x2",             LINE_X.toString());
-    line.setAttribute("y2",             svgHeight.toString());
-    line.setAttribute("stroke",         color);
-    line.setAttribute("stroke-width",   "3");
-    line.setAttribute("pointer-events", "none");
-    line.classList.add("segment-overlay-el");
-    svg.appendChild(line);
   }
 
   function clearAllTracking() {
@@ -752,16 +742,17 @@ function LibraryPlayerContent() {
     const beat = beatCursorRef.current.getCurrentBeat();
     if (!beat) return null;
     return {
-      beatIndex:      beat.index,
-      measure:        beat.measureIndex + 1,
-      beatInMeasure:  beat.beatInMeasure + 1,
-      expectedNotes:  beatCursorRef.current.getCurrentExpectedMIDI().map((m) => midiToNoteName(m)).join(", "),
+      beatIndex:     beat.index,
+      measure:       beat.measureIndex + 1,
+      beatInMeasure: beat.beatInMeasure + 1,
+      expectedNotes: beatCursorRef.current.getCurrentExpectedMIDI().map((m) => midiToNoteName(m)).join(", "),
     };
   }
 
-  // Progress is relative to segment length (not full piece)
-  const progressPercent = totalSteps
-    ? Math.round((currentBeatIndex / Math.max(1, totalSteps - 1)) * 100)
+  // Progress is relative to the active section
+  const sectionLength   = section.endBeat - section.startBeat;
+  const progressPercent = sectionLength > 0
+    ? Math.round(((currentBeatIndex - section.startBeat) / Math.max(1, sectionLength - 1)) * 100)
     : 0;
 
   const segmentColor = getSegmentColor(cursorType);
@@ -769,25 +760,16 @@ function LibraryPlayerContent() {
   // ── UI ──────────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* ── Segment badge — fixed top-left ─────────────────────────────────── */}
+      {/* Segment badge */}
       {cursorType !== "whole" && segmentLabel && (
-        <div
-          style={{
-            position: "fixed",
-            top: "10px",
-            left: "10px",
-            background: segmentColor,
-            color: "#fff",
-            padding: "4px 12px",
-            borderRadius: "20px",
-            fontSize: "12px",
-            fontWeight: 700,
-            fontFamily: "monospace",
-            zIndex: 10001,
-            letterSpacing: "0.04em",
-            boxShadow: `0 0 12px ${segmentColor}88`,
-          }}
-        >
+        <div style={{
+          position: "fixed", top: "10px", left: "10px",
+          background: segmentColor, color: "#fff",
+          padding: "4px 12px", borderRadius: "20px",
+          fontSize: "12px", fontWeight: 700, fontFamily: "monospace",
+          zIndex: 10001, letterSpacing: "0.04em",
+          boxShadow: `0 0 12px ${segmentColor}88`,
+        }}>
           ✂️ {segmentLabel}
         </div>
       )}
@@ -817,12 +799,15 @@ function LibraryPlayerContent() {
         setCurrentStepNotes={setCurrentStepNotes}
         setScore={setScore}
         onProgressClick={(e) => {
-          const rect       = e.currentTarget.getBoundingClientRect();
-          const percent    = (e.clientX - rect.left) / rect.width;
-          // Clamp seek target within segment
-          const segEnd     = segmentEndBeatRef.current || totalStepsRef.current;
-          const targetBeat = Math.min(Math.floor(percent * segEnd), segEnd - 1);
-
+          const rect      = e.currentTarget.getBoundingClientRect();
+          const percent   = (e.clientX - rect.left) / rect.width;
+          // Seek within the active section only
+          const segStart  = sectionRef.current.startBeat;
+          const segEnd    = sectionRef.current.endBeat || totalStepsRef.current;
+          const targetBeat = Math.min(
+            segStart + Math.floor(percent * (segEnd - segStart)),
+            segEnd - 1
+          );
           if (beatCursorRef.current) {
             beatCursorRef.current.setPosition(targetBeat);
             setCurrentBeatIndex(targetBeat);
@@ -839,24 +824,44 @@ function LibraryPlayerContent() {
         courseTitle={courseTitle}
       />
 
-      {/* ── Debug Panel ─────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          position: "fixed",
-          top: "10px",
-          right: "10px",
-          background: "rgba(0,0,0,0.8)",
-          color: "white",
-          padding: "10px",
-          borderRadius: "6px",
-          fontSize: "12px",
-          fontFamily: "monospace",
-          zIndex: 10000,
-          maxWidth: "280px",
+      {/* Section selector — placed near CursorControls */}
+      <SectionSelector
+        totalBeats={totalSteps}
+        section={section}
+        setSection={(r) => {
+          setSection(r);
+          // Also keep segmentEndBeatRef in sync for drawSegmentOverlay
+          segmentEndBeatRef.current = r.endBeat;
         }}
-      >
+        onApply={(committed) => {
+          // committed is the freshly set range — no stale-state issue
+          segmentEndBeatRef.current = committed.endBeat;
+          // Remove old segment-overlay-el line and redraw with committed range
+          clearSectionHighlight();
+          setTimeout(() => drawSectionHighlight(committed), 80);
+        }}
+        onReset={() => {
+          segmentEndBeatRef.current = totalSteps;
+          clearSectionHighlight();
+          // Full piece — no custom highlight needed
+        }}
+        isPlaying={isPlaying}
+        getMeasureForBeat={(beat) => {
+          const b = beatCursorRef.current?.getBeatAt(beat);
+          return b?.measureIndex != null ? b.measureIndex + 1 : beat + 1;
+        }}
+      />
+
+      {/* Debug Panel */}
+      <div style={{
+        position: "fixed", top: "10px", right: "10px",
+        background: "rgba(0,0,0,0.8)", color: "white",
+        padding: "10px", borderRadius: "6px",
+        fontSize: "12px", fontFamily: "monospace",
+        zIndex: 10000, maxWidth: "280px",
+      }}>
         {(() => {
-          const info = getCurrentBeatInfo();
+          const info           = getCurrentBeatInfo();
           const currentScore   = scoreableNotesRef.current > 0
             ? Math.round((correctStepsRef.current / scoreableNotesRef.current) * 100)
             : 0;
@@ -872,22 +877,21 @@ function LibraryPlayerContent() {
               <div>Measure: {info.measure}, Beat: {info.beatInMeasure}</div>
               <div>Expected: {info.expectedNotes || "Rest"}</div>
 
-              {/* Segment info row */}
+              {/* Active section info */}
+              <div style={{ marginTop: "6px", fontSize: "10px", color: "#38bdf8", fontFamily: "monospace" }}>
+                Section: b{section.startBeat + 1}–b{section.endBeat}
+              </div>
+
               <div style={{ marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
                 <span style={{
-                  background: segmentColor,
-                  color: "#fff",
-                  padding: "1px 8px",
-                  borderRadius: "10px",
-                  fontSize: "10px",
-                  fontWeight: 700,
+                  background: segmentColor, color: "#fff",
+                  padding: "1px 8px", borderRadius: "10px",
+                  fontSize: "10px", fontWeight: 700,
                 }}>
                   {segmentLabel || "Full Piece"}
                 </span>
                 {cursorType !== "whole" && (
-                  <span style={{ fontSize: "10px", color: "#94a3b8" }}>
-                    {difficulty}
-                  </span>
+                  <span style={{ fontSize: "10px", color: "#94a3b8" }}>{difficulty}</span>
                 )}
               </div>
 
@@ -915,10 +919,7 @@ function LibraryPlayerContent() {
               <div style={{ marginTop: "10px", borderTop: "1px solid #444", paddingTop: "8px" }}>
                 <label style={{ display: "block", marginBottom: "4px" }}>Tempo: {tempo} BPM</label>
                 <input
-                  type="range"
-                  min="40"
-                  max="200"
-                  value={tempo}
+                  type="range" min="40" max="200" value={tempo}
                   onChange={(e) => setTempo(Number(e.target.value))}
                   style={{ width: "100%" }}
                   disabled={isPlaying}
