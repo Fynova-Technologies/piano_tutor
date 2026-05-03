@@ -15,7 +15,7 @@ export const startDailyNotification = () => {
 
   
 
-  const delay = nextNoon - now;
+  const delay = nextNoon.getTime() - now.getTime();
 
   setTimeout(() => {
     triggerNotification();

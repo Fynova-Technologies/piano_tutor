@@ -5,7 +5,7 @@ export const getNotifications = () => {
   return data ? JSON.parse(data) : [];
 };
 
-export const addNotification = (message) => {
+export const addNotification = (message: string) => {
   const notifications = getNotifications();
 
   const newNotification = {
@@ -19,8 +19,8 @@ export const addNotification = (message) => {
   localStorage.setItem("notifications", JSON.stringify(updated));
 };
 
-export const deleteNotification = (id) => {
-  const notifications = getNotifications().filter(n => n.id !== id);
+export const deleteNotification = (id: number) => {
+  const notifications = getNotifications().filter((n: { id: number; }) => n.id !== id);
   localStorage.setItem("notifications", JSON.stringify(notifications));
 };
 
@@ -29,7 +29,7 @@ export const cleanOldNotifications = () => {
   const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
 
   const notifications = getNotifications().filter(
-    (n) => now - n.createdAt < THREE_DAYS
+    (n: { createdAt: number; }) => now - n.createdAt < THREE_DAYS
   );
 
   localStorage.setItem("notifications", JSON.stringify(notifications));

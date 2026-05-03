@@ -799,11 +799,11 @@ function LibraryPlayerContent() {
         setCurrentStepNotes={setCurrentStepNotes}
         setScore={setScore}
         onProgressClick={(e) => {
-          const rect      = e.currentTarget.getBoundingClientRect();
-          const percent   = (e.clientX - rect.left) / rect.width;
+          const rect = e.currentTarget.getBoundingClientRect();
+          const percent = (e.clientX - rect.left) / rect.width;
           // Seek within the active section only
-          const segStart  = sectionRef.current.startBeat;
-          const segEnd    = sectionRef.current.endBeat || totalStepsRef.current;
+          const segStart = sectionRef.current.startBeat;
+          const segEnd = sectionRef.current.endBeat || totalStepsRef.current;
           const targetBeat = Math.min(
             segStart + Math.floor(percent * (segEnd - segStart)),
             segEnd - 1
@@ -817,12 +817,15 @@ function LibraryPlayerContent() {
             setCurrentStepNotes(expectedMIDI);
             currentStepNotesRef.current = expectedMIDI;
           }
-        }}
+        } }
         containerRef={containerRef}
         countdown={countdown}
         progressPercent={progressPercent}
-        courseTitle={courseTitle}
-      />
+        courseTitle={courseTitle} onPlay={function (): void {
+          throw new Error("Function not implemented.");
+        } } incorrectNotesRef={incorrectNotesRef} showScorePopup={false} setShowScorePopup={function (v: boolean): void {
+          throw new Error("Function not implemented.");
+        } }      />
 
       {/* Section selector — placed near CursorControls */}
       <SectionSelector

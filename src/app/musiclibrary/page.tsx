@@ -746,12 +746,15 @@ function LibraryPlayerContent() {
             setCurrentStepNotes(expectedMIDI);
             currentStepNotesRef.current = expectedMIDI;
           }
-        }}
+        } }
         containerRef={containerRef}
         countdown={countdown}
         progressPercent={progressPercent}
-        courseTitle={courseTitle}
-      />
+        courseTitle={courseTitle} onPlay={function (): void {
+          throw new Error("Function not implemented.");
+        } } incorrectNotesRef={incorrectNotesRef} showScorePopup={false} setShowScorePopup={function (v: boolean): void {
+          throw new Error("Function not implemented.");
+        } }      />
 
       {/* Debug Panel */}
       <div

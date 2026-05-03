@@ -47,7 +47,7 @@ type CursorControlsProps = {
     onPlay: () => void;
     incorrectNotesRef: React.MutableRefObject<number>;
     showScorePopup: boolean;
-setShowScorePopup: (v: boolean) => void;
+    setShowScorePopup: (v: boolean) => void;
 }
 type UnitLesson = {
   id: string, lessontitle: string, link: string, file: string 
@@ -91,7 +91,11 @@ export default function CursorControls (props: CursorControlsProps) {
             containerRef,
             countdown,
             progressPercent,
-            courseTitle
+            courseTitle,
+            onPlay,
+            incorrectNotesRef,
+             showScorePopup,
+             setShowScorePopup,
         } =  props;
 
         const [unitlessonsData, setUnitLessonsData] = useState<UnitLesson[]>([]);
