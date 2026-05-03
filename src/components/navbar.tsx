@@ -27,6 +27,19 @@ export default function Navbar() {
   const [userPopupOpen, setUserPopupOpen] = useState(false);
   const [notificationOpen, setnotificationOpen] = useState(false);
 
+  const [hasNotifications, setHasNotifications] = useState(false);
+
+useEffect(() => {
+  const checkNotifications = () => {
+    const stored = localStorage.getItem("notifications");
+    const list = stored ? JSON.parse(stored) : [];
+    setHasNotifications(list.length > 0);
+  };
+  checkNotifications();
+  const interval = setInterval(checkNotifications, 2000); // sync with popup polling
+  return () => clearInterval(interval);
+}, []);
+
   useEffect(() => {
   const getSession = async () => {
         try {
@@ -69,7 +82,9 @@ export default function Navbar() {
           {/* Notification */}
           <button className="relative text-gray-600 hover:text-blue-600 bg-transparent border-none">
             <Image src={"/assets/Icon.svg" } width={26} height={30} alt='bell' onClick={()=> setnotificationOpen(!notificationOpen)}/>
-            <span className="absolute top-0 right-0 inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+            {hasNotifications && (
+    <span className="absolute top-0 right-0 inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+  )}
           </button>
           <div>
             {notificationOpen &&

@@ -1,15 +1,13 @@
 'use client'
-
 import Image from 'next/image';
 import { useEffect, useState } from "react";
-import {
-  startDailyNotification
-} from "@/utils/schedular";
+import { startHourlyNotification } from "@/utils/schedular"; // 👈 changed
 import {
   cleanOldNotifications,
   getNotifications,
   deleteNotification
 } from "@/utils/notification";
+import { addNotification } from "@/utils/notification"; // 👈 add this import at the top
 
 type NotificationType = {
   id: number;
@@ -17,32 +15,28 @@ type NotificationType = {
   createdAt: number;
 };
 
-export default function NotificationPopup({ notificationOpen, setNotificationOpen }: { notificationOpen: boolean; setNotificationOpen: (open: boolean) => void }) {
+export default function NotificationPopup({
+  notificationOpen,
+  setNotificationOpen
+}: {
+  notificationOpen: boolean;
+  setNotificationOpen: (open: boolean) => void
+}) {
   const [notifications, setNotifications] = useState<NotificationType[]>([]);
 
-  // 🔄 Load notifications
   const loadNotifications = () => {
-    const data = getNotifications();
-    setNotifications(data);
+    setNotifications(getNotifications());
   };
 
   useEffect(() => {
     cleanOldNotifications();
-    startDailyNotification();
-
-    if ("Notification" in window) {
-      Notification.requestPermission();
-    }
-
+    startHourlyNotification(); // 👈 changed from startDailyNotification
+    if ("Notification" in window) Notification.requestPermission();
     loadNotifications();
-
-    // 👇 listen for updates (important)
     const interval = setInterval(loadNotifications, 2000);
-
     return () => clearInterval(interval);
   }, []);
 
-  // ❌ delete handler
   const handleDelete = (id: number) => {
     deleteNotification(id);
     loadNotifications();
@@ -52,21 +46,31 @@ export default function NotificationPopup({ notificationOpen, setNotificationOpe
 
   return (
     <div className="">
-      
-      {/* Header */}
       <div className='flex items-center justify-between px-4 py-3 border-b border-[#E5E5EA]'>
-        <span className='text-[#1C1C1E] text-[20px] font-bold'>
-          Notifications
-        </span>
-        <Image src={"notificationclose.svg"} width={20} height={20} alt='close' onClick={() => setNotificationOpen(!notificationOpen)} />
+        <span className='text-[#1C1C1E] text-[20px] font-bold'>Notifications</span>
+        <Image
+          src={"notificationclose.svg"}
+          width={20}
+          height={20}
+          alt='close'
+          onClick={() => setNotificationOpen(false)}
+        />
       </div>
 
-      {/* Notifications List */}
+      <div className="px-4 py-2 border-b border-[#E5E5EA]">
+  <button
+    onClick={() => {
+      addNotification("🎹 Time to practice! Open a piano lesson and play for 10 minutes.");
+      loadNotifications();
+    }}
+    className="w-full text-sm bg-[#D4AF37] text-[#0a0a0a] font-semibold py-2 px-4 rounded-full hover:opacity-90 transition"
+  >
+    🔔 Test Notification
+  </button>
+</div>
       <div className="max-h-[400px] overflow-y-auto">
         {notifications.length === 0 ? (
-          <p className="text-center text-gray-500 py-6">
-            No notifications yet
-          </p>
+          <p className="text-center text-gray-500 py-6">No notifications yet</p>
         ) : (
           notifications.map((n) => (
             <div
@@ -79,12 +83,7 @@ export default function NotificationPopup({ notificationOpen, setNotificationOpe
                   {new Date(n.createdAt).toLocaleString()}
                 </span>
               </div>
-
-              {/* Delete Button */}
-              <button
-                onClick={() => handleDelete(n.id)}
-                className="text-red-500 text-xs"
-              >
+              <button onClick={() => handleDelete(n.id)} className="text-red-500 text-xs">
                 Delete
               </button>
             </div>
