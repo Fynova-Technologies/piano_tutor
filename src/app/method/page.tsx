@@ -60,21 +60,21 @@ export default function PianoLesson() {
 
   // Static lesson selectors (first row)
   const topLessons = [
-    { id: "1", title: "1A", description: "Finding Middle C:", link: "/musicsheet" },
-    { id: "2", title: "1B", description: "Basic Scales and Finger Exercises", link: "/scales" },
-    { id: "3", title: "1C", description: "Reading Sheet Music", link: "/sheetmusic" },
-    { id: "4", title: "1D", description: "Simple Songs for Beginners", link: "/beginnersongs" },
-    { id: "5", title: "1E", description: "Chord Progressions", link: "/chords" },
-    { id: "6", title: "2A", description: "New Excercises", link: "/scales" },
-    { id: "7", title: "2B", description: "New Excercises 2", link: "/sheetmusic" },
-    { id: "8", title: "2C", description: "New Excercises 3", link: "/beginnersongs" },
-    { id: "9", title: "2D", description: "New Excercises 4", link: "/chords" },
-    { id: "10", title: "2E", description: "New Excercises 4", link: "/chords" },
-    { id: "11", title: "3A", description: "New Excercises 4", link: "/chords" },
-    { id: "12", title: "3B", description: "New Excercises 4", link: "/chords" },
-    { id: "13", title: "3C", description: "New Excercises 4", link: "/chords" },
-    { id: "14", title: "3D", description: "New Excercises 4", link: "/chords" },
-    { id: "15", title: "3E", description: "New Excercises 4", link: "/chords" },
+    { id: "1", title: "1A", description: "Finding Middle C:", link: "/musicsheet",completed:false },
+    { id: "2", title: "1B", description: "Basic Scales and Finger Exercises", link: "/scales",completed:false },
+    { id: "3", title: "1C", description: "Reading Sheet Music", link: "/sheetmusic",completed:false },
+    { id: "4", title: "1D", description: "Simple Songs for Beginners", link: "/beginnersongs",completed:false },
+    { id: "5", title: "1E", description: "Chord Progressions", link: "/chords",completed:false },
+    { id: "6", title: "2A", description: "New Excercises", link: "/scales",completed:false },
+    { id: "7", title: "2B", description: "New Excercises 2", link: "/sheetmusic",completed:false },
+    { id: "8", title: "2C", description: "New Excercises 3", link: "/beginnersongs",completed:false },
+    { id: "9", title: "2D", description: "New Excercises 4", link: "/chords",completed:false },
+    { id: "10", title: "2E", description: "New Excercises 4", link: "/chords",completed:false },
+    { id: "11", title: "3A", description: "New Excercises 4", link: "/chords",completed:false },
+    { id: "12", title: "3B", description: "New Excercises 4", link: "/chords",completed:false },
+    { id: "13", title: "3C", description: "New Excercises 4", link: "/chords",completed:false },
+    { id: "14", title: "3D", description: "New Excercises 4", link: "/chords",completed:false },
+    { id: "15", title: "3E", description: "New Excercises 4", link: "/chords",completed:false },
   ];
 
   const handleClick = (id: string) => {

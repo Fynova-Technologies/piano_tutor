@@ -3,52 +3,52 @@
     {
         "fkid": "1",
         "unitlessons": [
-          { "id": "1", "lessontitle": "Finding Middle C", "link": "/lessons", "file":"1A/Wholenotes.mxl", "source":"Method-1A","level":"Beginner" },
-          { "id": "2", "lessontitle": "Playing the White Keys", "link": "/lessons","file":"1A/HalfRestHalfNotes.mxl","source":"Method-1A","level":"Beginner"},
-          { "id": "3", "lessontitle": "Exploring Black Keys", "link": "/lessons","file":"1A/QuarterNotes.mxl", "source":"Method-1A","level":"Intermediate"},
-          { "id": "4", "lessontitle": "Simple Patterns", "link": "/lessons","file":"1A/CSong.mxl","source":"Method-1A","level":"Intermediate"},
-          { "id": "5", "lessontitle": "Half Notes & Half Rests / Minims", "link": "/lessons","file":"1A/NotCsong.mxl","source":"Method-1A","level":"Intermediate"  },
-          { "id": "6", "lessontitle": "Quarter Notes / Crotchets", "link": "/lessons","file":"1A/Whole C.mxl","source":"Method-1A","level":"Advanced"},
-          { "id": "7", "lessontitle": "C song", "link": "/lessons","file":"1A/halfNotes(R&L).mxl","source":"Method-1A","level":"Advanced" },
-          { "id": "8", "lessontitle": "C song", "link": "/lessons","file":"1A/Quarter(R&L).mxl","source":"Method-1A","level":"Advanced" },
-          { "id": "9", "lessontitle": "C song", "link": "/lessons","file":"1A/Quarter(R&L)no2.mxl","source":"Method-1A","level":"Professional" },
-          { "id": "10", "lessontitle": "C song", "link": "/lessons","file":"1A/CSong(R&L).mxl","source":"Method-1A","level":"Professional" },
-          { "id": "11", "lessontitle": "pattern1", "link": "/lessons","file":"1A/11.mxl.zip","source":"Method-1A","level":"Professional" },
-          { "id": "12", "lessontitle": "pattern2", "link": "/lessons","file":"1A/12.mxl.zip","source":"Method-1A","level":"Professional" },
-          { "id": "13", "lessontitle": "pattern3", "link": "/lessons","file":"1A/13.mxl.zip","source":"Method-1A","level":"Professional" },
-          { "id": "14", "lessontitle": "pattern4", "link": "/lessons","file":"1A/14.mxl.zip","source":"Method-1A","level":"Professional" },
-          { "id": "15", "lessontitle": "pattern5", "link": "/lessons","file":"1A/15.mxl.zip","source":"Method-1A","level":"Professional" },
-          { "id": "16", "lessontitle": "pattern6", "link": "/lessons","file":"1A/16.mxl.zip","source":"Method-1A","level":"Professional" },
-          { "id": "17", "lessontitle": "pattern7", "link": "/lessons","file":"1A/17.mxl.zip","source":"Method-1A","level":"Professional" },
-          { "id": "18", "lessontitle": "pattern8", "link": "/lessons","file":"1A/18.mxl.zip","source":"Method-1A","level":"Professional" },
-          { "id": "19", "lessontitle": "pattern9", "link": "/lessons","file":"1A/19.mxl.zip","source":"Method-1A","level":"Professional" },
-          { "id": "20", "lessontitle": "pattern10", "link": "/lessons","file":"1A/20.mxl.zip","source":"Method-1A","level":"Professional" },
-          { "id": "21", "lessontitle": "pattern11", "link": "/lessons","file":"1A/The_Five_Finger_Mountain_10_Measure_Exercise-Piano.mxl","source":"Method-1A","level":"Professional" }
+          { "id": "1", "lessontitle": "Finding Middle C", "link": "/lessons", "file":"1A/Wholenotes.mxl", "source":"Method-1A","level":"Beginner", "completed":false },
+          { "id": "2", "lessontitle": "Playing the White Keys", "link": "/lessons","file":"1A/HalfRestHalfNotes.mxl","source":"Method-1A","level":"Beginner", "completed":false},
+          { "id": "3", "lessontitle": "Exploring Black Keys", "link": "/lessons","file":"1A/QuarterNotes.mxl", "source":"Method-1A","level":"Intermediate", "completed":false},
+          { "id": "4", "lessontitle": "Simple Patterns", "link": "/lessons","file":"1A/CSong.mxl","source":"Method-1A","level":"Intermediate", "completed":false},
+          { "id": "5", "lessontitle": "Half Notes & Half Rests / Minims", "link": "/lessons","file":"1A/NotCsong.mxl","source":"Method-1A","level":"Intermediate", "completed":false  },
+          { "id": "6", "lessontitle": "Quarter Notes / Crotchets", "link": "/lessons","file":"1A/Whole C.mxl","source":"Method-1A","level":"Advanced", "completed":false},
+          { "id": "7", "lessontitle": "C song", "link": "/lessons","file":"1A/halfNotes(R&L).mxl","source":"Method-1A","level":"Advanced", "completed":false },
+          { "id": "8", "lessontitle": "C song", "link": "/lessons","file":"1A/Quarter(R&L).mxl","source":"Method-1A","level":"Advanced", "completed":false },
+          { "id": "9", "lessontitle": "C song", "link": "/lessons","file":"1A/Quarter(R&L)no2.mxl","source":"Method-1A","level":"Professional", "completed":false },
+          { "id": "10", "lessontitle": "C song", "link": "/lessons","file":"1A/CSong(R&L).mxl","source":"Method-1A","level":"Professional", "completed":false },
+          { "id": "11", "lessontitle": "pattern1", "link": "/lessons","file":"1A/11.mxl.zip","source":"Method-1A","level":"Professional", "completed":false },
+          { "id": "12", "lessontitle": "pattern2", "link": "/lessons","file":"1A/12.mxl.zip","source":"Method-1A","level":"Professional", "completed":false },
+          { "id": "13", "lessontitle": "pattern3", "link": "/lessons","file":"1A/13.mxl.zip","source":"Method-1A","level":"Professional", "completed":false },
+          { "id": "14", "lessontitle": "pattern4", "link": "/lessons","file":"1A/14.mxl.zip","source":"Method-1A","level":"Professional", "completed":false },
+          { "id": "15", "lessontitle": "pattern5", "link": "/lessons","file":"1A/15.mxl.zip","source":"Method-1A","level":"Professional", "completed":false },
+          { "id": "16", "lessontitle": "pattern6", "link": "/lessons","file":"1A/16.mxl.zip","source":"Method-1A","level":"Professional", "completed":false },
+          { "id": "17", "lessontitle": "pattern7", "link": "/lessons","file":"1A/17.mxl.zip","source":"Method-1A","level":"Professional", "completed":false },
+          { "id": "18", "lessontitle": "pattern8", "link": "/lessons","file":"1A/18.mxl.zip","source":"Method-1A","level":"Professional", "completed":false },
+          { "id": "19", "lessontitle": "pattern9", "link": "/lessons","file":"1A/19.mxl.zip","source":"Method-1A","level":"Professional", "completed":false },
+          { "id": "20", "lessontitle": "pattern10", "link": "/lessons","file":"1A/20.mxl.zip","source":"Method-1A","level":"Professional", "completed":false },
+          { "id": "21", "lessontitle": "pattern11", "link": "/lessons","file":"1A/The_Five_Finger_Mountain_10_Measure_Exercise-Piano.mxl","source":"Method-1A","level":"Professional", "completed":false }
     ]
   },
   {
     "fkid": "2",
     "unitlessons": [
     
-          { "id": "1", "lessontitle": "Finding Middle C", "link": "/lessons" },
-          { "id": "2", "lessontitle": "Playing the White Keys", "link": "/lessons"},
-          { "id": "3", "lessontitle": "Exploring Black Keys", "link": "/lessons"},
-          { "id": "4", "lessontitle": "Simple Patterns", "link": "/lessons"},
-          { "id": "5", "lessontitle": "Half Notes & Half Rests / Minims", "link": "/lessons"  },
-          { "id": "6", "lessontitle": "Quarter Notes / Crotchets", "link": "/lessons"},
-          { "id": "7", "lessontitle": "C song", "link": "/lessons" }
+          { "id": "1", "lessontitle": "Finding Middle C", "link": "/lessons", "completed":false },
+          { "id": "2", "lessontitle": "Playing the White Keys", "link": "/lessons", "completed":false},
+          { "id": "3", "lessontitle": "Exploring Black Keys", "link": "/lessons", "completed":false},
+          { "id": "4", "lessontitle": "Simple Patterns", "link": "/lessons", "completed":false},
+          { "id": "5", "lessontitle": "Half Notes & Half Rests / Minims", "link": "/lessons", "completed":false  },
+          { "id": "6", "lessontitle": "Quarter Notes / Crotchets", "link": "/lessons", "completed":false},
+          { "id": "7", "lessontitle": "C song", "link": "/lessons", "completed":false }
     ]
   },
   {
     "fkid": "3",
     "unitlessons": [
-          { "id": "1", "lessontitle": "Finding Middle C", "link": "/lessons" },
-          { "id": "2", "lessontitle": "Playing the White Keys", "link": "/lessons"},
-          { "id": "3", "lessontitle": "Exploring Black Keys", "link": "/lessons"},
-          { "id": "4", "lessontitle": "Simple Patterns", "link": "/lessons"},
-          { "id": "5", "lessontitle": "Half Notes & Half Rests / Minims", "link": "/lessons"  },
-          { "id": "6", "lessontitle": "Quarter Notes / Crotchets", "link": "/lessons"},
-          { "id": "7", "lessontitle": "C song", "link": "/lessons" }
+          { "id": "1", "lessontitle": "Finding Middle C", "link": "/lessons", "completed":false },
+          { "id": "2", "lessontitle": "Playing the White Keys", "link": "/lessons", "completed":false},
+          { "id": "3", "lessontitle": "Exploring Black Keys", "link": "/lessons", "completed":false},
+          { "id": "4", "lessontitle": "Simple Patterns", "link": "/lessons", "completed":false},
+          { "id": "5", "lessontitle": "Half Notes & Half Rests / Minims", "link": "/lessons", "completed":false  },
+          { "id": "6", "lessontitle": "Quarter Notes / Crotchets", "link": "/lessons", "completed":false},
+          { "id": "7", "lessontitle": "C song", "link": "/lessons", "completed":false }
     ]
   }]
 }

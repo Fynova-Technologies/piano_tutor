@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/navbar";
+import { AuthProvider } from "@/utils/Authsegment";
+import { LessonsProvider } from "@/utils/userprogress/lessonprogress";
 
 
 const inter = Inter({
@@ -34,7 +36,9 @@ export default function RootLayout({
       >
         <Navbar/>
         <main className="w-full">
-          {children}
+          <AuthProvider>
+            <LessonsProvider>{children}</LessonsProvider>
+          </AuthProvider>
         </main>
 
       </body>
