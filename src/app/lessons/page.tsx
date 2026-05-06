@@ -10,6 +10,11 @@ import CursorControls from "@/features/components/cursorcontrols";
 import { useSearchParams } from "next/navigation";
 import { BeatCursor } from "@/features/playback/beatcursor";
 import { saveSession } from "@/datastore/sessionstorage";
+import JSZip from "jszip";
+import { useLessons } from "@/utils/userprogress/lessonprogress";
+
+
+
 
 interface PlayedNote {
   midi: number;
@@ -20,8 +25,8 @@ interface PlayedNote {
 }
 
 function Test2HybridFullContent() {
-  const [uploadedMusicXML, setUploadedMusicXML] = useState<string | null>(null);
-  const [uploadLoading, setUploadLoading] = useState(false);
+const [uploadedMusicXML, setUploadedMusicXML] = useState<string | ArrayBuffer | null>(null);  
+const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showUploadPanel, setShowUploadPanel] = useState(true);
   const samplerRef = useRef<Sampler | null>(null);
@@ -35,8 +40,6 @@ function Test2HybridFullContent() {
   const sessionStartRef = useRef<number | null>(null);
   // Session attempts (restarts / replays)
   const attemptCountRef = useRef(0);
-  const fallbackXml = "/songs/" + fileName;
-  const xml = uploadedMusicXML || fallbackXml;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const osmdRef = useRef<any>(null);
   // playback state
@@ -69,7 +72,69 @@ function Test2HybridFullContent() {
   const beatStartTimeRef = useRef<number>(0);
   const beatAdvancedRef = useRef<boolean>(false);
   const [showScorePopup, setShowScorePopup] = useState(false);
+  const xml = uploadedMusicXML;
+  const lessons = useLessons();
+  const markComplete = lessons?.markComplete;
+  const markCompleteRef = useRef(markComplete);
+useEffect(() => {
+  markCompleteRef.current = markComplete;
+}, [markComplete]);
 
+
+
+
+  useEffect(() => {
+  async function loadFromCDN() {
+    try {
+      setUploadLoading(true);
+
+      const res = await fetch(
+        `https://cdn-dataforpiano.netlify.app/songs/${fileName}`,
+        { headers: { "Cache-Control": "no-cache" } }
+      );
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+
+      const buffer = await res.arrayBuffer();
+      const header = new Uint8Array(buffer, 0, 4);
+
+      // Plain MusicXML (not zipped)
+      if (header[0] !== 0x50 || header[1] !== 0x4B) {
+        const text = new TextDecoder().decode(buffer);
+        if (text.trimStart().startsWith("<?xml") || text.trimStart().startsWith("<score-partwise")) {
+          console.log("Plain MusicXML detected");
+          setUploadedMusicXML(text);
+          return;
+        }
+        throw new Error(`Not a valid ZIP or MusicXML file`);
+      }
+
+      // It's a ZIP (.mxl) — extract the root MusicXML file
+      const zip = await JSZip.loadAsync(buffer);
+
+      const containerXml = await zip.file("META-INF/container.xml")?.async("text");
+      if (!containerXml) throw new Error("container.xml missing from MXL");
+
+      const match = containerXml.match(/full-path="([^"]+)"/);
+      const rootFilePath = match?.[1];
+      if (!rootFilePath) throw new Error("No rootfile path in container.xml");
+
+      const xmlText = await zip.file(rootFilePath)?.async("text");
+      if (!xmlText) throw new Error(`Missing root file: ${rootFilePath}`);
+
+      console.log("Extracted MusicXML preview:", xmlText.slice(0, 200));
+      setUploadedMusicXML(xmlText); // ✅ always a string
+
+    } catch (err) {
+      console.error(err);
+      setUploadError(`Failed to load: ${err instanceof Error ? err.message : err}`);
+    } finally {
+      setUploadLoading(false);
+    }
+  }
+
+  loadFromCDN();
+}, [fileName]);
 
   useEffect(() => {
   tempoRef.current = tempo;
@@ -114,6 +179,7 @@ function Test2HybridFullContent() {
   // ========== FIXED OSMD SETUP ==========
   useEffect(() => {
     attemptCountRef.current = 0;
+      if (!xml) return; // ✅ wait for CDN
 
     if (!containerRef.current) return;
 
@@ -133,7 +199,12 @@ function Test2HybridFullContent() {
 
     (async () => {
       try {
+        if (typeof xml !== "string" || !xml.includes("<score-partwise")) {
+  console.error("Invalid XML passed to OSMD:", typeof xml, xml?.slice?.(0, 100));
+  return;
+}
         await osmd.load(xml);
+        
 
         const rules = osmd.EngravingRules;
         rules.MinimumDistanceBetweenSystems = 5;
@@ -247,6 +318,7 @@ console.log("SVG viewBox attr:", svgEl?.getAttribute("viewBox"));
       }
     };
   }, [xml]);
+
 
   // ========== SAMPLER SETUP ==========
   useEffect(() => {
@@ -577,7 +649,10 @@ function tick(now: number) {
   }
 }
 
-  function handleEndOfPiece() {
+async function handleEndOfPiece() {
+  // ❌ DELETE this line — it's what causes the error
+  // const lessonsCtx = useLessons();
+
   setIsPlaying(false);
   playModeRef.current = false;
 
@@ -597,12 +672,9 @@ function tick(now: number) {
   let finalScore = 0;
 
   if (scoreable > 0) {
-    const precision = correct + incorrect > 0
-      ? correct / (correct + incorrect)   // accuracy of what you played
-      : 0;
-
-    const recall = correct / scoreable;   // coverage of required notes
-
+    const precision =
+      correct + incorrect > 0 ? correct / (correct + incorrect) : 0;
+    const recall = correct / scoreable;
     finalScore = Math.round(precision * recall * 100);
   }
 
@@ -615,43 +687,49 @@ function tick(now: number) {
     localStorage.setItem("highScore", finalScore.toString());
   }
 
-    const endTime = Date.now();
-    const startTime = sessionStartRef.current ?? endTime;
-    const durationSec = Math.round((endTime - startTime) / 1000);
-
-    const accuracy =
-      scoreableNotesRef.current > 0
-        ? Math.round(
-            (correctStepsRef.current / scoreableNotesRef.current) * 100
-          )
-        : 0;
-
+  // ✅ Use the ref that was set at component top level — no hook call needed
+  if (finalScore === 100) {
     const lessonId = searchparams.get("lessonid") || "0";
-    const lessonUID = `${source}-${lessonId}`;
-
-    const session = {
-      id: crypto.randomUUID(),
-      startedAt: startTime,
-      endedAt: endTime,
-      durationSec,
-      lesson: {
-        uid: lessonUID,
-        id: lessonId,
-        title: courseTitle,
-        source: source,
-      },
-      performance: {
-        attempts: Math.max(1, attemptCountRef.current),
-        score: finalScore,
-        accuracy,
-        correctNotes: correctStepsRef.current,
-        incorrectNotes: incorrectNotesRef.current,
-        totalScoreable: scoreableNotesRef.current,
-      },
-    };
-
-    saveSession(session);
+    const fkid = searchparams.get("fkid") || "1";
+    if (markCompleteRef.current) {
+      markCompleteRef.current(fkid, lessonId);
+    }
   }
+
+  const endTime = Date.now();
+  const startTime = sessionStartRef.current ?? endTime;
+  const durationSec = Math.round((endTime - startTime) / 1000);
+  const accuracy =
+    scoreableNotesRef.current > 0
+      ? Math.round((correctStepsRef.current / scoreableNotesRef.current) * 100)
+      : 0;
+
+  const lessonId = searchparams.get("lessonid") || "0";
+  const lessonUID = `${source}-${lessonId}`;
+
+  const session = {
+    id: crypto.randomUUID(),
+    startedAt: startTime,
+    endedAt: endTime,
+    durationSec,
+    lesson: {
+      uid: lessonUID,
+      id: lessonId,
+      title: courseTitle,
+      source: source,
+    },
+    performance: {
+      attempts: Math.max(1, attemptCountRef.current),
+      score: finalScore,
+      accuracy,
+      correctNotes: correctStepsRef.current,
+      incorrectNotes: incorrectNotesRef.current,
+      totalScoreable: scoreableNotesRef.current,
+    },
+  };
+
+  saveSession(session);
+}
 
   useEffect(() => {
     return () => {
