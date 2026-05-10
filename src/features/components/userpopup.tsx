@@ -23,7 +23,7 @@ export default function UserPopup({userPopupOpen, setUserPopupOpen, userLoggedIn
 
             </div>
             <div className=' text-[16px] no-underline'>
-                <a href="/profile" className=" block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline">My Account</a>
+                <a href="/accounts" className=" block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline">My Account</a>
                 <a href="/settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline">Student & Classes</a>
                 <a href="/settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline">Instrument Settings</a>
                 <a href="/settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline">Preferences</a>
