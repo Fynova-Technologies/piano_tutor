@@ -1102,6 +1102,8 @@ if (bassStaveObj && bassStaveObj.y !== trebleStaveObj?.y && osmdHT < 48) {
     };
   }
 
+  
+
   // ========== UI ==========
   return (
     <>

@@ -24,9 +24,9 @@ export default function UserPopup({userPopupOpen, setUserPopupOpen, userLoggedIn
             </div>
             <div className=' text-[16px] no-underline'>
                 <a href="/accounts" className=" block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline">My Account</a>
-                <a href="/settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline">Student & Classes</a>
+                {/* <a href="/settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline">Student & Classes</a>
                 <a href="/settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline">Instrument Settings</a>
-                <a href="/settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline">Preferences</a>
+                <a href="/settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline">Preferences</a> */}
                 <a href="/settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline">Support</a>
 
                 {userLoggedIn ? <LogoutButton /> : <div className='border-t-[#6E6E73] border-t-1'><a href="/login" className=" text-[#151517]  rounded-lg no-underline "><div className='space-x-4 px-4 py-4'><Image src ="/loginicon.svg" height={13} width={13} alt="Login Icon" /><span>Login</span></div></a></div>}

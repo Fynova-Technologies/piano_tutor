@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useMediaQuery } from "@/components/MediaQuery/useMediaQueryHook";
-import { useLessons } from "@/utils/userprogress/lessonprogress"; // ← adjust path if needed
+import { useLessons } from "@/utils/userprogress/lessonprogress";
+import { useRecentLessons } from "@/utils/userprogress/userrecentpost"; // ← new
 
+// ─── Types ────────────────────────────────────────────────────────────────
 type UniteLesson2 = {
   fkid: string;
   unitlessons: {
@@ -21,34 +23,33 @@ type UniteLesson2 = {
 interface UnitLessonProps {
   classId: string;
   methodName: string;
+  methodImageUrl?: string; // passed down so we can store it
   unitLessonsData2: UniteLesson2[];
   loading: boolean;
   isMobile: boolean;
   onNavigate: (url: string) => void;
+  onLessonClick: (params: {
+    lesson_id: string;
+    lesson_title: string;
+    file?: string;
+    unit_id: string;
+    fkid: string;
+    source?: string;
+    course_title: string;
+    image_url?: string;
+  }) => void;
 }
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type TopLesson = {
-  id: string;
-  fkid: string;
-  title: string;
-  description: string;
-  link: string;
-  unlocked: boolean;
-  completed: boolean;
-};
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const CDN_BASE = "https://cdn-dataforpiano.netlify.app";
 
 // ─── Unit lesson list ────────────────────────────────────────────────────
 const UnitLesson: React.FC<UnitLessonProps> = ({
   classId,
   methodName,
+  methodImageUrl,
   unitLessonsData2,
   loading,
   isMobile,
   onNavigate,
+  onLessonClick,
 }) => {
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
 
@@ -60,7 +61,7 @@ const UnitLesson: React.FC<UnitLessonProps> = ({
     if (unit?.unitlessons?.length) {
       setActiveLesson(unit.unitlessons[0].id);
     }
-  }, [classId]); // reset when unit changes
+  }, [classId]);
 
   if (loading) {
     return (
@@ -76,7 +77,11 @@ const UnitLesson: React.FC<UnitLessonProps> = ({
 
   return (
     <div>
-      <div className={`bg-[#FEFEFE] p-4 rounded-2xl shadow-md mt-8 ${isMobile ? "" : "flex w-full"}`}>
+      <div
+        className={`bg-[#FEFEFE] p-4 rounded-2xl shadow-md mt-8 ${
+          isMobile ? "" : "flex w-full"
+        }`}
+      >
         <span className="text-[40px] text-center w-full bg-[#FEFEFE] primary-color-text font-medium">
           Methods
           <span className="font-bold primary-color-text"> - {methodName}</span>
@@ -94,6 +99,20 @@ const UnitLesson: React.FC<UnitLessonProps> = ({
                 key={lesson.id}
                 onClick={() => {
                   setActiveLesson(lesson.id);
+
+                  // ── 1. Save to recent_lessons ─────────────────────────
+                  onLessonClick({
+                    lesson_id: lesson.id,
+                    lesson_title: lesson.lessontitle,
+                    file: lesson.file,
+                    unit_id: lesson.id,
+                    fkid: classId,
+                    source: lesson.source,
+                    course_title: methodName,
+                    image_url: methodImageUrl,
+                  });
+
+                  // ── 2. Navigate ───────────────────────────────────────
                   const params = new URLSearchParams({
                     id: classId,
                     title: lesson.lessontitle,
@@ -115,45 +134,47 @@ const UnitLesson: React.FC<UnitLessonProps> = ({
                     width={56}
                     height={56}
                     alt="icon"
-                    className={`${isActive ? "visible" : "invisible"} group-hover:visible`}
+                    className={`${
+                      isActive ? "visible" : "invisible"
+                    } group-hover:visible`}
                   />
                 </div>
 
-                <div className={`${
-                  isMobile
-                    ? `flex flex-col w-full hover:border-0 border-[#0a0a0a] py-1 ${isActive ? "border-0" : "border-b-1"}`
-                    : `flex items-center justify-between w-full hover:border-0 border-[#0a0a0a] py-1 ${isActive ? "border-0" : "border-b-1"}`
-                }`}>
+                <div
+                  className={`${
+                    isMobile
+                      ? `flex flex-col w-full hover:border-0 border-[#0a0a0a] py-1 ${
+                          isActive ? "border-0" : "border-b-1"
+                        }`
+                      : `flex items-center justify-between w-full hover:border-0 border-[#0a0a0a] py-1 ${
+                          isActive ? "border-0" : "border-b-1"
+                        }`
+                  }`}
+                >
                   <span className="text-[16px] primary-color-text font-medium">
                     {lesson.id}. {lesson.lessontitle}
                   </span>
 
-                  {/* ✅ Complete vs Incomplete badge */}
                   {isDone ? (
-                    <div className={`${
-                      isMobile
-                        ? "bg-[#0a0a0a] rounded-2xl py-1 px-3 border-none mt-2"
-                        : "bg-[#0a0a0a] rounded-2xl py-2 px-6 border-none h-[36px]"
-                    }`}>
-                      {/* <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <path
-                          d="M2 7l3.5 3.5L12 3"
-                          stroke="#fff"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg> */}
+                    <div
+                      className={`${
+                        isMobile
+                          ? "bg-[#0a0a0a] rounded-2xl py-1 px-3 border-none mt-2"
+                          : "bg-[#0a0a0a] rounded-2xl py-2 px-6 border-none h-[36px]"
+                      }`}
+                    >
                       <span className="text-[#FEFEFE] text-[13px]">
                         Complete
                       </span>
                     </div>
                   ) : (
-                    <button className={`${
-                      isMobile
-                        ? "bg-[#0a0a0a] rounded-2xl py-1 px-3 border-none mt-2"
-                        : "bg-[#0a0a0a] rounded-2xl py-2 px-6 border-none h-[36px]"
-                    }`}>
+                    <button
+                      className={`${
+                        isMobile
+                          ? "bg-[#0a0a0a] rounded-2xl py-1 px-3 border-none mt-2"
+                          : "bg-[#0a0a0a] rounded-2xl py-2 px-6 border-none h-[36px]"
+                      }`}
+                    >
                       <span className="text-[#FEFEFE] text-[13px]">
                         Incomplete
                       </span>
@@ -171,9 +192,10 @@ const UnitLesson: React.FC<UnitLessonProps> = ({
 // ── End of UnitLesson ─────────────────────────────────────────────────────
 
 
-// ── PianoLesson stays clean ───────────────────────────────────────────────
+// ── PianoLesson ───────────────────────────────────────────────────────────
 export default function PianoLesson() {
   const [classId, setClassId] = useState<string>("");
+  const [methodImageUrl, setMethodImageUrl] = useState<string | undefined>();
   const router = useRouter();
   const [methodName, setMethodName] = useState("1A");
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -181,22 +203,28 @@ export default function PianoLesson() {
   const { lessons, topLessons, loading, accessUnit } = useLessons();
   const unitLessonsData2 = lessons as UniteLesson2[];
 
+  // ── Recent lessons hook ───────────────────────────────────────────────
+  const { saveRecentLesson } = useRecentLessons();
+
   useEffect(() => {
     if (topLessons.length > 0 && !classId) {
       setClassId(String(topLessons[0].fkid));
       setMethodName(topLessons[0].title);
+      setMethodImageUrl(topLessons[0].imageUrl);
     }
   }, [topLessons.length]);
 
-  const handleClick = (fkid: string, title: string) => {
+  const handleClick = (fkid: string, title: string, imageUrl?: string) => {
     setClassId(fkid);
     setMethodName(title);
+    setMethodImageUrl(imageUrl);
     accessUnit(fkid);
   };
 
   return (
     <div className="min-h-screen bg-[#F8F6F1] py-16 px-6 md:px-12 lg:px-24">
       <div className={`${isMobile ? "" : "flex"}`}>
+        {/* ── Piano key sidebar ──────────────────────────────────────── */}
         <div className={`${isMobile ? "" : "flex-1 max-w-[437px]"}`}>
           <div className="w-full">
             <div className="flex-col border-2 bg-[#FEFEFE] p-6 rounded-2xl w-full">
@@ -208,26 +236,49 @@ export default function PianoLesson() {
 
               {loading ? (
                 <div className="flex items-center justify-center py-12">
-                  <span className="text-[#D4AF37] animate-pulse font-medium">Loading…</span>
+                  <span className="text-[#D4AF37] animate-pulse font-medium">
+                    Loading…
+                  </span>
                 </div>
               ) : (
-                <div className={`${
-                  isMobile
-                    ? "flex w-full bg-black overflow-x-auto scrollbar-hide"
-                    : "mt-[20px] max-h-[710px] max-w-[360px] mx-8 border-t-5 border-x-5 border-[#0a0a0a] rounded-x-2xl rounded-t-2xl py-10 overflow-hidden scrollbar-hide"
-                }`}>
+                <div
+                  className={`${
+                    isMobile
+                      ? "flex w-full bg-black overflow-x-auto scrollbar-hide"
+                      : "mt-[20px] max-h-[710px] max-w-[360px] mx-8 border-t-5 border-x-5 border-[#0a0a0a] rounded-x-2xl rounded-t-2xl py-10 overflow-hidden scrollbar-hide"
+                  }`}
+                >
                   {topLessons.map((lesson, index) => {
                     const whiteKeyInOctave = index % 7;
-                    const showBlackKey = !(whiteKeyInOctave === 2 || whiteKeyInOctave === 6);
-                    const isSelected = String(classId) === String(lesson.fkid);
+                    const showBlackKey = !(
+                      whiteKeyInOctave === 2 || whiteKeyInOctave === 6
+                    );
+                    const isSelected =
+                      String(classId) === String(lesson.fkid);
 
                     return (
                       <div key={lesson.id} className="relative">
                         <motion.div
                           initial={{ backgroundColor: "#fefefe" }}
-                          whileHover={{ backgroundColor: ["#f1f1f1", "#e9e9ea", "#d2d2d4"] }}
-                          transition={{ duration: 0.9, times: [0, 0.3, 0.5], ease: "easeInOut" }}
-                          onClick={() => handleClick(String(lesson.fkid), lesson.title)}
+                          whileHover={{
+                            backgroundColor: [
+                              "#f1f1f1",
+                              "#e9e9ea",
+                              "#d2d2d4",
+                            ],
+                          }}
+                          transition={{
+                            duration: 0.9,
+                            times: [0, 0.3, 0.5],
+                            ease: "easeInOut",
+                          }}
+                          onClick={() =>
+                            handleClick(
+                              String(lesson.fkid),
+                              lesson.title,
+                              lesson.imageUrl
+                            )
+                          }
                           className={`${
                             isMobile
                               ? "relative p-4 flex flex-col items-center justify-between cursor-pointer w-full min-w-[120px] h-[250px] bg-[#FEFEFE] shadow-[inset_0px_-2px_5px_#b9b9b9] hover:rounded-r-2xl"
@@ -235,18 +286,19 @@ export default function PianoLesson() {
                           } ${isSelected ? "bg-[#f5f0e0]" : ""}`}
                         >
                           {showBlackKey && (
-                            <div className={`${
-                              isMobile
-                                ? "absolute left-0 top-0 z-10 w-[40px] h-[150px] bg-black rounded-b-lg"
-                                : "absolute left-0 bottom-0 translate-y-1/2 z-10 w-[180px] h-[36px] bg-black rounded-r-lg"
-                            }`} />
+                            <div
+                              className={`${
+                                isMobile
+                                  ? "absolute left-0 top-0 z-10 w-[40px] h-[150px] bg-black rounded-b-lg"
+                                  : "absolute left-0 bottom-0 translate-y-1/2 z-10 w-[180px] h-[36px] bg-black rounded-r-lg"
+                              }`}
+                            />
                           )}
 
                           <div className="mt-auto flex flex-col items-center gap-1">
                             <span className="bg-[#e9e9ea] shadow-[inset_0px_0px_4px_#0A254059] primary-color-text font-bold rounded w-[49px] h-[36px] flex justify-center items-center text-sm">
                               {lesson.title}
                             </span>
-                            {/* Gold dot if unit is fully complete */}
                             {lesson.completed && (
                               <span className="w-2.5 h-2.5 rounded-full bg-[#D4AF37]" />
                             )}
@@ -261,17 +313,19 @@ export default function PianoLesson() {
           </div>
         </div>
 
+        {/* ── Lesson list ───────────────────────────────────────────── */}
         <div className="flex-2">
           <div className="flex flex-col lg:flex-row space-x-12 max-w-[843px] mx-auto">
             <div className="w-full">
-              {/* ✅ UnitLesson is now outside — no hook violations */}
               <UnitLesson
                 classId={classId}
                 methodName={methodName}
+                methodImageUrl={methodImageUrl}
                 unitLessonsData2={unitLessonsData2}
                 loading={loading}
                 isMobile={isMobile}
                 onNavigate={(url) => router.push(url)}
+                onLessonClick={saveRecentLesson} // ← wires save to click
               />
             </div>
           </div>

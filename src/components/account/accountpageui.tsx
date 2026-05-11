@@ -45,7 +45,7 @@ export default function AccountPageUI({
     return (
       <div
         onClick={onClick}
-        className={`px-4 py-4 rounded-lg cursor-pointer text-sm transition-all duration-200 ${
+        className={`flex px-4 py-4 rounded-lg cursor-pointer text-sm transition-all duration-200 ${
           active
             ? "bg-[#D4AF37] text-[#151517] font-medium text-[16px]"
             : "hover:bg-gray-100 text-[#151517] font-medium text-[16px]"
@@ -63,19 +63,21 @@ export default function AccountPageUI({
     );
   }
 
-  function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+  function SectionCard({ title, children, activeTab }: { title: string; children: React.ReactNode; activeTab: string }) {
     return (
       <div className="bg-[#FEFEFE] rounded-xl p-5 relative border border-[#ECECEC]">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl text-[#0A0A0B] font-medium">{title}</h2>
 
-          <button className="bg-[#581845] text-white px-4 py-3 rounded-2xl text-[16px] flex justify-center items-center hover:opacity-90 transition">
+          <button className={`${
+                activeTab === "music" || activeTab === "billing" ?"hidden": "bg-[#581845] text-white px-4 py-3 rounded-2xl text-[16px] flex justify-center items-center hover:opacity-90 transition" 
+              }`}>
             <Image
               src="/icon-wrapper-h.svg"
               height={15}
               width={15}
               alt="Edit"
-              className="inline-block mr-3"
+              className={`inline-block mr-3`}
             />
             Edit
           </button>
@@ -96,8 +98,32 @@ export default function AccountPageUI({
   }
 
   return (
-    <div className="bg-[#FEFEFE] min-h-screen p-6">
-      <div className="max-w-7xl h-full mx-auto bg-white rounded-2xl p-6 shadow-sm">
+    <div className="bg-[#FEFEFE] min-h-screen p-16">
+      <div className="w-full h-full mx-auto bg-white rounded-2xl p-8 shadow-sm">
+{activeTab === "account" && (
+  <h1
+    className="text-2xl text-[#0A0A0B] font-semibold mb-6"
+    style={{ paddingLeft: "calc(220px + 1.5rem)" }}
+  >
+    My Account
+  </h1>
+)}
+{activeTab === "billing" && (
+  <h1
+    className="text-2xl text-[#0A0A0B] font-semibold mb-6"
+    style={{ paddingLeft: "calc(220px + 1.5rem)" }}
+  >
+    Billings
+  </h1>
+)}
+{activeTab === "music" && (
+  <h1
+    className="text-2xl text-[#0A0A0B] font-semibold mb-6"
+    style={{ paddingLeft: "calc(220px + 1.5rem)" }}
+  >
+    My Music Sheet
+  </h1>
+)}
         <div className="grid grid-cols-[220px_1fr] gap-6">
           {/* Sidebar */}
           <div className="space-y-3">
@@ -128,12 +154,10 @@ export default function AccountPageUI({
             {/* ================= ACCOUNT ================= */}
             {activeTab === "account" && (
               <>
-                <h1 className="text-2xl text-[#0A0A0B] font-semibold mb-6">
-                  My Account
-                </h1>
+                
 
                 {/* Personal Info */}
-                <SectionCard title="Personal Information">
+                <SectionCard title="Personal Information" activeTab={activeTab}>
                   <div className="grid grid-cols-2 gap-6">
                     <Info
                       label="First Name"
@@ -153,7 +177,7 @@ export default function AccountPageUI({
                 </SectionCard>
 
                 {/* Account Info */}
-                <SectionCard title="Account Info">
+                <SectionCard title="Account Info" activeTab={activeTab}>
                   <div className="grid grid-cols-2 gap-6">
                     <Info
                       label="Account Type"
@@ -178,7 +202,7 @@ export default function AccountPageUI({
                 </SectionCard>
 
                 {/* Teacher */}
-                <SectionCard title="Teacher & Classes">
+                <SectionCard title="Teacher & Classes" activeTab={activeTab}>
                   <Info label="Teacher" value="None" />
                 </SectionCard>
               </>
@@ -187,12 +211,9 @@ export default function AccountPageUI({
             {/* ================= BILLINGS ================= */}
             {activeTab === "billing" && (
               <>
-                <h1 className="text-2xl text-[#0A0A0B] font-semibold mb-6">
-                  Billing & Subscription
-                </h1>
 
                 {/* Current Plan */}
-                <SectionCard title="Current Subscription">
+                <SectionCard title="Current Subscription" activeTab={activeTab}>
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-xl font-semibold text-[#151517]">
@@ -219,7 +240,7 @@ export default function AccountPageUI({
                 </SectionCard>
 
                 {/* Billing History */}
-                <SectionCard title="Billing History">
+                <SectionCard title="Billing History" activeTab={activeTab}>
                   <div className="overflow-x-auto">
                     <table className="w-full border-separate border-spacing-y-3">
                       <thead>
@@ -273,11 +294,8 @@ export default function AccountPageUI({
             {/* ================= MUSIC SHEETS ================= */}
             {activeTab === "music" && (
               <>
-                <h1 className="text-2xl text-[#0A0A0B] font-semibold mb-6">
-                  My Music Sheets
-                </h1>
 
-                <SectionCard title="Saved Music Sheets">
+                <SectionCard title="" activeTab={activeTab}>
                   {musicSheets.length > 0 ? (
                     <div className="grid grid-cols-2 gap-4">
                       {musicSheets.map((sheet, index) => (
@@ -317,15 +335,15 @@ export default function AccountPageUI({
                   ) : (
                     <div className="text-center py-14">
                       <Image
-                        src="/music-sheet.svg"
-                        width={60}
-                        height={60}
+                        src="/amico.png"
+                        width={100}
+                        height={100}
                         alt="empty"
-                        className="mx-auto opacity-40"
+                        className="mx-auto"
                       />
 
-                      <p className="mt-4 text-[#6E6E73]">
-                        No music sheets saved yet.
+                      <p className="mt-4 text-[16px] font-medium text-black">
+                        You don`t have any sheet music yet. <br></br> Start browsing the library to add some.
                       </p>
                     </div>
                   )}
