@@ -25,8 +25,8 @@ interface PlayedNote {
 }
 
 function Test2HybridFullContent() {
-const [uploadedMusicXML, setUploadedMusicXML] = useState<string | ArrayBuffer | null>(null);  
-const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadedMusicXML, setUploadedMusicXML] = useState<string | ArrayBuffer | null>(null);  
+  const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showUploadPanel, setShowUploadPanel] = useState(true);
   const samplerRef = useRef<Sampler | null>(null);
@@ -76,11 +76,10 @@ const [uploadLoading, setUploadLoading] = useState(false);
   const lessons = useLessons();
   const markComplete = lessons?.markComplete;
   const markCompleteRef = useRef(markComplete);
-useEffect(() => {
-  markCompleteRef.current = markComplete;
-}, [markComplete]);
-
-
+  
+  useEffect(() => {
+    markCompleteRef.current = markComplete;
+  }, [markComplete]);
 
 
   useEffect(() => {

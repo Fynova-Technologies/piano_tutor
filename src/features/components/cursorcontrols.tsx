@@ -191,7 +191,7 @@ export default function CursorControls (props: CursorControlsProps) {
                       </div>
             </div>
           
-<div style={{ paddingBottom: "80px", background: "white" }}>
+<div style={{ paddingRight: "80px", paddingLeft:"80px", paddingTop:"40px",paddingBottom:"40px", background: "#F8F6F1" }}>
       <div
         ref={containerRef}
         id="osmd-container"
