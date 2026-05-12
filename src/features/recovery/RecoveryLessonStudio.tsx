@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { LessonPracticeWorkspace } from "@/features/lessons/LessonPracticeWorkspace";
+import { PianoKeysStripeLight } from "@/features/ai-review/PianoAnalysisChrome";
 
 type SourceOption = {
   lessonUid: string;
@@ -187,47 +188,48 @@ export default function RecoveryLessonStudio() {
 
   return (
     <div className="min-h-screen bg-[#F8F6F1]">
-      <div className="border-b border-black/10 bg-[#F8F6F1] px-4 py-4">
+      <div className="border-b border-black/10 bg-[#FEFEFE] px-4 py-4 shadow-[0_2px_8px_rgba(80,80,80,0.06)]">
         <div className="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <Link
               href="/ai-analysis"
-              className="text-sm font-medium text-[#0A0A0B] underline-offset-4 hover:underline"
+              className="text-sm font-medium text-[#151517] underline-offset-4 hover:text-[#aa8c2c]"
             >
               ← AI Analysis
             </Link>
-            <h1 className="mt-2 text-xl font-semibold text-[#0A0A0B]">Mistake recovery studio</h1>
-            <p className="mt-1 max-w-2xl text-sm text-black/60">
-              Personalized AI drills stay separate from official method lessons. Generate from your
-              weakest recent sessions, practice with the same cursor engine, and track recovery sessions
-              in your practice history.
+            <h1 className="mt-2 text-xl font-bold primary-color-text">Mistake recovery studio</h1>
+            <p className="mt-1 max-w-2xl text-sm text-[#535356]">
+              Personalized AI drills stay separate from official method lessons. Generate from your weakest
+              recent sessions, practice with the same cursor engine, and track recovery sessions in your
+              practice history.
             </p>
           </div>
           <button
             type="button"
             onClick={() => void refreshContext()}
-            className="self-start rounded-xl border border-black/15 bg-white px-4 py-2 text-sm font-medium text-[#0A0A0B] shadow-sm hover:bg-[#fafafa]"
+            className="self-start rounded-xl border border-black/10 bg-[#FEFEFE] px-4 py-2 text-sm font-medium text-[#151517] shadow-[0_5px_10px_0px_rgba(80,80,80,0.1)] transition hover:border-[#D4AF37]/35 hover:bg-[#f2e6c1]/70"
           >
             Refresh history
           </button>
         </div>
+        <PianoKeysStripeLight className="mx-auto mt-4 max-w-5xl rounded-md opacity-[0.72]" />
       </div>
 
       <div className="mx-auto grid max-w-5xl gap-6 px-4 py-6 lg:grid-cols-[minmax(0,320px)_1fr]">
         <aside className="space-y-4">
-          <div className="rounded-2xl border border-black/8 bg-white p-4 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-black/45">
+          <div className="rounded-2xl border border-black/10 bg-[#FEFEFE] p-4 shadow-[0_5px_10px_0px_rgba(80,80,80,0.12)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8a7a68]">
               Source lesson
             </p>
             {contextLoading ? (
-              <p className="mt-2 text-sm text-black/55">Loading your practice history…</p>
+              <p className="mt-2 text-sm text-[#6b6054]">Loading your practice history…</p>
             ) : contextError ? (
               <p className="mt-2 text-sm text-red-600">{contextError}</p>
             ) : (
               <select
                 value={selectedUid}
                 onChange={(e) => setSelectedUid(e.target.value)}
-                className="mt-2 w-full rounded-xl border border-black/15 bg-[#F8F6F1] px-3 py-2 text-sm text-[#0A0A0B]"
+                className="mt-2 w-full rounded-xl border border-black/10 bg-[#fafaf9] px-3 py-2 text-sm text-[#151517]"
               >
                 {sourceOptions.length === 0 ? (
                   <option value="">No sessions yet — play a lesson first</option>
@@ -241,7 +243,7 @@ export default function RecoveryLessonStudio() {
                 )}
               </select>
             )}
-            <label className="mt-3 block text-xs font-medium text-black/45">
+            <label className="mt-3 block text-xs font-medium text-[#8a7a68]">
               Target tempo (BPM)
               <input
                 type="number"
@@ -249,30 +251,30 @@ export default function RecoveryLessonStudio() {
                 max={200}
                 value={tempo}
                 onChange={(e) => setTempo(Number(e.target.value) || 72)}
-                className="mt-1 w-full rounded-xl border border-black/15 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-xl border border-black/10 bg-[#fafaf9] px-3 py-2 text-sm text-[#151517]"
               />
             </label>
             <button
               type="button"
               disabled={genLoading || !selectedUid}
               onClick={() => void generateDrill()}
-              className="mt-4 w-full rounded-xl border border-[#D4AF37]/50 bg-[#0A0A0B] py-2.5 text-sm font-medium text-[#D4AF37] transition hover:bg-[#1a1a1f] disabled:opacity-50"
+              className="mt-4 w-full rounded-xl bg-[#D4AF37] py-2.5 text-sm font-semibold primary-color-text shadow-[0_5px_10px_0px_rgba(80,80,80,0.18)] ring-1 ring-[#b8922c] transition hover:brightness-105 disabled:opacity-50"
             >
               {genLoading ? "Generating validated drill…" : "Generate recovery drill"}
             </button>
             {genError ? <p className="mt-2 text-xs text-red-600">{genError}</p> : null}
-            <p className="mt-3 text-[11px] leading-relaxed text-black/50">
+            <p className="mt-3 text-[11px] leading-relaxed text-[#8a7a68]">
               The server validates MusicXML (declaration, score-partwise, part-list, P1) before
               packaging MXL or returning content to the browser.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-black/8 bg-white p-4 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-black/45">
+          <div className="rounded-2xl border border-black/10 bg-[#FEFEFE] p-4 shadow-[0_5px_10px_0px_rgba(80,80,80,0.12)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#8a7a68]">
               Generated lesson history
             </p>
             {history.length === 0 ? (
-              <p className="mt-2 text-sm text-black/55">No saved drills yet.</p>
+              <p className="mt-2 text-sm text-[#6b6054]">No saved drills yet.</p>
             ) : (
               <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto text-sm">
                 {history.map((h) => (
@@ -281,10 +283,10 @@ export default function RecoveryLessonStudio() {
                       type="button"
                       disabled={loadLoading === h.id}
                       onClick={() => void loadHistoryItem(h.id)}
-                      className="w-full rounded-lg border border-black/8 bg-[#F8F6F1] px-3 py-2 text-left text-[#0A0A0B] transition hover:border-[#D4AF37]/50 disabled:opacity-50"
+                      className="w-full rounded-lg border border-[#e5dcd1] bg-[#faf7f2] px-3 py-2 text-left text-[#2a2318] transition hover:border-[#D4AF37]/45 disabled:opacity-50"
                     >
                       <span className="font-medium">{h.title}</span>
-                      <span className="mt-0.5 block text-[11px] text-black/50">
+                      <span className="mt-0.5 block text-[11px] text-[#8a7a68]">
                         {new Date(h.created_at).toLocaleString()}
                       </span>
                     </button>
@@ -297,11 +299,11 @@ export default function RecoveryLessonStudio() {
 
         <section className="min-w-0">
           {!musicXml ? (
-            <div className="rounded-2xl border border-dashed border-black/15 bg-white/80 p-10 text-center text-sm text-black/55">
+            <div className="rounded-2xl border border-dashed border-black/15 bg-[#fafaf9]/95 p-10 text-center text-sm text-[#535356]">
               Generate a drill or open one from history to load the score workspace.
             </div>
           ) : (
-            <div className="overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#FEFEFE] shadow-[0_5px_10px_0px_rgba(80,80,80,0.12)]">
               <LessonPracticeWorkspace
                 cdnFileName={null}
                 externalXml={musicXml}

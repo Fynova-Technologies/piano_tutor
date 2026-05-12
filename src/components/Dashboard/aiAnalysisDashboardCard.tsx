@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { Sparkles } from "lucide-react";
+import { PianoKeysStripeLight } from "@/features/ai-review/PianoAnalysisChrome";
 
 /**
  * Standalone dashboard entry — matches MusicCategories card rhythm (premium white tile, gold hover).
@@ -77,6 +78,8 @@ export default function AiAnalysisDashboardCard() {
             </div>
           </div>
         </div>
+
+        <PianoKeysStripeLight className="mt-6 rounded-md opacity-[0.55] transition-opacity duration-300 group-hover:opacity-[0.72]" />
       </div>
     </motion.div>
   );
