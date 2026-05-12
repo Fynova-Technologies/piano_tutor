@@ -48,6 +48,11 @@ type CursorControlsProps = {
     incorrectNotesRef: React.MutableRefObject<number>;
     showScorePopup: boolean;
     setShowScorePopup: (v: boolean) => void;
+    /** Shown in the title bar (e.g. total plays for this lesson). */
+    playCount?: number;
+    /** When set with onTempoChange, footer shows − / BPM / + controls (Figma method bar). */
+    tempo?: number;
+    onTempoChange?: (bpm: number) => void;
 }
 type UnitLesson = {
   id: string, lessontitle: string, link: string, file: string 
@@ -96,6 +101,9 @@ export default function CursorControls (props: CursorControlsProps) {
             incorrectNotesRef,
              showScorePopup,
              setShowScorePopup,
+            playCount = 0,
+            tempo = 100,
+            onTempoChange,
         } =  props;
 
         const [unitlessonsData, setUnitLessonsData] = useState<UnitLesson[]>([]);
@@ -164,146 +172,221 @@ export default function CursorControls (props: CursorControlsProps) {
           </div>
           */}
 
-          <div  className={`bg-[#FEFEFE] w-full h-[20%] flex justify-between items-center ${isPlaying ? 'hidden' : ''}`} style={{
-              boxShadow: '0 10px 30px rgba(50, 50, 93, 0.25)' // or use your own shadow
-            }}>
-                      <div className="p-5 flex-2">
-                        <span className="text-[#0A0A0B] font-medium text-[24px] ml-10">{courseTitle}</span>
-                      </div>
-                      <div className="p-4 mr-12">
-                        <div className="flex space-x-8 items-center">
-                          <div className="flex items-center space-x-3">
-                              <Image src="/Frame.svg" width={28} height={20} alt="icon"/>
-                              <span className="font-semibold text-[24px] primary-color-text font-inter"> {highScore} </span>
-                              <span className=" font-medium primary-color-text text-[16px]">  High Score</span>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                              <Image src="/SVGRepo_iconCarrier (1).svg" width={25} height={20} alt="icon"/>
-                              <span className="font-semibold text-[24px] primary-color-text font-inter"> {lastScore} </span>
-                              <span className="font-medium primary-color-text  text-[16px]">Last Score</span>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                              <Image src="/autoplay (1).svg" width={28} height={20} alt="icon"/>
-                              <span className="font-semibold text-[24px] primary-color-text font-inter"> playCount </span>
-                              <span className="font-medium primary-color-text  text-[16px]">Play Count</span>
-                          </div>          
-                        </div>
-                      </div>
+          <div
+            className="bg-[#FEFEFE] w-full flex flex-wrap justify-between items-center gap-4 min-h-[72px] py-3 px-4 md:px-8 border-b border-black/5"
+            style={{
+              boxShadow: "0 1px 0 rgba(10, 10, 11, 0.06)",
+            }}
+          >
+            <div className="min-w-0 flex-1">
+              <span className="text-[#0A0A0B] font-medium text-lg md:text-2xl font-inter truncate block">
+                {courseTitle}
+              </span>
             </div>
-          
-<div style={{ paddingRight: "80px", paddingLeft:"80px", paddingTop:"40px",paddingBottom:"40px", background: "#F8F6F1" }}>
-      <div
-        ref={containerRef}
-        id="osmd-container"
-        style={{ width: "100%", background: "white", borderTop: "1px solid #ddd" }}
-      />
-</div>
-    <div className="fixed bottom-0 left-0 right-0 z-50 w-full h-20 flex items-center justify-center bg-[#0A0A0B]">
-    {isPlaying ? (
-    /* ── Minimal playing state ── */
-    <>
-      <button
-        className="px-5 py-4 rounded-full border border-solid hover:bg-zinc-100 cursor-pointer bg-white"
-        onClick={() => pauseCursor(osmdRef, setIsPlaying, playModeRef)}>
-        <FontAwesomeIcon icon={faPause} size="lg" color="#0A0A0B" />
-      </button>
+            <div className="shrink-0">
+              <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 md:gap-x-8">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <Image src="/Frame.svg" width={24} height={18} alt="" className="shrink-0" />
+                  <span className="font-semibold text-lg md:text-2xl primary-color-text font-inter tabular-nums">
+                    {highScore}
+                  </span>
+                  <span className="font-medium primary-color-text text-sm md:text-base whitespace-nowrap">
+                    High Score
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 md:gap-3">
+                  <Image src="/SVGRepo_iconCarrier (1).svg" width={22} height={18} alt="" className="shrink-0" />
+                  <span className="font-semibold text-lg md:text-2xl primary-color-text font-inter tabular-nums">
+                    {lastScore ?? "—"}
+                  </span>
+                  <span className="font-medium primary-color-text text-sm md:text-base whitespace-nowrap">
+                    Last Score
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 md:gap-3">
+                  <Image src="/autoplay (1).svg" width={24} height={18} alt="" className="shrink-0" />
+                  <span className="font-semibold text-lg md:text-2xl primary-color-text font-inter tabular-nums">
+                    {playCount}
+                  </span>
+                  <span className="font-medium primary-color-text text-sm md:text-base whitespace-nowrap">
+                    Play Count
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
 
-      <div className="absolute right-4 p-3">
-        <Image src="/settings.svg" width={40} height={40} alt="settings"
-          className="border-gray-300 cursor-pointer p-1"
-          onClick={() => setOpenDialogue(!openDialogue)} />
-      </div>
-    </>
-  ) : (
-    <>
-      {openDialogue && <OptionPopup openDialogue={openDialogue} setOpenDialogue={setOpenDialogue} backgroundVolume={backgroundVolume} setBackgroundVolume={setBackgroundVolume} metronomeVolume={metronomeVolume} setMetronomeVolume={setMetronomeVolume}  />}
-      
+          <section
+            className="w-full box-border"
+            style={{
+              paddingBottom: "88px",
+              background: "#EBEBEC",
+            }}
+          >
+            <div className="w-full max-w-[1440px] mx-auto box-border px-4 md:px-4 py-4">
+              <div
+                className="mx-auto box-border w-full max-w-[1200px]"
+                style={{
+                  background: "#FFFFFF",
+                  border: "1px solid rgba(10, 10, 11, 0.12)",
+                }}
+              >
+                <div
+                  ref={containerRef}
+                  id="osmd-container"
+                  className="box-border"
+                  style={{
+                    width: "100%",
+                    padding: "16px",
+                    background: "#FFFFFF",
+                  }}
+                />
+              </div>
+            </div>
+          </section>
 
-      {/* Left Icon — Far Left */}
-      <button className="absolute left-4 p-3 rounded-full border border-solid shadow bg-white hover:shadow-lg" onClick={() => hasPrevious && !isPlaying && goToLesson(unitlessonsData[currentIndex - 1])}
-                    disabled={!hasPrevious}>
-                            <Image src="/skip_previous_filled.png" width={45} height={20} alt="skip previous" className="ml-2" />
-      </button>
+          {openDialogue && (
+            <OptionPopup
+              openDialogue={openDialogue}
+              setOpenDialogue={setOpenDialogue}
+              backgroundVolume={backgroundVolume}
+              setBackgroundVolume={setBackgroundVolume}
+              metronomeVolume={metronomeVolume}
+              setMetronomeVolume={setMetronomeVolume}
+            />
+          )}
 
+          <div className="fixed bottom-0 left-0 right-0 z-50 h-20 bg-[#0A0A0B] border-t border-white/10 px-3 md:px-6 grid grid-cols-[1fr_minmax(auto,max-content)_1fr] items-center gap-2">
+            {isPlaying ? (
+              <>
+                <div />
+                <div className="flex justify-center">
+                  <button
+                    type="button"
+                    className="flex h-14 w-14 items-center justify-center rounded-full border border-[#0A0A0B] bg-white hover:bg-zinc-100 cursor-pointer shadow-sm"
+                    onClick={() => pauseCursor(osmdRef, setIsPlaying, playModeRef)}
+                    aria-label="Pause"
+                  >
+                    <FontAwesomeIcon icon={faPause} size="lg" color="#0A0A0B" />
+                  </button>
+                </div>
+                <div className="flex justify-end items-center gap-2 pr-1">
+                  <button
+                    type="button"
+                    className="p-2 rounded-lg hover:bg-white/10"
+                    onClick={() => setOpenDialogue(!openDialogue)}
+                    aria-label="Settings"
+                  >
+                    <Image src="/settings.svg" width={36} height={36} alt="" className="cursor-pointer" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-start gap-1.5 min-w-0">
+                  {onTempoChange ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={isPlaying}
+                        className="h-9 w-9 shrink-0 rounded-lg border border-white/25 text-white text-lg font-medium hover:bg-white/10 disabled:opacity-40"
+                        onClick={() => onTempoChange(Math.max(40, tempo - 5))}
+                        aria-label="Decrease tempo"
+                      >
+                        −
+                      </button>
+                      <div className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-[#0A0A0B] tabular-nums min-w-[5.5rem] text-center">
+                        {tempo} BPM
+                      </div>
+                      <button
+                        type="button"
+                        disabled={isPlaying}
+                        className="h-9 w-9 shrink-0 rounded-lg border border-white/25 text-white text-lg font-medium hover:bg-white/10 disabled:opacity-40"
+                        onClick={() => onTempoChange(Math.min(200, tempo + 5))}
+                        aria-label="Increase tempo"
+                      >
+                        +
+                      </button>
+                    </>
+                  ) : null}
+                </div>
 
-{/* Center Play Button */}
-<div className="flex items-center justify-center w-full">
-    <div className="flex items-center justify-center gap-2 w-full ">
-      
-      {/* Previous Button */}
-      <button
-        className="bg-transparent p-0 border-0 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-        onClick={() => hasPrevious && !isPlaying && goToLesson(unitlessonsData[currentIndex - 1])}
-        disabled={!hasPrevious || isPlaying}
-      >
-        <Image src="/skip_previous_filled.svg" alt="skip previous" width={35} height={35} />
-      </button>
+                <div className="flex justify-center items-center gap-3 md:gap-5">
+                  <button
+                    type="button"
+                    className="bg-transparent p-0 border-0 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => hasPrevious && !isPlaying && goToLesson(unitlessonsData[currentIndex - 1])}
+                    disabled={!hasPrevious || isPlaying}
+                    aria-label="Previous lesson"
+                  >
+                    <Image src="/skip_previous_filled.svg" alt="" width={32} height={32} />
+                  </button>
 
-      {/* Play/Pause Button */}
-      <button
-        className="px-5 py-4 text-white rounded-full border border-solid hover:bg-zinc-300 cursor-pointer bg-white"
-        onClick={() => {
-          if (isPlaying) {
-            pauseCursor(osmdRef, setIsPlaying, playModeRef);
-          } else {
-            props.onPlay();
-            playCursor({
-              osmdRef,
-              setIsPlaying,
-              playModeRef,
-              totalStepsRef,
-              correctStepsRef,
-              scoredStepsRef,
-              currentCursorStepRef,
-              currentStepNotesRef,
-              setPlayIndex,
-              setCurrentStepNotes,
-              setScore,
-              midiOutputs: midiOutputs,
-              playbackMidiGuard,
-              setCountdown,
-              setHighScore,
-              setLastScore,
-              clearHighlight,
-            });
-          }
-        }}
-      >
-        <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} size="lg" color="#0A0A0B" />
-      </button>
+                  <button
+                    type="button"
+                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#0A0A0B] bg-white hover:bg-zinc-100 cursor-pointer shadow-md"
+                    onClick={() => {
+                      if (isPlaying) {
+                        pauseCursor(osmdRef, setIsPlaying, playModeRef);
+                      } else {
+                        props.onPlay();
+                        playCursor({
+                          osmdRef,
+                          setIsPlaying,
+                          playModeRef,
+                          totalStepsRef,
+                          correctStepsRef,
+                          scoredStepsRef,
+                          currentCursorStepRef,
+                          currentStepNotesRef,
+                          setPlayIndex,
+                          setCurrentStepNotes,
+                          setScore,
+                          midiOutputs: midiOutputs,
+                          playbackMidiGuard,
+                          setCountdown,
+                          setHighScore,
+                          setLastScore,
+                          clearHighlight,
+                        });
+                      }
+                    }}
+                    aria-label={isPlaying ? "Pause" : "Play"}
+                  >
+                    <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} size="lg" color="#0A0A0B" />
+                  </button>
 
-      {/* Next Button */}
-      <button
-        className="bg-transparent p-0 border-0 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-        disabled={!hasNext || isPlaying}
-        onClick={() => hasNext && !isPlaying && goToLesson(unitlessonsData[currentIndex + 1])}
-      >
-        <Image src="/skip_next_filled.png" width={35} height={35} alt="skip next" />
-      </button>
+                  <button
+                    type="button"
+                    className="bg-transparent p-0 border-0 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!hasNext || isPlaying}
+                    onClick={() => hasNext && !isPlaying && goToLesson(unitlessonsData[currentIndex + 1])}
+                    aria-label="Next lesson"
+                  >
+                    <Image src="/skip_next_filled.png" width={32} height={32} alt="" />
+                  </button>
+                </div>
 
-      <div className="flex mb-5 ml-20 transform -translate-x-1/2">
-        <button className="mt-6 text-white px-6 py-2 bg-black rounded-lg hover:bg-green-700 transition">
-          Play Note free left
-        </button>
-      </div>
-    </div>
-</div>
-         
-      {/* Right Icon — Far Right */}
-      <div className="Settings absolute right-4 p-3 gap-4">
-        <div className="flex items-center justify-end gap-4">
-            <button className="bg-[#D4AF37] py-[6px] w-[101px] h-[48px] px-[16px] rounded-2xl border border-solid flex gap-2 primary-color-text items-center text-[16px]">
-                <Image src="/icon.svg" width={15} height={10} alt="icon"/> Learn
-            </button>
-              <Image src="/settings.svg" width={40} height={40} alt="icon" 
-              className=" border-gray-300 cursor-pointer p-1"
-                onClick={()=> setOpenDialogue(!openDialogue)}
-              />
-        </div>
-              
-        </div>
-</>)} 
-    </div>   
+                <div className="flex justify-end items-center gap-2 md:gap-3 pr-1">
+                  <button
+                    type="button"
+                    className="bg-[#D4AF37] h-11 min-w-[6.25rem] px-4 rounded-2xl border border-[#b8922c] flex gap-2 primary-color-text items-center justify-center text-[15px] font-medium shrink-0"
+                  >
+                    <Image src="/icon.svg" width={15} height={10} alt="" />
+                    Learn
+                  </button>
+                  <button
+                    type="button"
+                    className="p-2 rounded-lg hover:bg-white/10 shrink-0"
+                    onClick={() => setOpenDialogue(!openDialogue)}
+                    aria-label="Settings"
+                  >
+                    <Image src="/settings.svg" width={36} height={36} alt="" className="cursor-pointer" />
+                  </button>
+                </div>
+              </>
+            )}
+          </div>   
       
       {countdown !== null && (
   <div

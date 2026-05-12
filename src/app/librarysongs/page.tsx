@@ -473,16 +473,26 @@ function LibraryPlayerContent() {
 
     const lessonId  = searchparams.get("lessonid") || "0";
     const lessonUID = `${source}-${lessonId}`;
+    const accuracy = scoreableNotesRef.current > 0
+      ? Math.round((correctStepsRef.current / scoreableNotesRef.current) * 100)
+      : 0;
 
     saveSession({
       id: crypto.randomUUID(),
       startedAt: startTime,
       endedAt: endTime,
       durationSec,
+      sessionCategory: "library_song",
+      lessonFile: fileName || undefined,
+      tempoBpm: tempo,
       lesson: { uid: lessonUID, id: lessonId, title: courseTitle, source },
       performance: {
         attempts: Math.max(1, attemptCountRef.current),
         score: finalScore,
+        accuracy,
+        correctNotes: correctStepsRef.current,
+        incorrectNotes: incorrectNotesRef.current,
+        totalScoreable: scoreableNotesRef.current,
       },
     });
   }

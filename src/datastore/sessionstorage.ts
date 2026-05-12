@@ -2,6 +2,24 @@
 const STORAGE_KEY = "practice_sessions";
 
 
+export type PracticeSessionCategory =
+  | "method_lesson"
+  | "music_library"
+  | "library_song"
+  | "sasr"
+  | "recovery_drill"
+  | "unspecified";
+
+/** Per-event mistakes for Supabase + AI recovery drills (lesson flow). */
+export type PracticeMistakeEvent = {
+  at: number;
+  cursorStep: number;
+  expectedMidi: number[];
+  playedMidi: number;
+  kind: "wrong_pitch" | "timing_or_extra_note";
+  measureIndex?: number;
+};
+
 export interface PracticeSession {
   id: string;
 
@@ -20,7 +38,23 @@ export interface PracticeSession {
   performance: {
     attempts: number;
     score: number;
+    accuracy?: number;
+    correctNotes?: number;
+    incorrectNotes?: number;
+    totalScoreable?: number;
   };
+
+  /** High-level source for Supabase analytics & AI Review. */
+  sessionCategory?: PracticeSessionCategory;
+  lessonFile?: string;
+  tempoBpm?: number | null;
+  completionStatus?: string;
+  mistakes?: unknown;
+  weakAreas?: string[];
+  rhythmInaccuracy?: unknown;
+  aiFeedbackSnapshot?: unknown;
+  progressMetrics?: Record<string, unknown>;
+  mistakeEvents?: PracticeMistakeEvent[];
 }
 
 
@@ -43,26 +77,44 @@ export function getSessions(): PracticeSession[] {
 function sanitizeSession(
   session: PracticeSession
 ): PracticeSession {
-  return {
-    id: session.id,
+  const perf: PracticeSession["performance"] = {
+    attempts: session.performance.attempts,
+    score: session.performance.score,
+  };
+  if (session.performance.accuracy != null) perf.accuracy = session.performance.accuracy;
+  if (session.performance.correctNotes != null)
+    perf.correctNotes = session.performance.correctNotes;
+  if (session.performance.incorrectNotes != null)
+    perf.incorrectNotes = session.performance.incorrectNotes;
+  if (session.performance.totalScoreable != null)
+    perf.totalScoreable = session.performance.totalScoreable;
 
+  const out: PracticeSession = {
+    id: session.id,
     startedAt: session.startedAt,
     endedAt: session.endedAt,
-
     durationSec: session.durationSec,
-
     lesson: {
       uid: session.lesson.uid,
       id: session.lesson.id,
       title: session.lesson.title,
       source: session.lesson.source,
     },
-
-    performance: {
-      attempts: session.performance.attempts,
-      score: session.performance.score,
-    },
+    performance: perf,
   };
+
+  if (session.sessionCategory) out.sessionCategory = session.sessionCategory;
+  if (session.lessonFile) out.lessonFile = session.lessonFile;
+  if (session.tempoBpm != null) out.tempoBpm = session.tempoBpm;
+  if (session.completionStatus) out.completionStatus = session.completionStatus;
+  if (session.mistakes != null) out.mistakes = session.mistakes;
+  if (session.weakAreas?.length) out.weakAreas = session.weakAreas;
+  if (session.rhythmInaccuracy != null) out.rhythmInaccuracy = session.rhythmInaccuracy;
+  if (session.aiFeedbackSnapshot != null) out.aiFeedbackSnapshot = session.aiFeedbackSnapshot;
+  if (session.progressMetrics) out.progressMetrics = session.progressMetrics;
+  if (session.mistakeEvents?.length) out.mistakeEvents = session.mistakeEvents;
+
+  return out;
 }
 
 /* Save */
@@ -79,6 +131,12 @@ export function saveSession(
     STORAGE_KEY,
     JSON.stringify(sessions)
   );
+
+  if (typeof window !== "undefined") {
+    void import("@/lib/practiceSessions/syncToSupabase").then(({ queuePracticeSessionSync }) => {
+      queuePracticeSessionSync(clean);
+    });
+  }
 }
 
 

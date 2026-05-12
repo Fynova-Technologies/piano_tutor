@@ -188,11 +188,36 @@ export default function SasrPlayControls (props: CursorControlsProps) {
             </div>
           
 
-      <div
-        ref={containerRef}
-        id="osmd-container"
-        style={{ width: "100%", minHeight: "60vh", background: "white", border: "1px solid #ddd" }}
-      />
+      <section
+        className="w-full box-border"
+        style={{ background: "#EBEBEC", paddingBottom: 24 }}
+      >
+        <div
+          className="mx-auto box-border"
+          style={{
+            marginTop: 16,
+            marginBottom: 16,
+            marginLeft: "max(16px, env(safe-area-inset-left, 0px))",
+            marginRight: "max(16px, env(safe-area-inset-right, 0px))",
+            maxWidth: 1200,
+            background: "#FFFFFF",
+            border: "1px solid rgba(10, 10, 11, 0.12)",
+            minHeight: "60vh",
+          }}
+        >
+          <div
+            ref={containerRef}
+            id="osmd-container"
+            className="box-border"
+            style={{
+              width: "100%",
+              minHeight: "60vh",
+              padding: "16px 8px",
+              background: "#FFFFFF",
+            }}
+          />
+        </div>
+      </section>
     
     <div className="w-full h-20 flex items-center justify-center relative">
       {openDialogue && <OptionPopup openDialogue={openDialogue} setOpenDialogue={setOpenDialogue} backgroundVolume={backgroundVolume} setBackgroundVolume={setBackgroundVolume} metronomeVolume={metronomeVolume} setMetronomeVolume={setMetronomeVolume}  />}

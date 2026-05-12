@@ -13,3 +13,53 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+/// Mirrors Supabase table `practice_session_records` (see supabase/migrations).
+/// Optional if you manage schema only in Supabase SQL.
+model PracticeSessionRecord {
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @map("user_id") @db.Uuid
+  clientSessionId     String   @map("client_session_id")
+  sessionCategory     String   @map("session_category")
+  lessonUid           String   @map("lesson_uid")
+  lessonId            String   @map("lesson_id")
+  lessonTitle         String   @map("lesson_title")
+  lessonSource        String   @map("lesson_source")
+  lessonFile          String?  @map("lesson_file")
+  startedAt           DateTime @map("started_at") @db.Timestamptz
+  endedAt             DateTime @map("ended_at") @db.Timestamptz
+  durationSec         Int      @map("duration_sec")
+  attempts            Int
+  score               Int
+  accuracyPct         Int?     @map("accuracy_pct")
+  correctNotes        Int?     @map("correct_notes")
+  incorrectNotes      Int?     @map("incorrect_notes")
+  totalScoreable      Int?     @map("total_scoreable")
+  tempoBpm            Int?     @map("tempo_bpm")
+  rhythmInaccuracy    Json     @default("[]") @map("rhythm_inaccuracy")
+  mistakes            Json     @default("[]")
+  weakAreas           Json     @default("[]") @map("weak_areas")
+  completionStatus    String   @default("completed") @map("completion_status")
+  aiFeedbackSnapshot  Json?    @map("ai_feedback_snapshot")
+  progressMetrics     Json     @default("{}") @map("progress_metrics")
+  mistakeEvents       Json     @default("[]") @map("mistake_events")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+  @@index([userId, endedAt(sort: Desc)], map: "practice_session_records_user_ended_idx")
+  @@map("practice_session_records")
+}
+
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @map("user_id") @db.Uuid
+  sourceLessonUid     String   @map("source_lesson_uid")
+  sourceLessonTitle   String   @default("") @map("source_lesson_title")
+  sourceLessonSource  String   @default("") @map("source_lesson_source")
+  title               String   @default("Recovery drill")
+  musicXml            String   @map("music_xml")
+  mistakeSnapshot     Json     @default("{}") @map("mistake_snapshot")
+  meta                Json     @default("{}")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([userId, createdAt(sort: Desc)], map: "recovery_generated_lessons_user_created_idx")
+  @@map("recovery_generated_lessons")
+}
+

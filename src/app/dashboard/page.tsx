@@ -3,6 +3,7 @@ import React from "react";
 import ContinueLearning from "@/components/Dashboard/countinueLearning";
 import PartFavorite from "@/components/Dashboard/partfav";
 import MusicCategories from "@/components/Dashboard/musicCategories";
+import AiAnalysisDashboardCard from "@/components/Dashboard/aiAnalysisDashboardCard";
 
 export default function ComingSoon() {
   
@@ -12,6 +13,7 @@ export default function ComingSoon() {
       {/* ONE container */}
       <div className="max-w-7xl mx-auto px-6 py-10 space-y-16">
         <MusicCategories/>
+        <AiAnalysisDashboardCard />
         <ContinueLearning />
         <PartFavorite />
   </div>

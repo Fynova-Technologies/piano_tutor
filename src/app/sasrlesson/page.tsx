@@ -127,6 +127,7 @@ function SasrLesson() {
       autoResize: true,
       drawingParameters: "default",
       followCursor: false,
+      pageBackgroundColor: "#FFFFFF",
     });
     
     let cancelled = false;
@@ -567,6 +568,8 @@ function startPlayback() {
       startedAt: startTime,
       endedAt: endTime,
       durationSec,
+      sessionCategory: "sasr" as const,
+      tempoBpm: tempo,
       lesson: {
         uid: lessonUID,
         id: lessonId,
