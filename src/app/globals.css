@@ -94,7 +94,9 @@ h1, h2, h3, h4, h5, h6, p {
   margin: 0;
 }
 
-div#osmd-container {
-    padding-top: 3%;
+/* OSMD: crisp notation; layout/padding for lessons sheet lives in cursorcontrols */
+div#osmd-container svg {
+  shape-rendering: geometricPrecision;
+  text-rendering: geometricPrecision;
 }
 

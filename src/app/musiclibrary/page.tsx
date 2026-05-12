@@ -456,10 +456,17 @@ function LibraryPlayerContent() {
       startedAt: startTime,
       endedAt: endTime,
       durationSec,
+      sessionCategory: "music_library",
+      lessonFile: fileName || undefined,
+      tempoBpm: tempo,
       lesson: { uid: lessonUID, id: lessonId, title: courseTitle, source },
       performance: {
         attempts: Math.max(1, attemptCountRef.current),
         score: finalScore,
+        accuracy,
+        correctNotes: correctStepsRef.current,
+        incorrectNotes: incorrectNotesRef.current,
+        totalScoreable: scoreableNotesRef.current,
       },
     });
   }
