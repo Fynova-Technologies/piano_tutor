@@ -1,24 +1,29 @@
 "use client";
 
-import React from "react";
+import React, { useId } from "react";
 import {
+  Area,
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
+  ComposedChart,
   Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip as RTooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import type { AiReviewReport, AnalyticsSnapshot } from "./types";
-import { dashboardAnalysisCard } from "./PianoAnalysisChrome";
+import type { AnalyticsSnapshot } from "./types";
+import {
+  ANALYSIS_PLUM,
+  ANALYSIS_PLUM_DEEP,
+  premiumAnalysisCard,
+  analysisLabelPlum,
+} from "./PianoAnalysisChrome";
 
 type Props = {
   snapshot: AnalyticsSnapshot;
-  report: AiReviewReport;
 };
 
 function shortLabel(s: string, max = 18) {
@@ -26,8 +31,11 @@ function shortLabel(s: string, max = 18) {
   return `${s.slice(0, max)}…`;
 }
 
-/** Single shell: mistake pressure + score trend — no extra stat tiles or heatmap. */
-export function AiReviewCharts({ snapshot, report }: Props) {
+/** Mistake pressure + score trend — plum series, minimal chrome */
+export function AiReviewCharts({ snapshot }: Props) {
+  const chartId = useId().replace(/:/g, "");
+  const areaGradId = `score-area-${chartId}`;
+
   const lessonBars = Object.entries(snapshot.scoresByLesson)
     .slice(0, 8)
     .map(([name, v]) => ({
@@ -38,39 +46,34 @@ export function AiReviewCharts({ snapshot, report }: Props) {
     }));
 
   const chronological = [...snapshot.recentScores].reverse();
-  const trendData = chronological.map((r, idx) => ({
+  const lineMerge = chronological.map((r, idx) => ({
     pass: idx + 1,
     score: r.score,
-    piece: shortLabel(r.title, 14),
   }));
 
-  const lineMerge = trendData.map((d) => ({
-    pass: d.pass,
-    score: d.score,
-  }));
+  const axisMuted = "#7a756f";
 
   return (
-    <div className={`${dashboardAnalysisCard} p-5`}>
-      <p className="mb-4 text-xs font-medium uppercase tracking-wide text-[#8a7a68]">
-        Charts
-      </p>
+    <div className={`${premiumAnalysisCard} p-5 md:p-6`}>
+      <p className={`mb-1 ${analysisLabelPlum}`}>Charts</p>
+      <p className="mb-6 text-sm text-neutral-600">Pressure by piece · recent scores</p>
       <div className="grid gap-8 lg:grid-cols-2">
         <div>
-          <h3 className="mb-1 text-sm font-semibold text-[#151517]">Mistake pressure by piece</h3>
-          <p className="mb-3 text-xs text-[#6b6054]">Taller bars = more room to improve.</p>
+          <h3 className="mb-1 text-sm font-bold text-black">Mistake pressure</h3>
+          <p className="mb-3 text-xs text-neutral-500">Taller bars = more room to improve.</p>
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={lessonBars} margin={{ left: 4, right: 8, top: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#3d342918" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#0000000d" />
                 <XAxis
                   dataKey="name"
-                  tick={{ fontSize: 10, fill: "#5c5348" }}
+                  tick={{ fontSize: 10, fill: axisMuted }}
                   interval={0}
                   angle={-16}
                   textAnchor="end"
                   height={68}
                 />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#5c5348" }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: axisMuted }} />
                 <RTooltip
                   formatter={(value: number, _name: string, item) => {
                     const p = item.payload as { avg?: number; sessions?: number };
@@ -80,9 +83,9 @@ export function AiReviewCharts({ snapshot, report }: Props) {
                     ];
                   }}
                 />
-                <Bar dataKey="mistakePressure" name="Pressure" radius={[6, 6, 0, 0]}>
+                <Bar dataKey="mistakePressure" name="Pressure" radius={[8, 8, 0, 0]}>
                   {lessonBars.map((_, i) => (
-                    <Cell key={i} fill={i % 2 === 0 ? "#c9a227" : "#2a2318"} />
+                    <Cell key={i} fill={i % 2 === 0 ? ANALYSIS_PLUM : ANALYSIS_PLUM_DEEP} />
                   ))}
                 </Bar>
               </BarChart>
@@ -91,24 +94,38 @@ export function AiReviewCharts({ snapshot, report }: Props) {
         </div>
 
         <div>
-          <h3 className="mb-1 text-sm font-semibold text-[#151517]">Recent session scores</h3>
-          <p className="mb-3 text-xs text-[#6b6054]">Latest on the right.</p>
+          <h3 className="mb-1 text-sm font-bold text-black">Session scores</h3>
+          <p className="mb-3 text-xs text-neutral-500">Latest on the right.</p>
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={lineMerge} margin={{ left: 4, right: 8, top: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#3d342918" />
-                <XAxis dataKey="pass" tick={{ fontSize: 11, fill: "#5c5348" }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#5c5348" }} />
+              <ComposedChart data={lineMerge} margin={{ left: 4, right: 8, top: 8 }}>
+                <defs>
+                  <linearGradient id={areaGradId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={ANALYSIS_PLUM} stopOpacity={0.28} />
+                    <stop offset="100%" stopColor={ANALYSIS_PLUM} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#0000000d" />
+                <XAxis dataKey="pass" tick={{ fontSize: 11, fill: axisMuted }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: axisMuted }} />
                 <RTooltip />
+                <Area
+                  type="monotone"
+                  dataKey="score"
+                  stroke="none"
+                  fill={`url(#${areaGradId})`}
+                  fillOpacity={1}
+                />
                 <Line
                   type="monotone"
                   dataKey="score"
                   name="Score"
-                  stroke="#5c4528"
+                  stroke={ANALYSIS_PLUM}
                   strokeWidth={2}
-                  dot={{ r: 3, fill: "#D4AF37", stroke: "#2a2318" }}
+                  dot={{ r: 3.5, fill: "#f0b429", stroke: ANALYSIS_PLUM_DEEP, strokeWidth: 1 }}
+                  activeDot={{ r: 5 }}
                 />
-              </LineChart>
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </div>
