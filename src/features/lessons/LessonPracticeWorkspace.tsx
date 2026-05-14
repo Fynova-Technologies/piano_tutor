@@ -101,58 +101,8 @@ const [uploadLoading, setUploadLoading] = useState(false);
   const lessons = useLessons();
   const markComplete = lessons?.markComplete;
   const markCompleteRef = useRef(markComplete);
-  const [xmlLoadError, setXmlLoadError] = useState<string | null>(null);
 
-  /** Catches the most common reasons OSMD throws "incomplete or could not be loaded" */
-  function preflightMusicXml(xml: string): string | null {
-    if (!xml || !xml.trim()) return "XML string is empty.";
-
-    const attempts = [
-      xml,
-      xml.replace(/\s+xmlns(?::[a-zA-Z]*)?\s*=\s*"[^"]*"/g, ""),
-    ];
-
-    let doc: Document | null = null;
-    for (const attempt of attempts) {
-      try {
-        const parsed = new DOMParser().parseFromString(attempt, "application/xml");
-        const err = parsed.querySelector("parsererror");
-        if (!err) {
-          doc = parsed;
-          break;
-        }
-      } catch {
-        /* try next */
-      }
-    }
-
-    if (!doc) {
-      try {
-        const errDoc = new DOMParser().parseFromString(xml, "application/xml");
-        const errText = errDoc.querySelector("parsererror")?.textContent?.slice(0, 120);
-        return `XML parse error: ${errText ?? "unknown"}`;
-      } catch {
-        return "XML could not be parsed.";
-      }
-    }
-
-    const root = doc.documentElement;
-    if (root.tagName !== "score-partwise" && root.tagName !== "score-timewise") {
-      return `Root element is <${root.tagName}> — expected <score-partwise>.`;
-    }
-    if (!doc.querySelector("part-list")) return "Missing <part-list> element.";
-    if (!doc.querySelectorAll("part-list > score-part").length) {
-      return "No <score-part> entries in <part-list>.";
-    }
-    const parts = doc.querySelectorAll("score-partwise > part");
-    if (!parts.length) return "No <part> elements found.";
-    for (const part of Array.from(parts)) {
-      if (!part.querySelectorAll("measure").length) {
-        return `Part id="${part.getAttribute("id")}" has no <measure> elements.`;
-      }
-    }
-    return null;
-  }
+ 
 useEffect(() => {
   markCompleteRef.current = markComplete;
 }, [markComplete]);
@@ -274,27 +224,6 @@ useEffect(() => {
     attemptCountRef.current = 0;
     if (!xml || typeof xml !== "string") return;
 
-    const rawXml = xml;
-    const repairedXml = repairAiMusicXml(rawXml);
-    const preparedXml = ensureXmlDeclaration(repairedXml);
-
-    const preflightError = preflightMusicXml(preparedXml);
-    if (preflightError) {
-      console.error("[OSMD] Pre-flight failed — skip load:", preflightError);
-      setXmlLoadError(preflightError);
-      return;
-    }
-    setXmlLoadError(null);
-
-    const validation = validateMusicXmlForOsmd(preparedXml);
-    if (!validation.ok) {
-      console.error("[OSMD] Pipeline validation failed:", validation.error);
-      setXmlLoadError(validation.error ?? "MusicXML failed pipeline validation.");
-      return;
-    }
-
-    const loadXml = validation.doc;
-
     if (!containerRef.current) return;
 
     let cancelled = false;
@@ -327,7 +256,7 @@ useEffect(() => {
 
     (async () => {
       try {
-        await osmd.load(loadXml);
+        await osmd.load(xml);
 
         const rules = osmd.EngravingRules;
         rules.MinimumDistanceBetweenSystems = 5;
