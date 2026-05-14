@@ -3,10 +3,11 @@
 import { supabase } from "@/lib/supabaseClient"
 import { useRouter } from "next/navigation"
 
-export default function LogoutButton() {
+export default function LogoutButton({ onAfterSignOut }: { onAfterSignOut?: () => void }) {
   const router = useRouter()
 
   const handleLogout = async () => {
+    onAfterSignOut?.()
     await supabase.auth.signOut()
     router.push("/login") // redirect to login page
   }

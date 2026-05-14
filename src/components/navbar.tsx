@@ -103,7 +103,12 @@ useEffect(() => {
             
             {userPopupOpen && 
               <div className="absolute right-0 mt-12 w-80 bg-[#FEFEFE] rounded-[16px] shadow-lg py-2 z-20">
-                <UserPopup userPopupOpen={userPopupOpen} setUserPopupOpen={setUserPopupOpen} userLoggedIn={userLoggedIn} />
+                <UserPopup
+                  userPopupOpen={userPopupOpen}
+                  setUserPopupOpen={setUserPopupOpen}
+                  userLoggedIn={userLoggedIn}
+                  onNavigate={() => setUserPopupOpen(false)}
+                />
               </div>
             }
           </div>
