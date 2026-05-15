@@ -50,3 +50,34 @@ export function savePreferences(p: AppPreferences): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(PREFERENCES_KEY, JSON.stringify(p));
 }
+
+const SKILL_SET = new Set<SkillFocus>([
+  "sight_reading",
+  "rhythm",
+  "technique",
+  "improvisation",
+]);
+
+export function mergeAppPreferencesPartial(
+  partial: Partial<AppPreferences> | null | undefined,
+): AppPreferences {
+  if (!partial || typeof partial !== "object") return { ...defaultPreferences };
+  const merged: AppPreferences = { ...defaultPreferences, ...partial };
+  if (Array.isArray(partial.skillFocus)) {
+    merged.skillFocus = [
+      ...new Set(
+        partial.skillFocus.filter((s): s is SkillFocus =>
+          SKILL_SET.has(s as SkillFocus),
+        ),
+      ),
+    ];
+    if (merged.skillFocus.length === 0)
+      merged.skillFocus = [...defaultPreferences.skillFocus];
+  }
+  return merged;
+}
+
+export function coerceAppPreferences(raw: unknown): AppPreferences {
+  if (!raw || typeof raw !== "object") return defaultPreferences;
+  return mergeAppPreferencesPartial(raw as Partial<AppPreferences>);
+}

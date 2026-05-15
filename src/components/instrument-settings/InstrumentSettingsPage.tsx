@@ -7,7 +7,7 @@ import {
   Piano,
   Keyboard,
   Gauge,
-  Metronome,
+  Drum,
   Volume2,
   Play,
   Eye,
@@ -180,7 +180,7 @@ export function InstrumentSettingsPage() {
             <SettingsSection
               id="metronome"
               index={3}
-              icon={Metronome}
+              icon={Drum}
               title="Metronome settings"
               description="Default tempo and count-in behavior for practice sessions."
             >

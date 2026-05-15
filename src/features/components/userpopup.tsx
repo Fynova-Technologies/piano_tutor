@@ -72,7 +72,7 @@ export default function UserPopup({ userPopupOpen, setUserPopupOpen, userLoggedI
         <Link href="/instrument-settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
           Instrument Settings
         </Link>
-        <Link href="/settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
+        <Link href="/preferences" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
           Preferences
         </Link>
         <Link href="/settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>

@@ -73,3 +73,15 @@ export function saveInstrumentSettings(s: InstrumentSettings): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(INSTRUMENT_SETTINGS_KEY, JSON.stringify(s));
 }
+
+export function mergeInstrumentPartial(
+  partial: Partial<InstrumentSettings> | null | undefined,
+): InstrumentSettings {
+  if (!partial || typeof partial !== "object") return { ...defaultInstrumentSettings };
+  return { ...defaultInstrumentSettings, ...partial };
+}
+
+export function coerceInstrumentSettings(raw: unknown): InstrumentSettings {
+  if (!raw || typeof raw !== "object") return defaultInstrumentSettings;
+  return mergeInstrumentPartial(raw as Partial<InstrumentSettings>);
+}
