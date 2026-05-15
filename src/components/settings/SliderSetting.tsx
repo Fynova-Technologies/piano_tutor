@@ -54,6 +54,6 @@ export function SliderSetting({
         </Slider.Track>
         <Slider.Thumb className="block w-5 h-5 bg-[#581845] border-2 border-white rounded-full shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#D4AF37]" />
       </Slider.Root>
-    </motion.div>
+    </div>
   );
 }
