@@ -324,8 +324,7 @@ export default function RecoveryLessonStudio() {
             </button>
             {genError ? <p className="mt-2 text-xs text-red-600">{genError}</p> : null}
             <p className="mt-3 text-[11px] leading-relaxed text-neutral-500">
-              The server validates MusicXML (declaration, score-partwise, part-list, P1) before
-              packaging MXL or returning content to the browser.
+              MusicXML is repaired for OSMD, then packaged as a standards-compliant .mxl download.
             </p>
           </div>
 

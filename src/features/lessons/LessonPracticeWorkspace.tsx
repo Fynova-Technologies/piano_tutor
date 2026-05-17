@@ -9,9 +9,9 @@ import { Sampler } from "tone";
 import CursorControls from "@/features/components/cursorcontrols";
 import { BeatCursor } from "@/features/playback/beatcursor";
 import { saveSession } from "@/datastore/sessionstorage";
-import JSZip from "jszip";
 import { useLessons } from "@/utils/userprogress/lessonprogress";
-import { ensureXmlDeclaration, repairAiMusicXml, validateMusicXmlForOsmd } from "@/lib/musicxml/musicxmlPipeline";
+import { prepareMusicXmlForOsmd } from "@/lib/musicxml/musicxmlPipeline";
+import { extractMusicXmlFromMxlBuffer } from "@/lib/musicxml/buildMxl";
 
 
 
@@ -129,29 +129,18 @@ useEffect(() => {
       // Plain MusicXML (not zipped)
       if (header[0] !== 0x50 || header[1] !== 0x4B) {
         const text = new TextDecoder().decode(buffer);
-        if (text.trimStart().startsWith("<?xml") || text.trimStart().startsWith("<score-partwise")) {
-          console.log("Plain MusicXML detected");
-          setUploadedMusicXML(text);
+        if (
+          text.trimStart().startsWith("<?xml") ||
+          text.trimStart().startsWith("<score-partwise")
+        ) {
+          setUploadedMusicXML(prepareMusicXmlForOsmd(text));
           return;
         }
         throw new Error(`Not a valid ZIP or MusicXML file`);
       }
 
-      // It's a ZIP (.mxl) — extract the root MusicXML file
-      const zip = await JSZip.loadAsync(buffer);
-
-      const containerXml = await zip.file("META-INF/container.xml")?.async("text");
-      if (!containerXml) throw new Error("container.xml missing from MXL");
-
-      const match = containerXml.match(/full-path="([^"]+)"/);
-      const rootFilePath = match?.[1];
-      if (!rootFilePath) throw new Error("No rootfile path in container.xml");
-
-      const xmlText = await zip.file(rootFilePath)?.async("text");
-      if (!xmlText) throw new Error(`Missing root file: ${rootFilePath}`);
-
-      console.log("Extracted MusicXML preview:", xmlText.slice(0, 200));
-      setUploadedMusicXML(xmlText); // ✅ always a string
+      const xmlText = await extractMusicXmlFromMxlBuffer(buffer);
+      setUploadedMusicXML(xmlText);
 
     } catch (err) {
       console.error(err);
@@ -166,7 +155,7 @@ useEffect(() => {
 
   useEffect(() => {
     if (externalXml == null || typeof externalXml !== "string" || !externalXml.trim()) return;
-    setUploadedMusicXML(externalXml);
+    setUploadedMusicXML(prepareMusicXmlForOsmd(externalXml));
     setIsPlaying(false);
     playModeRef.current = false;
     setPlayIndex(0);

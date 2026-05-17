@@ -1,4 +1,5 @@
 import JSZip from "jszip";
+import { prepareMusicXmlForOsmd } from "./musicxmlPipeline";
 
 const MXL_MIMETYPE = "application/vnd.recordare.musicxml";
 
@@ -10,20 +11,21 @@ export async function buildMxlBase64(
   musicXml: string,
   entryName = "score.musicxml",
 ): Promise<{ base64: string; entryName: string }> {
-  const zip = new JSZip();
+  const normalized = prepareMusicXmlForOsmd(musicXml);
+  const safeEntry = entryName.replace(/^\//, "").replace(/\\/g, "/");
 
-  // Must be first entry in the archive, stored without compression.
+  const zip = new JSZip();
   zip.file("mimetype", MXL_MIMETYPE, { compression: "STORE" });
 
   const containerXml = `<?xml version="1.0" encoding="UTF-8"?>
 <container version="1.0">
   <rootfiles>
-    <rootfile full-path="${entryName}" media-type="application/vnd.recordare.musicxml+xml"/>
+    <rootfile full-path="${safeEntry}" media-type="application/vnd.recordare.musicxml+xml"/>
   </rootfiles>
 </container>`;
 
   zip.file("META-INF/container.xml", containerXml, { compression: "DEFLATE" });
-  zip.file(entryName, musicXml, { compression: "DEFLATE" });
+  zip.file(safeEntry, normalized, { compression: "DEFLATE" });
 
   const base64 = await zip.generateAsync({
     type: "base64",
@@ -31,7 +33,53 @@ export async function buildMxlBase64(
     compressionOptions: { level: 6 },
   });
 
-  return { base64, entryName };
+  return { base64, entryName: safeEntry };
+}
+
+/** Extract MusicXML text from an MXL (zip) buffer with several fallbacks. */
+export async function extractMusicXmlFromMxlBuffer(buffer: ArrayBuffer): Promise<string> {
+  const zip = await JSZip.loadAsync(buffer);
+
+  const containerXml = await zip.file("META-INF/container.xml")?.async("text");
+  if (containerXml) {
+    const match =
+      containerXml.match(/full-path=["']([^"']+)["']/i) ??
+      containerXml.match(/full-path=([^\s/>]+)/i);
+    const rootPath = match?.[1]?.trim();
+    if (rootPath) {
+      const xmlText = await zip.file(rootPath)?.async("text");
+      if (xmlText?.trim()) {
+        return prepareMusicXmlForOsmd(xmlText);
+      }
+    }
+  }
+
+  const candidates = Object.keys(zip.files)
+    .filter((name) => {
+      const f = zip.files[name];
+      if (!f || f.dir) return false;
+      if (name.startsWith("META-INF/")) return false;
+      if (name === "mimetype") return false;
+      return /\.(musicxml|xml)$/i.test(name);
+    })
+    .sort((a, b) => {
+      const score = (n: string) =>
+        (n.endsWith(".musicxml") ? 0 : 1) + (n.includes("score") ? 0 : 2);
+      return score(a) - score(b);
+    });
+
+  for (const name of candidates) {
+    const xmlText = await zip.file(name)?.async("text");
+    if (xmlText?.trim() && /<score-partwise\b/i.test(xmlText)) {
+      return prepareMusicXmlForOsmd(xmlText);
+    }
+  }
+
+  throw new Error(
+    candidates.length
+      ? "MXL archive has no readable score-partwise document"
+      : "container.xml missing from MXL and no .xml/.musicxml entry found",
+  );
 }
 
 /** Decode base64 MXL payload for browser download. */

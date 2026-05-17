@@ -5,7 +5,7 @@
  * Loads Supabase `practice_session_records`, merges live mistakes, calls OpenAI for MusicXML.
  *
  * --- MusicXML generation / XML validation / MXL conversion ---
- * 1) Model returns text → `normalizeAndValidateModelMusicXml` (strip fences/JSON, enforce <?xml, score-partwise).
+ * 1) Model returns text → `normalizeAndValidateModelMusicXml` (strip fences/JSON, repair for OSMD).
  * 2) On failure: automatic retry with stricter system instruction (up to 3 attempts).
  * 3) Only after validation: build MXL ZIP (DEFLATE) → base64.
  * 4) Persist row in `recovery_generated_lessons` for history / replay.
@@ -22,10 +22,7 @@ export const runtime = "nodejs";
 
 const MXL_PROMPT = `You are an expert piano pedagogy and MusicXML 3.1 author.
 
-The output MUST begin exactly with:
-<?xml version="1.0" encoding="UTF-8"?>
-<score-partwise version="3.1">
-
+Output valid MusicXML with root element <score-partwise> and a standard XML declaration.
 Never use <score>, <musicxml>, <music-score>, or any other root element.
 Never omit the root element. Never output JSON, markdown, or explanation text —
 raw MusicXML only, starting with the XML declaration.
@@ -53,7 +50,7 @@ Rules:
 - No <lyric>, minimize attributes. Ensure every measure has correct <backup> when voices cross staves.`;
 
 const RETRY_ADDENDUM =
-  "RETRY: Invalid or rejected. Output ONLY raw MusicXML. First line exactly: <?xml version=\"1.0\" encoding=\"UTF-8\"?> Second line exactly: <score-partwise version=\"3.1\"> No JSON, markdown, or prose.";
+  "RETRY: Invalid or rejected. Output ONLY raw MusicXML with <?xml ...?> and <score-partwise> root. No JSON, markdown, or prose.";
 
 type ChatMessage = { role: "system" | "user"; content: string };
 
