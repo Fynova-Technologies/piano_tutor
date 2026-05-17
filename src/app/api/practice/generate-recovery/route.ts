@@ -13,10 +13,10 @@
  * Security: OpenAI key server-only. Requires Supabase session.
  */
 import { NextResponse } from "next/server";
-import JSZip from "jszip";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getOpenAIApiKey, getOpenAIModel } from "@/lib/env/openaiServer";
 import { normalizeAndValidateModelMusicXml } from "@/lib/musicxml/musicxmlPipeline";
+import { buildMxlBase64 } from "@/lib/musicxml/buildMxl";
 
 export const runtime = "nodejs";
 
@@ -83,22 +83,6 @@ async function completeOpenAI(messages: ChatMessage[]) {
 
   const ojson = (await res.json()) as { choices?: { message?: { content?: string } }[] };
   return ojson.choices?.[0]?.message?.content ?? "";
-}
-
-/** --- MXL conversion: only call after XML validation --- */
-async function validatedXmlToMxlBase64(musicXml: string, mxlEntryName: string) {
-  const zip = new JSZip();
-  zip.file(
-    "META-INF/container.xml",
-    `<?xml version="1.0" encoding="UTF-8"?>
-<container>
-  <rootfiles>
-    <rootfile full-path="${mxlEntryName}" media-type="application/vnd.recordare.musicxml+xml"/>
-  </rootfiles>
-</container>`
-  );
-  zip.file(mxlEntryName, musicXml);
-  return zip.generateAsync({ type: "base64", compression: "DEFLATE" });
 }
 
 export async function POST(req: Request) {
@@ -223,8 +207,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const mxlEntryName = "recovery.musicxml";
-    const mxlBase64 = await validatedXmlToMxlBase64(musicXml, mxlEntryName);
+    const mxlEntryName = "score.musicxml";
+    const { base64: mxlBase64 } = await buildMxlBase64(musicXml, mxlEntryName);
     const safeSlug = lessonUid.replace(/[^a-zA-Z0-9-_]/g, "_");
     const downloadName = `recovery-${safeSlug}.mxl`;
 
@@ -245,7 +229,7 @@ export async function POST(req: Request) {
       mistake_snapshot: mistakeSnapshot,
       meta: {
         downloadFileName: downloadName,
-        mxlEntryName,
+        mxlEntryName: "score.musicxml",
         model: getOpenAIModel(),
       },
     };

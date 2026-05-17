@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Trash2, Download } from "lucide-react";
 import { LessonPracticeWorkspace } from "@/features/lessons/LessonPracticeWorkspace";
 import {
   analysisAccentGradient,
@@ -8,6 +9,7 @@ import {
   analysisLabelPlum,
   premiumAnalysisCard,
 } from "@/features/ai-review/PianoAnalysisChrome";
+import { triggerMxlDownload } from "@/lib/musicxml/buildMxl";
 
 type SourceOption = {
   lessonUid: string;
@@ -48,10 +50,12 @@ export default function RecoveryLessonStudio() {
   const [activeTitle, setActiveTitle] = useState("AI recovery drill");
   const [activeSource, setActiveSource] = useState("");
   const [activeDisplayFile, setActiveDisplayFile] = useState("recovery.mxl");
+  const [lastMxlBase64, setLastMxlBase64] = useState<string | null>(null);
 
   const [genLoading, setGenLoading] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
   const [loadLoading, setLoadLoading] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
 
   const lessonUidForSession =
     activeRecoveryId != null ? `recovery-gen-${activeRecoveryId}` : `recovery-draft-${selectedUid || "none"}`;
@@ -83,6 +87,15 @@ export default function RecoveryLessonStudio() {
   useEffect(() => {
     void refreshContext();
   }, [refreshContext]);
+
+  function clearActiveDrill() {
+    setMusicXml(null);
+    setActiveRecoveryId(null);
+    setActiveTitle("AI recovery drill");
+    setActiveSource("");
+    setActiveDisplayFile("recovery.mxl");
+    setLastMxlBase64(null);
+  }
 
   async function generateDrill() {
     if (!selectedUid) {
@@ -121,6 +134,8 @@ export default function RecoveryLessonStudio() {
 
       setMusicXml(data.musicXml);
       setXmlRenderKey((k) => k + 1);
+      if (data.mxlBase64) setLastMxlBase64(data.mxlBase64);
+
       if (data.recoveryLessonId) {
         setActiveRecoveryId(data.recoveryLessonId);
         setActiveTitle(`Recovery · ${opt?.lessonTitle || selectedUid}`);
@@ -133,20 +148,8 @@ export default function RecoveryLessonStudio() {
         setActiveDisplayFile(data.fileName ?? "recovery.mxl");
       }
 
-      if (data.mxlBase64 && data.fileName && typeof document !== "undefined") {
-        try {
-          const blob = Uint8Array.from(atob(data.mxlBase64), (c) => c.charCodeAt(0));
-          const url = URL.createObjectURL(
-            new Blob([blob], { type: "application/vnd.recordare.musicxml+xml" })
-          );
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = data.fileName;
-          a.click();
-          URL.revokeObjectURL(url);
-        } catch {
-          /* optional */
-        }
+      if (data.mxlBase64 && data.fileName) {
+        triggerMxlDownload(data.mxlBase64, data.fileName);
       }
 
       void refreshContext();
@@ -170,6 +173,8 @@ export default function RecoveryLessonStudio() {
           title: string;
           sourceLessonUid: string;
           musicXml: string;
+          downloadFileName?: string;
+          mxlBase64?: string;
         };
       };
       if (!res.ok || !data.ok || !data.lesson?.musicXml) {
@@ -181,12 +186,67 @@ export default function RecoveryLessonStudio() {
       setActiveRecoveryId(L.id);
       setActiveTitle(L.title);
       setActiveSource("Recovery");
-      setActiveDisplayFile(`recovery-${L.id.slice(0, 8)}.mxl`);
+      setActiveDisplayFile(L.downloadFileName ?? `recovery-${L.id.slice(0, 8)}.mxl`);
+      setLastMxlBase64(L.mxlBase64 ?? null);
       setSelectedUid(L.sourceLessonUid);
     } catch (e) {
       setGenError(e instanceof Error ? e.message : "Failed to open saved drill");
     } finally {
       setLoadLoading(null);
+    }
+  }
+
+  async function deleteHistoryItem(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    const row = history.find((h) => h.id === id);
+    const label = row?.title ?? "this recovery drill";
+    if (!window.confirm(`Delete "${label}"? This cannot be undone.`)) return;
+
+    setDeleteLoading(id);
+    setGenError(null);
+    try {
+      const res = await fetch(`/api/recovery-lessons/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = (await res.json()) as { ok?: boolean; message?: string };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.message || `Delete failed (${res.status})`);
+      }
+      if (activeRecoveryId === id) {
+        clearActiveDrill();
+      }
+      await refreshContext();
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : "Failed to delete drill");
+    } finally {
+      setDeleteLoading(null);
+    }
+  }
+
+  async function downloadCurrentMxl() {
+    if (lastMxlBase64 && activeDisplayFile) {
+      triggerMxlDownload(lastMxlBase64, activeDisplayFile);
+      return;
+    }
+    if (!activeRecoveryId) return;
+    try {
+      const res = await fetch(`/api/recovery-lessons/${activeRecoveryId}`, {
+        credentials: "include",
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        lesson?: { mxlBase64?: string; downloadFileName?: string };
+      };
+      if (data.ok && data.lesson?.mxlBase64) {
+        setLastMxlBase64(data.lesson.mxlBase64);
+        triggerMxlDownload(
+          data.lesson.mxlBase64,
+          data.lesson.downloadFileName ?? activeDisplayFile,
+        );
+      }
+    } catch {
+      setGenError("Could not build MXL download");
     }
   }
 
@@ -276,17 +336,31 @@ export default function RecoveryLessonStudio() {
             ) : (
               <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto text-sm">
                 {history.map((h) => (
-                  <li key={h.id}>
+                  <li key={h.id} className="flex gap-1">
                     <button
                       type="button"
-                      disabled={loadLoading === h.id}
+                      disabled={loadLoading === h.id || deleteLoading === h.id}
                       onClick={() => void loadHistoryItem(h.id)}
-                      className="w-full rounded-lg border border-black/[0.08] bg-[#faf9f7] px-3 py-2 text-left text-black transition hover:border-[#6e4d7d]/35 disabled:opacity-50"
+                      className={`min-w-0 flex-1 rounded-lg border px-3 py-2 text-left text-black transition disabled:opacity-50 ${
+                        activeRecoveryId === h.id
+                          ? "border-[#6e4d7d]/50 bg-[#f3eef5]"
+                          : "border-black/[0.08] bg-[#faf9f7] hover:border-[#6e4d7d]/35"
+                      }`}
                     >
                       <span className="font-medium">{h.title}</span>
                       <span className="mt-0.5 block text-[11px] text-neutral-500">
                         {new Date(h.created_at).toLocaleString()}
                       </span>
+                    </button>
+                    <button
+                      type="button"
+                      title="Delete recovery drill"
+                      disabled={deleteLoading === h.id || loadLoading === h.id}
+                      onClick={(e) => void deleteHistoryItem(h.id, e)}
+                      className="shrink-0 rounded-lg border border-black/[0.08] bg-[#faf9f7] p-2 text-red-600 transition hover:border-red-200 hover:bg-red-50 disabled:opacity-50"
+                      aria-label={`Delete ${h.title}`}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden />
                     </button>
                   </li>
                 ))}
@@ -302,6 +376,29 @@ export default function RecoveryLessonStudio() {
             </div>
           ) : (
             <div className={`overflow-hidden ${premiumAnalysisCard}`}>
+              <div className="flex flex-wrap items-center justify-end gap-2 border-b border-black/[0.06] bg-[#faf9f7] px-4 py-2">
+                {lastMxlBase64 ? (
+                  <button
+                    type="button"
+                    onClick={() => void downloadCurrentMxl()}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-black hover:border-[#6e4d7d]/35"
+                  >
+                    <Download className="h-3.5 w-3.5" aria-hidden />
+                    Download .mxl
+                  </button>
+                ) : null}
+                {activeRecoveryId ? (
+                  <button
+                    type="button"
+                    disabled={deleteLoading === activeRecoveryId}
+                    onClick={(e) => void deleteHistoryItem(activeRecoveryId, e)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                    Delete drill
+                  </button>
+                ) : null}
+              </div>
               <LessonPracticeWorkspace
                 cdnFileName={null}
                 externalXml={musicXml}
