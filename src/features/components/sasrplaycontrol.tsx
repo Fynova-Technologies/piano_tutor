@@ -9,6 +9,7 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import OptionPopup from "@/components/optionPopup";
+import { usePlaybackAudioSync } from "@/hooks/audio/usePlaybackAudioSync";
 import StrikeIndicator from "./strike";
 
 
@@ -57,9 +58,6 @@ export default function SasrPlayControls (props: CursorControlsProps) {
         const searchParams = useSearchParams();
         const router = useRouter();
         const [openDialogue, setOpenDialogue] = useState(false);
-        const [backgroundVolume, setBackgroundVolume] = useState(100);
-        const [metronomeVolume,setMetronomeVolume]=useState(100)
-
 
         const {
             isPlaying,
@@ -93,6 +91,11 @@ export default function SasrPlayControls (props: CursorControlsProps) {
             mistakeCount,
             maxMistakes = MAX_MISTAKES  // Use default if not provided
         } =  props;
+
+        usePlaybackAudioSync({
+          isPlaying,
+          isCountingIn: countdown !== null,
+        });
 
         const [unitlessonsData, setUnitLessonsData] = useState<UnitLesson[]>([]);
         const unitId = searchParams.get("id");      
@@ -220,7 +223,9 @@ export default function SasrPlayControls (props: CursorControlsProps) {
       </section>
     
     <div className="w-full h-20 flex items-center justify-center relative">
-      {openDialogue && <OptionPopup openDialogue={openDialogue} setOpenDialogue={setOpenDialogue} backgroundVolume={backgroundVolume} setBackgroundVolume={setBackgroundVolume} metronomeVolume={metronomeVolume} setMetronomeVolume={setMetronomeVolume}  />}
+      {openDialogue && (
+        <OptionPopup openDialogue={openDialogue} setOpenDialogue={setOpenDialogue} />
+      )}
             
       <div className="absolute left-4 flex">
         <div className="flex space-x-[16px]">

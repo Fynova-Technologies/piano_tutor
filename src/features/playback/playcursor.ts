@@ -1,6 +1,7 @@
 import endPlayback from "./endplayback";
 import getNotesAtCursor from "../notes/getNotesatcursor";
 import finalizeScore from "../scores/finalscore";
+import { notifyPlaybackStarted } from "@/lib/audio/audioEngine";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type PlayCursorArgs = {
   osmdRef: React.RefObject<any>;
@@ -61,6 +62,7 @@ type PlayCursorArgs = {
       // Reset cursor and show FIRST position
     osmd.cursor.reset();
     osmd.cursor.show();
+    notifyPlaybackStarted({ countingIn: true });
     setCountdown(3);
     let countdownValue = 3;
     const countdownInterval = setInterval(() => {

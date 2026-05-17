@@ -11,6 +11,7 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import OptionPopup from "@/components/optionPopup";
+import { usePlaybackAudioSync } from "@/hooks/audio/usePlaybackAudioSync";
 
 
 
@@ -64,9 +65,6 @@ export default function CursorControls (props: CursorControlsProps) {
         const searchParams = useSearchParams();
         const router = useRouter();
         const [openDialogue, setOpenDialogue] = useState(false);
-        const [backgroundVolume, setBackgroundVolume] = useState(100);
-        const [metronomeVolume,setMetronomeVolume]=useState(100)
-
 
         const {
             isPlaying,
@@ -105,6 +103,12 @@ export default function CursorControls (props: CursorControlsProps) {
             tempo = 100,
             onTempoChange,
         } =  props;
+
+        usePlaybackAudioSync({
+          isPlaying,
+          isCountingIn: countdown !== null,
+          tempo,
+        });
 
         const [unitlessonsData, setUnitLessonsData] = useState<UnitLesson[]>([]);
         const unitId = searchParams.get("id");      
@@ -249,10 +253,6 @@ export default function CursorControls (props: CursorControlsProps) {
             <OptionPopup
               openDialogue={openDialogue}
               setOpenDialogue={setOpenDialogue}
-              backgroundVolume={backgroundVolume}
-              setBackgroundVolume={setBackgroundVolume}
-              metronomeVolume={metronomeVolume}
-              setMetronomeVolume={setMetronomeVolume}
             />
           )}
 

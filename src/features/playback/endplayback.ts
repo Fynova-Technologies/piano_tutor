@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { notifyPlaybackStopped } from "@/lib/audio/audioEngine";
+
   export default function endPlayback(
     finalizeScore: (totalStepsRef: React.MutableRefObject<number>, correctStepsRef: React.MutableRefObject<number>) => number,
     osmdRef: React.RefObject<any>,
@@ -33,6 +35,7 @@
     });
 
     setIsPlaying(false);
+    notifyPlaybackStopped();
     setPlayIndex(0);
     osmd.cursor.reset();
     playModeRef.current = false;

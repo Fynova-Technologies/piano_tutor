@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { notifyPlaybackStopped } from "@/lib/audio/audioEngine";
+
 export default function pauseCursor(osmdRef: React.RefObject<any>, setIsPlaying: (b: boolean) => void, playModeRef: React.MutableRefObject<boolean>) {
     const osmd = osmdRef.current;
     if (!osmd) return;
@@ -8,4 +10,5 @@ export default function pauseCursor(osmdRef: React.RefObject<any>, setIsPlaying:
     }
     setIsPlaying(false);
     playModeRef.current = false;
+    notifyPlaybackStopped();
   }

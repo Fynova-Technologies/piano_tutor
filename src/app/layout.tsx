@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/navbar";
 import { AuthProvider } from "@/utils/Authsegment";
 import { LessonsProvider } from "@/utils/userprogress/lessonprogress";
+import { AudioProvider } from "@/components/audio/AudioProvider";
 
 
 const inter = Inter({
@@ -37,7 +38,9 @@ export default function RootLayout({
         <Navbar/>
         <main className="w-full">
           <AuthProvider>
-            <LessonsProvider>{children}</LessonsProvider>
+            <AudioProvider>
+              <LessonsProvider>{children}</LessonsProvider>
+            </AudioProvider>
           </AuthProvider>
         </main>
 
