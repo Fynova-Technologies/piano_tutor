@@ -45,6 +45,8 @@ interface FooterPlayButtonProps {
   initializeAudioContext: () => Promise<void>;
   id:string,
   backgroundSoundRef: MutableRefObject<HTMLAudioElement | null>;
+  setBackgroundVolume?: Dispatch<SetStateAction<number>>;
+  backgroundVolume?: number;
 }
 
 export default function FooterPlayButton({nextNoteTimeRef,
@@ -67,6 +69,7 @@ export default function FooterPlayButton({nextNoteTimeRef,
   unitLessonsData,
   id,
   backgroundSoundRef,
+  backgroundVolume,
 }: FooterPlayButtonProps) {
 
   const searchParams = useSearchParams();
@@ -90,10 +93,28 @@ const hasPrevious = currentIndex > 0;
 const hasNext = currentIndex < unitLessonsData.length - 1;
 
 useEffect(() => {
-  if (backgroundSoundRef.current && !isPlaying) {
+if (!backgroundSoundRef.current) return;
+
+  if (!isPlaying || (backgroundVolume ?? 0) / 100 === 0) {
     backgroundSoundRef.current.pause();
+  } else {
+    backgroundSoundRef.current.play();
   }
-}, [backgroundSoundRef, isPlaying]);
+  if (backgroundSoundRef.current && backgroundVolume !== undefined) {
+    backgroundSoundRef.current.volume = backgroundVolume / 100;
+    console.log("Background Volume:", backgroundVolume / 100);
+  }
+
+  (async () => {
+    try {
+      const agent = await FingerprintJS.load();
+      const result = await agent.get();
+      console.log('Device ID:', result.visitorId);
+    } catch (e) {
+      console.error('FingerprintJS error:', e);
+    }
+  })();
+}, [backgroundSoundRef, isPlaying, backgroundVolume]);
   const [isAuthorizedDevice, setIsAuthorizedDevice] = useState(false);
 
   // paywall integration here
@@ -210,8 +231,11 @@ if(resultcount<5){
                     disabled={!hasPrevious}>
                     <Image src="/skip_previous_filled.png" width={45} height={20} alt="skip previous" className="ml-2" />
                   </button>
-                  {/* Background track is driven by the global audio engine (Tone.js). */}
-                  <audio ref={backgroundSoundRef} src="/songs/jungle-waves.mp3" loop className="hidden" aria-hidden />
+                  <audio
+                    ref={backgroundSoundRef}
+                    src="/songs/jungle-waves.mp3"
+                    loop
+                  />
                 <button
                   disabled={!isAuthorizedDevice}
                   className=" px-5 py-4 bg-white text-white rounded-full hover:bg-zinc-300 cursor-pointer"

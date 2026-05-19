@@ -5,8 +5,9 @@ import { motion } from "framer-motion";
 import {
   Sun, Moon, Monitor, BookOpen, Music2, Bell,
   Globe, User, Accessibility, Eye, Zap,
-  BookMarked, Mic2, Target, AlarmClock,
+  BookMarked, Mic2, Target, AlarmClock, Volume2,
 } from "lucide-react";
+import { AudioSettingsPanel } from "@/components/audio/AudioSettingsPanel";
 
 import { usePreferences } from "@/hooks/preferences/usePreferences";
 import {
@@ -139,6 +140,18 @@ export default function PreferencesPage() {
                   updatePreferences("appearance", { uiScale: uiScale as UIScale })
                 }
               />
+            </div>
+          </PreferencesCard>
+
+          {/* ── SECTION: Audio (synced with footer) ── */}
+          <PreferencesCard
+            title="Audio"
+            description="Volume and mute for instrument, background, metronome, and countdown"
+            icon={<Volume2 size={16} />}
+            delay={0.08}
+          >
+            <div className="px-6 py-5">
+              <AudioSettingsPanel />
             </div>
           </PreferencesCard>
 

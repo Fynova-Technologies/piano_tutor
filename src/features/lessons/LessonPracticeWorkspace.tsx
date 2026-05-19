@@ -109,12 +109,15 @@ useEffect(() => {
 
 
 
+// Replace the loadFromCDN useEffect with this:
 
-  useEffect(() => {
+useEffect(() => {
   if (!cdnFileName) return;
+
   async function loadFromCDN() {
     try {
       setUploadLoading(true);
+      setUploadError(null);
 
       const res = await fetch(
         `https://cdn-dataforpiano.netlify.app/songs/${cdnFileName}`,
@@ -124,27 +127,14 @@ useEffect(() => {
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
 
       const buffer = await res.arrayBuffer();
-      const header = new Uint8Array(buffer, 0, 4);
-
-      // Plain MusicXML (not zipped)
-      if (header[0] !== 0x50 || header[1] !== 0x4B) {
-        const text = new TextDecoder().decode(buffer);
-        if (
-          text.trimStart().startsWith("<?xml") ||
-          text.trimStart().startsWith("<score-partwise")
-        ) {
-          setUploadedMusicXML(prepareMusicXmlForOsmd(text));
-          return;
-        }
-        throw new Error(`Not a valid ZIP or MusicXML file`);
-      }
-
       const xmlText = await extractMusicXmlFromMxlBuffer(buffer);
       setUploadedMusicXML(xmlText);
 
     } catch (err) {
-      console.error(err);
-      setUploadError(`Failed to load: ${err instanceof Error ? err.message : err}`);
+      console.error("CDN load error:", err);
+      setUploadError(
+        `Failed to load: ${err instanceof Error ? err.message : String(err)}`
+      );
     } finally {
       setUploadLoading(false);
     }

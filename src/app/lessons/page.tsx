@@ -11,7 +11,7 @@ function OfficialLessonInner() {
   const fileName = searchparams.get("file") || "Wholenotes.mxl";
   const source = searchparams.get("source") || "Method-1A";
   const lessonId =
-    searchparams.get("lessonid") || searchparams.get("lessonId") || "0";
+  searchparams.get("lessonid") || searchparams.get("lessonId") || "0";
   const fkid = searchparams.get("fkid") || "1";
 
   return (

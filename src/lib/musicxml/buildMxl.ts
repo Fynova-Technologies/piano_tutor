@@ -37,49 +37,70 @@ export async function buildMxlBase64(
 }
 
 /** Extract MusicXML text from an MXL (zip) buffer with several fallbacks. */
+// src/lib/musicxml/buildMxl.ts — replace extractMusicXmlFromMxlBuffer
+
+
 export async function extractMusicXmlFromMxlBuffer(buffer: ArrayBuffer): Promise<string> {
   const zip = await JSZip.loadAsync(buffer);
 
-  const containerXml = await zip.file("META-INF/container.xml")?.async("text");
-  if (containerXml) {
-    const match =
-      containerXml.match(/full-path=["']([^"']+)["']/i) ??
-      containerXml.match(/full-path=([^\s/>]+)/i);
-    const rootPath = match?.[1]?.trim();
-    if (rootPath) {
-      const xmlText = await zip.file(rootPath)?.async("text");
-      if (xmlText?.trim()) {
-        return prepareMusicXmlForOsmd(xmlText);
+  // 1. Check META-INF/container.xml for the rootfile path (proper MXL spec)
+  const containerFile = zip.file("META-INF/container.xml");
+  if (containerFile) {
+    const containerText = await containerFile.async("text");
+    const match = containerText.match(/full-path="([^"]+)"/);
+    if (match?.[1]) {
+      const rootFile = zip.file(match[1]);
+      if (rootFile) {
+        const xml = await rootFile.async("text");
+        if (xml.includes("score-partwise")) {
+          console.log("✅ MXL: found rootfile via container.xml →", match[1]);
+          return xml;
+        }
       }
     }
   }
 
-  const candidates = Object.keys(zip.files)
-    .filter((name) => {
-      const f = zip.files[name];
-      if (!f || f.dir) return false;
-      if (name.startsWith("META-INF/")) return false;
-      if (name === "mimetype") return false;
-      return /\.(musicxml|xml)$/i.test(name);
-    })
-    .sort((a, b) => {
-      const score = (n: string) =>
-        (n.endsWith(".musicxml") ? 0 : 1) + (n.includes("score") ? 0 : 2);
-      return score(a) - score(b);
-    });
+  // 2. Fallback: scan all files for one containing score-partwise
+  const candidates: string[] = [];
+  zip.forEach((relativePath) => {
+    const lower = relativePath.toLowerCase();
+    if (
+      (lower.endsWith(".xml") || lower.endsWith(".musicxml")) &&
+      !lower.startsWith("__macosx") // skip Mac metadata
+    ) {
+      candidates.push(relativePath);
+    }
+  });
 
-  for (const name of candidates) {
-    const xmlText = await zip.file(name)?.async("text");
-    if (xmlText?.trim() && /<score-partwise\b/i.test(xmlText)) {
-      return prepareMusicXmlForOsmd(xmlText);
+  for (const path of candidates) {
+    const file = zip.file(path);
+    if (!file) continue;
+    const xml = await file.async("text");
+    if (xml.includes("score-partwise")) {
+      console.log("✅ MXL: found score-partwise in →", path);
+      return xml;
     }
   }
 
-  throw new Error(
-    candidates.length
-      ? "MXL archive has no readable score-partwise document"
-      : "container.xml missing from MXL and no .xml/.musicxml entry found",
-  );
+  // 3. Last resort: any file with score-partwise regardless of extension
+  const allFiles: string[] = [];
+  zip.forEach((p) => allFiles.push(p));
+  for (const path of allFiles) {
+    if (path.toLowerCase().startsWith("__macosx")) continue;
+    const file = zip.file(path);
+    if (!file) continue;
+    try {
+      const xml = await file.async("text");
+      if (xml.includes("score-partwise")) {
+        console.log("✅ MXL: last-resort found score-partwise in →", path);
+        return xml;
+      }
+    } catch {
+      // binary file, skip
+    }
+  }
+
+  throw new Error("No score-partwise element found in any file inside the MXL archive");
 }
 
 /** Decode base64 MXL payload for browser download. */

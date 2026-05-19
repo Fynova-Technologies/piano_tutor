@@ -1,18 +1,22 @@
-// SASR Data Storage Utility
-// This handles storing and retrieving SASR session data
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export interface SASRSessionData {
   id: string;
   title: string;
-  date: string; // ISO date string
-  timestamp: number; // Unix timestamp
-  score: number; // Percentage 0-100
-  attempt: number; // Attempt number for this song
+  date: string;
+  timestamp: number;
+  score: number;
+  attempt: number;
   totalBeats: number;
   correctBeats: number;
   mistakeCount: number;
   mistakes: MistakeRecord[];
-  completedFully: boolean; // false if stopped due to 3 strikes
+  completedFully: boolean;
   tempo: number;
 }
 
@@ -26,206 +30,201 @@ export interface MistakeRecord {
 }
 
 class SASRDataStore {
-  private readonly STORAGE_KEY = 'sasr_sessions';
-  private readonly MAX_SESSIONS = 1000; // Keep last 1000 sessions
+  // ── Write ────────────────────────────────────────────────────────────────
 
-  /**
-   * Save a new SASR session
-   */
-  saveSession(sessionData: Omit<SASRSessionData, 'id' | 'timestamp' | 'attempt'>): SASRSessionData {
-    const sessions = this.getAllSessions();
-    
-    // Calculate attempt number for this song
-    const songSessions = sessions.filter(s => s.title === sessionData.title);
-    const attempt = songSessions.length + 1;
-    
+  async saveSession(
+    sessionData: Omit<SASRSessionData, "id" | "timestamp" | "attempt">
+  ): Promise<SASRSessionData> {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // Calculate attempt number for this song from Supabase
+    let attempt = 1;
+    if (user) {
+      const { count } = await supabase
+        .from("sasr_sessions")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("title", sessionData.title);
+      attempt = (count ?? 0) + 1;
+    }
+
     const newSession: SASRSessionData = {
       ...sessionData,
-      id: this.generateId(),
+      id: `sasr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: Date.now(),
       attempt,
     };
-    
-    sessions.push(newSession);
-    
-    // Keep only the most recent sessions
-    const trimmedSessions = sessions
-      .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, this.MAX_SESSIONS);
-    
-    this.saveSessions(trimmedSessions);
-    
+
+    if (!user) {
+      console.warn("SASR: no user session, saving to localStorage only");
+      this._saveLocalFallback(newSession);
+      return newSession;
+    }
+
+    const { error } = await supabase.from("sasr_sessions").upsert({
+      id: newSession.id,
+      user_id: user.id,
+      title: newSession.title,
+      date: newSession.date,
+      timestamp: newSession.timestamp,
+      score: newSession.score,
+      attempt: newSession.attempt,
+      total_beats: newSession.totalBeats,
+      correct_beats: newSession.correctBeats,
+      mistake_count: newSession.mistakeCount,
+      mistakes: newSession.mistakes,
+      completed_fully: newSession.completedFully,
+      tempo: newSession.tempo,
+    });
+
+    if (error) {
+      console.error("SASR Supabase save failed:", error.message);
+      this._saveLocalFallback(newSession); // graceful fallback
+    }
+
     return newSession;
   }
 
-  /**
-   * Get all sessions
-   */
-  getAllSessions(): SASRSessionData[] {
-    try {
-      const data = localStorage.getItem(this.STORAGE_KEY);
-      if (!data) return [];
-      return JSON.parse(data);
-    } catch (error) {
-      console.error('Error loading SASR sessions:', error);
-      return [];
+  // ── Read ─────────────────────────────────────────────────────────────────
+
+  async getAllSessions(): Promise<SASRSessionData[]> {
+    const { data, error } = await supabase
+      .from("sasr_sessions")
+      .select("*")
+      .order("timestamp", { ascending: false });
+
+    if (error || !data) {
+      console.error("SASR fetch failed:", error?.message);
+      return this._loadLocalFallback();
     }
+
+    return data.map(this._fromRow);
   }
 
-  /**
-   * Get sessions for a specific date range
-   */
-  getSessionsByDateRange(startDate: Date, endDate: Date): SASRSessionData[] {
-    const sessions = this.getAllSessions();
-    return sessions.filter(session => {
-      const sessionDate = new Date(session.date);
-      return sessionDate >= startDate && sessionDate <= endDate;
-    });
+  async getSessionsByDateRange(startDate: Date, endDate: Date): Promise<SASRSessionData[]> {
+    const { data, error } = await supabase
+      .from("sasr_sessions")
+      .select("*")
+      .gte("date", startDate.toISOString())
+      .lte("date", endDate.toISOString())
+      .order("timestamp", { ascending: true });
+
+    if (error || !data) return [];
+    return data.map(this._fromRow);
   }
 
-  /**
-   * Get sessions for the last N days
-   */
-  getRecentSessions(days: number): SASRSessionData[] {
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-    return this.getSessionsByDateRange(startDate, endDate);
+  async getRecentSessions(days: number): Promise<SASRSessionData[]> {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - days);
+    return this.getSessionsByDateRange(start, end);
   }
 
-  /**
-   * Get sessions grouped by date
-   */
-  getSessionsGroupedByDate(days: number): Map<string, SASRSessionData[]> {
-    const sessions = this.getRecentSessions(days);
+  async getSessionsGroupedByDate(days: number): Promise<Map<string, SASRSessionData[]>> {
+    const sessions = await this.getRecentSessions(days);
     const grouped = new Map<string, SASRSessionData[]>();
-    
-    sessions.forEach(session => {
-      const dateKey = session.date.split('T')[0]; // Get YYYY-MM-DD
-      if (!grouped.has(dateKey)) {
-        grouped.set(dateKey, []);
-      }
-      grouped.get(dateKey)!.push(session);
+    sessions.forEach((s) => {
+      const key = s.date.split("T")[0];
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)!.push(s);
     });
-    
     return grouped;
   }
 
-  /**
-   * Get average score per day for chart
-   */
-  getDailyAverageScores(days: number): Array<{ date: string; score: number; count: number }> {
-    const grouped = this.getSessionsGroupedByDate(days);
+  async getDailyAverageScores(
+    days: number
+  ): Promise<Array<{ date: string; score: number; count: number }>> {
+    const grouped = await this.getSessionsGroupedByDate(days);
     const result: Array<{ date: string; score: number; count: number }> = [];
-    
     grouped.forEach((sessions, date) => {
-      const totalScore = sessions.reduce((sum, s) => sum + s.score, 0);
-      const avgScore = Math.round(totalScore / sessions.length);
-      result.push({
-        date,
-        score: avgScore,
-        count: sessions.length,
-      });
+      const avg = Math.round(
+        sessions.reduce((sum, s) => sum + s.score, 0) / sessions.length
+      );
+      result.push({ date, score: avg, count: sessions.length });
     });
-    
-    // Sort by date
     return result.sort((a, b) => a.date.localeCompare(b.date));
   }
 
-  /**
-   * Get statistics for a specific song
-   */
-  getSongStatistics(songTitle: string) {
-    const sessions = this.getAllSessions().filter(s => s.title === songTitle);
-    
-    if (sessions.length === 0) {
-      return null;
-    }
-    
-    const scores = sessions.map(s => s.score);
-    const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-    const highScore = Math.max(...scores);
-    const lastScore = sessions[sessions.length - 1].score;
-    const totalAttempts = sessions.length;
-    
+  async getSongStatistics(songTitle: string) {
+    const { data, error } = await supabase
+      .from("sasr_sessions")
+      .select("*")
+      .eq("title", songTitle)
+      .order("timestamp", { ascending: true });
+
+    if (error || !data || data.length === 0) return null;
+
+    const sessions = data.map(this._fromRow);
+    const scores = sessions.map((s) => s.score);
     return {
       songTitle,
-      avgScore,
-      highScore,
-      lastScore,
-      totalAttempts,
+      avgScore: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
+      highScore: Math.max(...scores),
+      lastScore: scores[scores.length - 1],
+      totalAttempts: sessions.length,
       sessions,
     };
   }
 
-  /**
-   * Get overall statistics
-   */
-  getOverallStatistics() {
-    const sessions = this.getAllSessions();
-    
-    if (sessions.length === 0) {
-      return {
-        totalSessions: 0,
-        avgScore: 0,
-        highScore: 0,
-        lastScore: null,
-        totalSongsPlayed: 0,
-      };
+  async getOverallStatistics() {
+    const { data, error } = await supabase
+      .from("sasr_sessions")
+      .select("score, title");
+
+    if (error || !data || data.length === 0) {
+      return { totalSessions: 0, avgScore: 0, highScore: 0, lastScore: null, totalSongsPlayed: 0 };
     }
-    
-    const scores = sessions.map(s => s.score);
-    const uniqueSongs = new Set(sessions.map(s => s.title));
-    
+
+    const scores = data.map((r) => r.score);
     return {
-      totalSessions: sessions.length,
+      totalSessions: data.length,
       avgScore: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
       highScore: Math.max(...scores),
-      lastScore: sessions[sessions.length - 1].score,
-      totalSongsPlayed: uniqueSongs.size,
+      lastScore: scores[scores.length - 1],
+      totalSongsPlayed: new Set(data.map((r) => r.title)).size,
     };
   }
 
-  /**
-   * Clear all sessions (for testing/reset)
-   */
   clearAllSessions(): void {
-    localStorage.removeItem(this.STORAGE_KEY);
+    // Only clears local fallback; Supabase data is user-owned — delete via dashboard if needed
+    localStorage.removeItem("sasr_sessions");
   }
 
-  /**
-   * Export sessions as JSON
-   */
-  exportSessions(): string {
-    return JSON.stringify(this.getAllSessions(), null, 2);
+  // ── Private helpers ───────────────────────────────────────────────────────
+
+  private _fromRow(r: Record<string, unknown>): SASRSessionData {
+    return {
+      id: r.id as string,
+      title: r.title as string,
+      date: r.date as string,
+      timestamp: r.timestamp as number,
+      score: r.score as number,
+      attempt: r.attempt as number,
+      totalBeats: r.total_beats as number,
+      correctBeats: r.correct_beats as number,
+      mistakeCount: r.mistake_count as number,
+      mistakes: (r.mistakes as MistakeRecord[]) ?? [],
+      completedFully: r.completed_fully as boolean,
+      tempo: r.tempo as number,
+    };
   }
 
-  /**
-   * Import sessions from JSON
-   */
-  importSessions(jsonData: string): void {
+  private _saveLocalFallback(session: SASRSessionData): void {
     try {
-      const sessions = JSON.parse(jsonData);
-      this.saveSessions(sessions);
-    } catch (error) {
-      console.error('Error importing sessions:', error);
-      throw new Error('Invalid JSON data');
-    }
+      const existing = this._loadLocalFallback();
+      existing.push(session);
+      localStorage.setItem("sasr_sessions", JSON.stringify(existing));
+    } catch {}
   }
 
-  // Private helper methods
-  private saveSessions(sessions: SASRSessionData[]): void {
+  private _loadLocalFallback(): SASRSessionData[] {
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(sessions));
-    } catch (error) {
-      console.error('Error saving SASR sessions:', error);
+      const raw = localStorage.getItem("sasr_sessions");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
     }
-  }
-
-  private generateId(): string {
-    return `sasr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 }
 
-// Export singleton instance
 export const sasrDataStore = new SASRDataStore();

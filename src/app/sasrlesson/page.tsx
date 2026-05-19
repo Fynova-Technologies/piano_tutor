@@ -12,6 +12,8 @@ import { useSearchParams } from "next/navigation";
 import { BeatCursor } from "@/features/playback/beatcursor";
 import { saveSession} from "@/datastore/sessionstorage";
 import { sasrDataStore } from "../../datastore/sasrdatastore";
+import { usePlaybackAudioSync } from "@/hooks/audio/usePlaybackAudioSync";
+import { useInstrumentSamplerVolume } from "@/hooks/audio/useInstrumentSamplerVolume";
 
 
 interface PlayedNote {
@@ -66,7 +68,7 @@ function SasrLesson() {
   const activeHighlightsRef = useRef<Set<any>>(new Set());
   const beatCursorRef = useRef<BeatCursor | null>(null);
   const [currentBeatIndex, setCurrentBeatIndex] = useState<number>(0);
-  
+
   // ✅ NEW: Mistake tracking and popup state
   const [showScorePopup, setShowScorePopup] = useState(false);
   const totalMistakesRef = useRef(0); // ✅ CHANGED: Track total mistakes, not consecutive
@@ -74,6 +76,13 @@ function SasrLesson() {
   const MAX_MISTAKES = 3;
   const tempoRef = useRef(120);
   const [tempo, setTempo] = useState(120);
+
+  usePlaybackAudioSync({
+    isPlaying,
+    isCountingIn: countdown !== null,
+    tempo,
+  });
+  useInstrumentSamplerVolume(samplerRef);
   
   useEffect(() => {
     const hsStr = localStorage.getItem("highScore");
@@ -505,7 +514,7 @@ function startPlayback() {
   }
 
   // ✅ NEW: Function to stop playback due to mistakes
-  function stopPlaybackDueToMistakes() {
+  async function stopPlaybackDueToMistakes() {
     console.log(`🛑 Stopping playback - ${MAX_MISTAKES} mistakes reached`);
     
     setIsPlaying(false);
@@ -521,11 +530,11 @@ function startPlayback() {
     }
     
     // Calculate and show score
-    calculateAndShowScore();
+    await calculateAndShowScore();
   }
 
   // ✅ NEW: Separate function to calculate and show score
-  function calculateAndShowScore() {
+  async function calculateAndShowScore() {
     const baseScore = scoreableNotesRef.current > 0
       ? (correctStepsRef.current / scoreableNotesRef.current) * 100
       : 0;
@@ -587,6 +596,17 @@ function startPlayback() {
     };
 
     saveSession(session);
+    await sasrDataStore.saveSession({
+    title: courseTitle,
+    date: new Date().toISOString(),
+    score: finalScore,
+    totalBeats: totalStepsRef.current,
+    correctBeats: correctStepsRef.current,
+    mistakeCount: totalMistakesRef.current,
+    mistakes: [], // populate from mistakeEventsRef if you want detail
+    completedFully: totalMistakesRef.current < MAX_MISTAKES,
+    tempo,
+  });
     
     // ✅ Show popup
     setShowScorePopup(true);
@@ -598,7 +618,7 @@ function startPlayback() {
     console.log(`Final score: ${finalScore}%`);
   }
 
-function handleEndOfPiece() {
+async function handleEndOfPiece() {
   setIsPlaying(false);
   playModeRef.current = false;
   
@@ -611,7 +631,7 @@ function handleEndOfPiece() {
     beatCursorRef.current.stopPlayback();
   }
   
-  calculateAndShowScore();
+  await calculateAndShowScore();
 }
 
   useEffect(() => {

@@ -22,10 +22,10 @@ export const runtime = "nodejs";
 
 const MXL_PROMPT = `You are an expert piano pedagogy and MusicXML 3.1 author.
 
-Output valid MusicXML with root element <score-partwise> and a standard XML declaration.
-Never use <score>, <musicxml>, <music-score>, or any other root element.
+REQUIRED ROOT: <score-partwise version="3.1"> ... </score-partwise>
+Never use <score-timewise>, <score>, <musicxml>, or bare <part-list> without score-partwise.
 Never omit the root element. Never output JSON, markdown, or explanation text —
-raw MusicXML only, starting with the XML declaration.
+raw MusicXML only.
 
 CRITICAL OUTPUT RULES:
 - Output ONE raw XML document ONLY. No markdown, no code fences, no JSON, no commentary before or after.

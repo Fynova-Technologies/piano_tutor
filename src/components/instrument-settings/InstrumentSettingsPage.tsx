@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import {
@@ -33,6 +33,8 @@ import type {
   NoteNaming,
   VelocityCurve,
 } from "@/lib/userSettings/instrumentSettings";
+import { AudioSettingsPanel } from "@/components/audio/AudioSettingsPanel";
+import { useAudioSettingsStore } from "@/store/audioSettingsStore";
 
 function SettingsSkeleton() {
   return (
@@ -58,6 +60,31 @@ export function InstrumentSettingsPage() {
     (partial: Parameters<typeof update>[0]) => update(partial),
     [update],
   );
+
+  const instrumentVol = useAudioSettingsStore((s) => s.instrument.volume);
+  const metronomeVol = useAudioSettingsStore((s) => s.metronome.volume);
+
+  useEffect(() => {
+    if (!ready) return;
+    useAudioSettingsStore.getState().setChannel("instrument", {
+      volume: value.volumePlayback,
+      muted: false,
+    });
+    useAudioSettingsStore.getState().setChannel("metronome", {
+      volume: value.volumeMetronome,
+      muted: useAudioSettingsStore.getState().metronome.muted,
+    });
+  }, [ready]);
+
+  useEffect(() => {
+    if (!ready) return;
+    if (value.volumePlayback !== instrumentVol || value.volumeMetronome !== metronomeVol) {
+      patch({
+        volumePlayback: instrumentVol,
+        volumeMetronome: metronomeVol,
+      });
+    }
+  }, [instrumentVol, metronomeVol, ready, patch, value.volumePlayback, value.volumeMetronome]);
 
   const handleRefreshMidi = useCallback(async () => {
     setRefreshing(true);
@@ -231,7 +258,7 @@ export function InstrumentSettingsPage() {
               index={4}
               icon={Volume2}
               title="Audio settings"
-              description="Balance master, lesson playback, and metronome levels."
+              description="Shared with footer controls during practice. Changes apply instantly everywhere."
             >
               <SliderSetting
                 label="Master volume"
@@ -240,21 +267,7 @@ export function InstrumentSettingsPage() {
                 max={100}
                 onChange={(volumeMaster) => patch({ volumeMaster })}
               />
-              <SliderSetting
-                label="Playback volume"
-                description="Lesson and demo audio"
-                value={value.volumePlayback}
-                min={0}
-                max={100}
-                onChange={(volumePlayback) => patch({ volumePlayback })}
-              />
-              <SliderSetting
-                label="Metronome volume"
-                value={value.volumeMetronome}
-                min={0}
-                max={100}
-                onChange={(volumeMetronome) => patch({ volumeMetronome })}
-              />
+              <AudioSettingsPanel />
             </SettingsSection>
 
             {/* SECTION 6 — Playback */}

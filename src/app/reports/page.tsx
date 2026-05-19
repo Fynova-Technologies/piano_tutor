@@ -1,54 +1,81 @@
 "use client";
-import { BarChart, Bar, XAxis, ResponsiveContainer, CartesianGrid,YAxis, Cell } from "recharts";
+import { BarChart, Bar, XAxis, ResponsiveContainer, CartesianGrid, YAxis, Cell } from "recharts";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import SasrReport from "@/features/components/sasrreport";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import {
-  getWeeklyActivity,
-  getMonthlyActivity,
-} from "@/datastore/weekormonthactivity";
-import {
-  getSessions,
-  PracticeSession,
-  } from "@/datastore/sessionstorage";
+import { createClient } from "@supabase/supabase-js";
+import { getSessions, PracticeSession } from "@/datastore/sessionstorage";
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
+// ── Supabase-based activity builders ──────────────────────────────────────────
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const CustomLabel = (props: { x: any; y: any; width: any; value: any; }) => {
-    const { x, y, width, value } = props;
-    return (
-      <text 
-        x={x + width / 2} 
-        y={y - 5} 
-        fill="#151517" 
-        textAnchor="middle" 
-        fontSize="8"
-      >
-        {value} min
-      </text>
-    );
-  };
+function buildWeeklyActivity(sessions: { startedAt: number; durationSec: number }[]) {
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const map: Record<string, number> = {};
+  days.forEach((d) => (map[d] = 0));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const CustomBackground = (props: { x: any; y: any; width: any; height: any; index: any; }) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { x, y, width, height, index } = props;
-    const bgColor = '#D6DBED66'; 
-    return (
-      <g>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill={bgColor}
-      />
-      </g>
-    );
-  }
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  sessions.forEach((s) => {
+    const d = new Date(s.startedAt);
+    if (d >= startOfWeek) {
+      const label = days[d.getDay()];
+      map[label] += Math.round(s.durationSec / 60);
+    }
+  });
+
+  return days.map((day) => ({ day, minutes: map[day] }));
+}
+
+function buildMonthlyActivity(sessions: { startedAt: number; durationSec: number }[]) {
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const map: Record<string, number> = {};
+  months.forEach((m) => (map[m] = 0));
+
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+  sessions.forEach((s) => {
+    const d = new Date(s.startedAt);
+    if (d >= startOfYear) {
+      const label = months[d.getMonth()];
+      map[label] += Math.round(s.durationSec / 60);
+    }
+  });
+
+  return months.map((month) => ({ month, minutes: map[month] }));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const CustomLabel = (props: { x: any; y: any; width: any; value: any }) => {
+  const { x, y, width, value } = props;
+  return (
+    <text x={x + width / 2} y={y - 5} fill="#151517" textAnchor="middle" fontSize="8">
+      {value} min
+    </text>
+  );
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const CustomBackground = (props: { x: any; y: any; width: any; height: any; index: any }) => {
+  const { x, y, width, height } = props;
+  return (
+    <g>
+      <rect x={x} y={y} width={width} height={height} fill="#D6DBED66" />
+    </g>
+  );
+};
 
 export default function Reports() {
   const router = useRouter();
@@ -57,81 +84,102 @@ export default function Reports() {
   const [lastScore] = useState(100);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [activityData, setActivityData] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [activityLoading, setActivityLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"week" | "month">("week");
-  // Add this inside your Reports component, after the existing state declarations
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  // const [days, setDays] = useState<string[]>([]);
   const [playedDays, setPlayedDays] = useState<Set<string>>(new Set());
   const [calendarDays, setCalendarDays] = useState<(string | null)[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
 
+  // ── Fetch activity data from Supabase ──────────────────────────────────────
+  useEffect(() => {
+    async function loadActivity() {
+      setActivityLoading(true);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setActivityLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("practice_sessions")
+        .select("started_at, duration_sec")
+        .eq("user_id", user.id);
+
+      if (error || !data) {
+        console.error("Failed to load activity:", error?.message);
+        setActivityLoading(false);
+        return;
+      }
+
+      const normalized = data.map((r) => ({
+        startedAt: new Date(r.started_at).getTime(),
+        durationSec: r.duration_sec,
+      }));
+
+      const chart =
+        viewMode === "week"
+          ? buildWeeklyActivity(normalized)
+          : buildMonthlyActivity(normalized);
+
+      setActivityData(chart);
+      setActivityLoading(false);
+    }
+
+    loadActivity();
+  }, [viewMode]); // re-runs when user switches week ↔ month
+
+  // ── Streak calendar (still from localStorage — unchanged) ─────────────────
+  useEffect(() => {
+    const data = getSessions();
+    const uniqueDays = new Set<string>(
+      data.map((s: PracticeSession) => {
+        const d = new Date(s.startedAt);
+        return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+      })
+    );
+    setPlayedDays(uniqueDays);
+  }, []);
+
+  useEffect(() => {
+    generateCalendar(currentDate);
+  }, [currentDate]);
+
   function nextMonth() {
-  setCurrentDate((prev) => {
-    const d = new Date(prev);
-    d.setMonth(d.getMonth() + 1);
-    return d;
-  });
-}
-
-function prevMonth() {
-  setCurrentDate((prev) => {
-    const d = new Date(prev);
-    d.setMonth(d.getMonth() - 1);
-    return d;
-  });
-}
-
-
-useEffect(() => {
-  const data = getSessions();
-
-  const uniqueDays = new Set<string>(
-    data.map((s: PracticeSession) => {
-      const d = new Date(s.startedAt);
-      return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-    })
-  );
-
-  setPlayedDays(uniqueDays);
-}, []);
-
-useEffect(() => {
-  generateCalendar(currentDate);
-}, [currentDate]);
-
-const monthLabel = currentDate.toLocaleString("default", {
-  month: "long",
-  year: "numeric",
-});
-
-
-
-function generateCalendar(date: Date) {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-
-  const firstDayIndex = new Date(year, month, 1).getDay();
-  const totalDays = new Date(year, month + 1, 0).getDate();
-
-  const days: (string | null)[] = [];
-
-  // Empty cells before month starts
-  for (let i = 0; i < firstDayIndex; i++) {
-    days.push(null);
+    setCurrentDate((prev) => {
+      const d = new Date(prev);
+      d.setMonth(d.getMonth() + 1);
+      return d;
+    });
   }
 
-  // Actual days
-  for (let i = 1; i <= totalDays; i++) {
-    const d = new Date(year, month, i);
-    days.push(`${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+  function prevMonth() {
+    setCurrentDate((prev) => {
+      const d = new Date(prev);
+      d.setMonth(d.getMonth() - 1);
+      return d;
+    });
   }
 
-  setCalendarDays(days);
-}
+  const monthLabel = currentDate.toLocaleString("default", { month: "long", year: "numeric" });
 
+  function generateCalendar(date: Date) {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const days: (string | null)[] = [];
+    for (let i = 0; i < firstDayIndex; i++) days.push(null);
+    for (let i = 1; i <= totalDays; i++) {
+      const d = new Date(year, month, i);
+      days.push(`${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`);
+    }
+    setCalendarDays(days);
+  }
 
-  // Add this useEffect to handle clicking outside the dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -139,25 +187,11 @@ function generateCalendar(date: Date) {
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-
-  useEffect(() => {
-    if (viewMode === "week") {
-      const data = getWeeklyActivity();
-      console.log("Weekly data:", data); // Add this
-      setActivityData(data);
-    } else {
-      const data = getMonthlyActivity();
-      console.log("Monthly data:", data); // Add this
-      setActivityData(data);
-    }
-  }, [viewMode]);
   const today = new Date();
-const todayKey = `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
+  const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
 
 
 
