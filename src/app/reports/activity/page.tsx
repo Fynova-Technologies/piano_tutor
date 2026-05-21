@@ -6,6 +6,7 @@ import { useState, useMemo, useEffect } from "react";
 import { ArrowUpDown, MoreVertical } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { PracticeSession } from "@/datastore/sessionstorage";
+import ActivityChart from "@/features/components/activitychart"; // ← new
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -92,7 +93,7 @@ export default function ActivitiesReportPage() {
       start.setMonth(now.getMonth() - 3);
       return timestamp >= start.getTime();
     }
-    return true; // "custom" — show all for now
+    return true;
   }
 
   function formatTime(sec: number) {
@@ -101,18 +102,14 @@ export default function ActivitiesReportPage() {
     return `${m}m ${s}s`;
   }
 
-  // ── Stats in selected range (for header totals) ────────────────────
   const rangedSessions = sessions.filter((s) => isInRange(s.startedAt));
   const totalTime = rangedSessions.reduce((sum, s) => sum + s.durationSec, 0);
 
-  // ── Aggregate per lesson (all categories: method, sasr, technique…) ──
   const lessonStats = useMemo(() => {
     const map: Record<string, any> = {};
 
     rangedSessions.forEach((s) => {
-      // Key by lesson uid so method + sasr + technique each get their own row
       const key = s.lesson.uid || `${s.lesson.id}__${s.lesson.source}`;
-
       if (!map[key]) {
         map[key] = {
           id: key,
@@ -127,10 +124,7 @@ export default function ActivitiesReportPage() {
           count: 0,
         };
       }
-
-      // Keep earliest date
       if (s.startedAt < map[key].date) map[key].date = s.startedAt;
-
       map[key].attempt   += s.performance.attempts;
       map[key].timespent += s.durationSec;
       map[key].scoreSum  += s.performance.score;
@@ -152,14 +146,14 @@ export default function ActivitiesReportPage() {
     );
   }, [lessonStats, query]);
 
-  // Reset to page 1 when filter/range changes
   useEffect(() => { setCurrentPage(1); }, [query, range]);
 
   const currentItems = filteredLessons.slice(startIndex, startIndex + itemsPerPage);
   const totalPages   = Math.ceil(filteredLessons.length / itemsPerPage);
 
   return (
-    <div className="p-16 bg-[#F8F6F1] h-[100vh]">
+    <div className="p-4 sm:p-8 lg:p-16 bg-[#F8F6F1] min-h-screen">
+      {/* Breadcrumb */}
       <div className="gap-2 p-2 flex items-center">
         <span className="text-2xl text-[#6E6E73] font-medium">
           {breadcrumbs[0][0].toUpperCase() + breadcrumbs[0].slice(1)}
@@ -168,6 +162,12 @@ export default function ActivitiesReportPage() {
         <span className="text-2xl text-[#151517] font-medium">My Activity</span>
       </div>
 
+      {/* ── Activity Chart card ────────────────────────────────────── */}
+      <div className="mt-4">
+        <ActivityChart sessionCount={rangedSessions.length} loading={loading} />
+      </div>
+
+      {/* ── Main table card ────────────────────────────────────────── */}
       <div className="bg-[#FEFEFE] w-full rounded-2xl p-6 mt-4">
         {/* Header totals */}
         <div className="flex justify-between pt-4">
@@ -182,8 +182,8 @@ export default function ActivitiesReportPage() {
         </div>
 
         {/* Search + Range filter */}
-        <div className="flex justify-between mt-4">
-          <div className="relative w-full max-w-md ml-4">
+        <div className="flex flex-col sm:flex-row justify-between gap-3 mt-4">
+          <div className="relative w-full max-w-md ml-0 sm:ml-4">
             <input
               type="text"
               placeholder="Quick Search"
@@ -210,8 +210,8 @@ export default function ActivitiesReportPage() {
         </div>
 
         {/* Table */}
-        <div className="mt-6 ml-4">
-          <div className="rounded-xl border bg-white">
+        <div className="mt-6 ml-0 sm:ml-4 overflow-x-auto">
+          <div className="rounded-xl border bg-white min-w-[640px]">
             <table className="w-full border-collapse">
               <thead className="text-sm text-gray-500 border-b border-[#DEDEDE]">
                 <tr>
@@ -274,7 +274,7 @@ export default function ActivitiesReportPage() {
             </table>
 
             {/* Pagination */}
-            <div className="flex justify-end gap-6 px-6 py-4 mr-16">
+            <div className="flex justify-end gap-6 px-6 py-4 mr-4 sm:mr-16">
               <button
                 onClick={() => setCurrentPage((p) => p - 1)}
                 disabled={currentPage === 1}

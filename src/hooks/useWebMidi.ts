@@ -9,7 +9,7 @@ export type MidiDeviceOption = {
   state: "connected" | "disconnected";
 };
 
-function mapInputs(access: WebMidi.MIDIAccess): MidiDeviceOption[] {
+function mapInputs(access: MIDIAccess): MidiDeviceOption[] {
   return Array.from(access.inputs.values()).map((input) => ({
     id: input.id,
     name: input.name || "Unnamed input",
@@ -18,7 +18,7 @@ function mapInputs(access: WebMidi.MIDIAccess): MidiDeviceOption[] {
   }));
 }
 
-function mapOutputs(access: WebMidi.MIDIAccess): MidiDeviceOption[] {
+function mapOutputs(access: MIDIAccess): MidiDeviceOption[] {
   return Array.from(access.outputs.values()).map((output) => ({
     id: output.id,
     name: output.name || "Unnamed output",
@@ -28,14 +28,14 @@ function mapOutputs(access: WebMidi.MIDIAccess): MidiDeviceOption[] {
 }
 
 export function useWebMidi() {
-  const accessRef = useRef<WebMidi.MIDIAccess | null>(null);
+  const accessRef = useRef<MIDIAccess | null>(null);
   const [supported, setSupported] = useState(true);
   const [loading, setLoading] = useState(true);
   const [inputs, setInputs] = useState<MidiDeviceOption[]>([]);
   const [outputs, setOutputs] = useState<MidiDeviceOption[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const applyAccess = useCallback((access: WebMidi.MIDIAccess) => {
+  const applyAccess = useCallback((access: MIDIAccess) => {
     accessRef.current = access;
     setInputs(mapInputs(access));
     setOutputs(mapOutputs(access));
