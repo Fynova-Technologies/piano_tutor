@@ -130,8 +130,9 @@ export default function PartFavorite() {
           <GetPopupContainer
             dialogueSong={dialogueSong}
             openDialogue={openDialogue}
-            setOpenDialogue={setOpenDialogue}
-          />
+            setOpenDialogue={setOpenDialogue} liked={liked} onToggleLike={function (): void {
+              throw new Error("Function not implemented.");
+            } }          />
         )}
       </div>
     </div>
