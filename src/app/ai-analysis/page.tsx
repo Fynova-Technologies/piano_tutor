@@ -5,12 +5,14 @@ import AiReviewRecoveryCenter from "@/features/ai-review/AiReviewRecoveryCenter"
 
 export default function AiAnalysisPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="p-12 text-center text-sm text-neutral-600">Loading insights…</div>
-      }
-    >
+    <>
+      <Suspense
+        fallback={
+          <div className="p-12 text-center text-sm text-neutral-600">Loading insights…</div>
+        }
+      >
       <AiReviewRecoveryCenter />
     </Suspense>
+    </>
   );
 }

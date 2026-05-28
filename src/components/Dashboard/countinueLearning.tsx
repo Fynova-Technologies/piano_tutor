@@ -12,7 +12,7 @@ export default function ContinueLearning() {
   // ── Loading skeleton ────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex justify-center bg-[#F8F6F1] px-1 pb-4">
+      <div className=" bg-[#F8F6F1] px-1 pb-4">
         <div className="max-w-[90%] w-full">
           <h1 className="text-black text-2xl font-bold">Continue Learning</h1>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 py-4">
@@ -37,7 +37,7 @@ export default function ContinueLearning() {
 
           {/* Dashed border container */}
           <div
-            className="w-full rounded-2xl border-2 border-dashed flex items-center justify-center border-[#D6CFC0] bg-[#FDFCF8]"
+            className="w-full rounded-2xl border-2 border-dashed flex items-center justify-center border-[#D6CFC0]"
             style={{ minHeight: "160px" }}
           >
             <div className="flex flex-col sm:flex-row items-center justify-start gap-4 sm:gap-6 px-6 py-6 sm:px-10 sm:py-8">
@@ -59,12 +59,12 @@ export default function ContinueLearning() {
                 <h2 className="text-[#1A1A1A] text-base sm:text-lg font-bold leading-snug">
                   No lessons in progress
                 </h2>
-                <p className="text-[#7A7A7A] text-sm leading-relaxed max-w-[260px] sm:max-w-xs">
+                <p className="text-[#6B6B6B] text-[16px] leading-relaxed max-w-[260px] sm:max-w-xs">
                   Start your first lesson to continue learning here.
                 </p>
                 <button
                   onClick={() => router.push("/method")}
-                  className="mt-2 flex items-center gap-1.5 bg-gradient-to-l from-[#FFD700] via-[#FFA500] to-[#FFEC8B] hover:bg-[#e8b800] active:bg-[#d4a800] transition-colors duration-200 text-[#151517] text-sm font-semibold px-5 py-2.5 rounded-full shadow-sm"
+                  className="mt-2 flex items-center gap-2 bg-gradient-to-l from-[#FFD700] via-[#FFA500] to-[#FFEC8B] hover:bg-[#e8b800] active:bg-[#d4a800] transition-colors duration-200 text-[#151517] text-sm font-semibold px-4 py-2 rounded-2xl shadow-sm"
                 >
                   Browse Lesson
                   <span className="text-base leading-none">›</span>

@@ -32,8 +32,10 @@ function OfficialLessonInner() {
 
 export default function LessonsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-black/60">Loading lesson…</div>}>
-      <OfficialLessonInner />
-    </Suspense>
+    <>
+      <Suspense fallback={<div className="p-8 text-center text-black/60">Loading lesson…</div>}>
+        <OfficialLessonInner />
+      </Suspense>
+    </>
   );
 }

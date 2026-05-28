@@ -222,6 +222,7 @@ export default function PianoLesson() {
   };
 
   return (
+    <>
     <div className="min-h-screen bg-[#F8F6F1] py-16 px-6 md:px-12 lg:px-24">
       <div className={`${isMobile ? "" : "flex"}`}>
         {/* ── Piano key sidebar ──────────────────────────────────────── */}
@@ -332,5 +333,6 @@ export default function PianoLesson() {
         </div>
       </div>
     </div>
+    </>
   );
 }

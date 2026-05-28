@@ -28,6 +28,7 @@ export default function Page() {
 
 
   return (
+    <>    
     <div className="min-h-screen bg-[#f8f5ef] flex flex-col items-center p-8 w-full">
       <div className="max-w-[90%] w-full flex flex-col md:flex-row gap-6">
         
@@ -71,9 +72,9 @@ export default function Page() {
                 </button>
             </div>
             
-            <div className="bg-[#faf7f0] rounded-xl p-4 relative mt-4 border-4 border-[#BCBCBC] ">
+            <div className="bg-[#FEFEFE] rounded-xl p-4 relative mt-4 border-4 border-[#BCBCBC] h-[90%] ">
               
-              <div className="h-96">
+              <div className="h-[80%]">
                 <SASRReport />
                 
               </div>
@@ -127,5 +128,6 @@ export default function Page() {
         )}
       </div>  
     </div>
+    </>
   );
 }

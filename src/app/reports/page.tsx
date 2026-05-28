@@ -196,6 +196,7 @@ export default function Reports() {
 
 
   return (
+    <>
     <div className="min-h-screen bg-[#f8f5ef] p-8 flex flex-col items-center gap-8">
       {/* Top Charts */}
       <div className="grid md:grid-cols-2 gap-8 w-full p-8">
@@ -444,5 +445,6 @@ export default function Reports() {
       </div>
     </div>
     </div>
+    </>
   );
 }

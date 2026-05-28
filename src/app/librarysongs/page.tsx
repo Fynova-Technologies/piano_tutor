@@ -16,6 +16,7 @@ import {
   getSegmentColor,
 } from "@/utils/segmentutil";
 import { SectionSelector, useSectionSelector } from "@/components/library/sectionselector";
+import Navbar from "@/components/navbar";
 
 interface PlayedNote {
   midi: number;

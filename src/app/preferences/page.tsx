@@ -93,6 +93,7 @@ export default function PreferencesPage() {
   const { appearance, learning, notifications, localization, accountExperience, accessibility } = preferences;
 
   return (
+    <>
     <div className="min-h-screen bg-[#F8F6F1]">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 pb-20">
 
@@ -416,5 +417,6 @@ export default function PreferencesPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

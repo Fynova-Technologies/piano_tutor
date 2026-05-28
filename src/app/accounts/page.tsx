@@ -47,10 +47,12 @@ export default async function AccountPage() {
     .single();
 
   return (
-    <AccountPageUI
-      user={user}
-      profile={profile}
-      subscription={subscription}
-    />
+    <>
+      <AccountPageUI
+        user={user}
+        profile={profile}
+        subscription={subscription}
+      />
+    </>
   );
 }

@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/navbar";
+// import Navbar from "@/components/navbar";
 import { AuthProvider } from "@/utils/Authsegment";
 import { LessonsProvider } from "@/utils/userprogress/lessonprogress";
 import { AudioProvider } from "@/components/audio/AudioProvider";
+// import UnauthUserNavbar from "@/components/navbar2";
+import NavbarSwitcher from "@/components/navswitcher";
 
 
 const inter = Inter({
@@ -35,7 +37,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${poppins.variable}`}
       >
-        <Navbar/>
+        <NavbarSwitcher />
         <main className="w-full">
           <AuthProvider>
             <AudioProvider>

@@ -1,5 +1,4 @@
 import Image from 'next/image';
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PopupHeartIcon from '@/components/favouritepopup/popupHeartanimation';
 
@@ -90,17 +89,16 @@ export default function GetPopupContainer({
   dialogueSong,
   openDialogue,
   setOpenDialogue,
+  liked,           // ✅ add this
+  onToggleLike,    // ✅ add this
 }: {
   dialogueSong: SongInformation;
   openDialogue: boolean;
   setOpenDialogue: React.Dispatch<React.SetStateAction<boolean>>;
+  liked: Record<string, boolean>;                // ✅ add this
+  onToggleLike: (songId: string) => void;        // ✅ add this
 }) {
   const router = useRouter();
-  const [liked, setLiked] = useState<{ [id: string]: boolean }>({});
-
-  const handleClick = (id: string) => {
-    setLiked((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
 
   // Determine which rows are unlocked based on song's variant
   const songVariantRank = VARIANT_RANK[dialogueSong.categories.difficulty.level] ?? 1;
@@ -126,9 +124,9 @@ export default function GetPopupContainer({
         <div className="flex justify-between">
           <h2 className="text-lg font-bold mb-4 text-black">{dialogueSong.title}</h2>
           <div className="flex justify-space-between items-center gap-4">
-            <div className="cursor-pointer text-black" onClick={() => handleClick(dialogueSong.id)}>
-              <PopupHeartIcon isLiked={liked[dialogueSong.id]} />
-            </div>
+            <div className="cursor-pointer text-black" onClick={() => onToggleLike(dialogueSong.id)}>
+  <PopupHeartIcon isLiked={!!liked[dialogueSong.id]} />  {/* ✅ uses shared state */}
+</div>
             <Image
               src="/assets/cross-circle.svg"
               alt="Close"

@@ -73,12 +73,33 @@ export default function SASRReport() {
             <AreaChart data={GHOST_DATA}>
               <defs>
                 <linearGradient id="ghostGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="2%" stopColor="#581845" stopOpacity={0.5} />
-                  <stop offset="100%" stopColor="#581845" stopOpacity={0} />
+                  <stop offset="2%" stopColor="#000000B2" stopOpacity={0.5} />
+                  <stop offset="100%" stopColor="#000000B2" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-              <YAxis domain={[0, 100]} />
+              <XAxis 
+  dataKey="date" 
+  tick={(props) => {
+    const { x, y, payload } = props;
+    return (
+      <text x={x} y={y} dy={16} textAnchor="middle" fill="#1A1A1A" fontSize={12}>
+        {payload.value}
+      </text>
+    );
+  }}
+/>
+
+<YAxis 
+  domain={[0, 100]}
+  tick={(props) => {
+    const { x, y, payload } = props;
+    return (
+      <text x={x} y={y} dy={4} textAnchor="end" fill="#1A1A1A" fontSize={12}>
+        {payload.value}
+      </text>
+    );
+  }}
+/>
               <CartesianGrid strokeDasharray="6 6" opacity={0.4} />
               <Area
                 dataKey="score"
@@ -190,8 +211,29 @@ export default function SASRReport() {
             <stop offset="100%" stopColor="#581845" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-        <YAxis domain={[0, 100]} />
+        <XAxis 
+  dataKey="date" 
+  tick={(props) => {
+    const { x, y, payload } = props;
+    return (
+      <text x={x} y={y} dy={16} textAnchor="middle" fill="#1A1A1A" fontSize={12}>
+        {payload.value}
+      </text>
+    );
+  }}
+/>
+
+<YAxis 
+  domain={[0, 100]}
+  tick={(props) => {
+    const { x, y, payload } = props;
+    return (
+      <text x={x} y={y} dy={4} textAnchor="end" fill="#1A1A1A" fontSize={12}>
+        {payload.value}
+      </text>
+    );
+  }}
+/>
         <CartesianGrid strokeDasharray="6 6" opacity={0.4} />
         <Tooltip />
         <Area
