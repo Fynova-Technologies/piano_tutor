@@ -1,8 +1,17 @@
 "use client";
-import MusicCategories from "@/components/Dashboard/musicCategories";
-import ContinueLearning from "@/components/Dashboard/countinueLearning";
-import Favorite from "@/components/Dashboard/favorites";
-import AiAnalysisDashboardCard from "@/components/Dashboard/aiAnalysisDashboardCard";
+
+import Stats from "@/features/home/stats";
+import Hero from "@/features/home/hero";
+import PianoKeys from "@/features/home/pianokeys";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { Piano } from "lucide-react";
+import ProcessSection from "@/features/home/process";
+import CTASection from "@/features/home/cta";
+import FAQSection from "@/features/home/faqsection";
+import Footer from "@/features/home/footer";
+import PlatformSection from "@/features/home/platform";
+import Pricesection from "@/features/home/pricesection";
+import TestimonialSection from "@/features/home/testimonial";
 
 export default function Home() {
   
@@ -11,15 +20,21 @@ export default function Home() {
     <div className=" font-[family-name:var(--font-geist-sans)]">
       <div className="overflow-y-auto">
             <div className="flex  justify-center bg-[#F8F6F1] px-1 py-16">
-              <div className="max-w-[90%] w-full text-center">
-                <MusicCategories/>
-                <AiAnalysisDashboardCard />
+              <div className=" w-full text-center">
+                <Hero />
+                <PianoKeys />
+                <Stats />
+                <ProcessSection />
+                <PlatformSection />
+                <Pricesection />
+                <TestimonialSection />
+                <FAQSection />
+                <CTASection />
+                
+                <Footer />
+
               </div>
-      
             </div>
-            <ContinueLearning />
-            <Favorite/>
-      
           </div>
     </div>
   );

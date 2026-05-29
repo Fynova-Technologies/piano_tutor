@@ -9,7 +9,7 @@ import UserPopup from '@/features/components/userpopup';
 import NotificationPopup from '@/features/components/notification';
 
 const navItems = [
-  { name: 'Dashboard', href: '/' },
+  { name: 'Dashboard', href: '/dashboard' },
   {name: 'Library',href:"/library"},
   { name: 'Methods', href: '/method' },
 

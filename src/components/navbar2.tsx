@@ -1,6 +1,8 @@
 "use client";
+import Link from 'next/link';
 
 export default function UnauthUserNavbar() {
+
   return (
     <nav className="bg-[#1A1A1A] px-8 py-4 flex items-center justify-between">
       {/* Left nav links */}
@@ -28,12 +30,12 @@ export default function UnauthUserNavbar() {
 
       {/* Right CTA buttons */}
       <div className="flex items-center gap-3">
-        <button className="text-white text-xs tracking-[0.2em] uppercase border border-white/30 rounded-full px-5 py-2 hover:border-white transition-colors duration-200">
+        <Link href={"/login"} className="text-white text-xs tracking-[0.2em] uppercase border border-white/30 rounded-full px-5 py-2 hover:border-white transition-colors duration-200">
           Login
-        </button>
-        <button className="bg-[#C9A84C] text-white text-xs tracking-[0.2em] uppercase rounded-full px-5 py-2 font-semibold hover:bg-[#B8963E] transition-colors duration-200">
+        </Link>
+        <Link href={"/signup"} className="bg-[#C9A84C] text-white text-xs tracking-[0.2em] uppercase rounded-full px-5 py-2 font-semibold hover:bg-[#B8963E] transition-colors duration-200">
           Get Started
-        </button>
+        </Link>
       </div>
     </nav>
   );
