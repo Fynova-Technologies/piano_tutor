@@ -2,7 +2,30 @@
 
 import { useState } from "react";
 
-const plans = {
+// ✅ Replace these with your actual Price IDs from Stripe Dashboard
+// Stripe Dashboard → Products → Create Product → Copy price_xxx ID
+const PRICE_IDS = {
+  sonata_monthly:   "price_1TdktsAliuvzuFLSeCMhQAId",
+  sonata_annual:    "price_1TdkzTAliuvzuFLSER8W026i",
+  concerto_monthly: "price_1TdkwYAliuvzuFLSGNY6yOn2",
+  concerto_annual:  "price_1TdkyVAliuvzuFLSjsPqJsNk",
+};
+
+type Feature = { text: string; included: boolean };
+
+type Plan = {
+  name: string;
+  tag: string | null;
+  description: string;
+  price: number;
+  period: string;
+  priceId?: string;
+  features: Feature[];
+  cta: string;
+  ctaStyle: string;
+};
+
+const plans: { monthly: Plan[]; annual: Plan[] } = {
   monthly: [
     {
       name: "Prelude",
@@ -27,6 +50,7 @@ const plans = {
       description: "For serious learners committed to real progress.",
       price: 19,
       period: "/ month",
+      priceId: PRICE_IDS.sonata_monthly,
       features: [
         { text: "Unlimited lessons", included: true },
         { text: "All skill levels & genres", included: true },
@@ -44,6 +68,7 @@ const plans = {
       description: "For institutions, studios, and multi-student households.",
       price: 49,
       period: "/ month",
+      priceId: PRICE_IDS.concerto_monthly,
       features: [
         { text: "Up to 8 student seats", included: true },
         { text: "Everything in Sonata", included: true },
@@ -52,7 +77,7 @@ const plans = {
         { text: "Unlimited masterclasses", included: true },
         { text: "Priority support", included: true },
       ],
-      cta: "Contact Sales",
+      cta: "Get Concerto",
       ctaStyle: "outline",
     },
   ],
@@ -80,6 +105,7 @@ const plans = {
       description: "For serious learners committed to real progress.",
       price: 13,
       period: "/ month",
+      priceId: PRICE_IDS.sonata_annual,
       features: [
         { text: "Unlimited lessons", included: true },
         { text: "All skill levels & genres", included: true },
@@ -97,6 +123,7 @@ const plans = {
       description: "For institutions, studios, and multi-student households.",
       price: 34,
       period: "/ month",
+      priceId: PRICE_IDS.concerto_annual,
       features: [
         { text: "Up to 8 student seats", included: true },
         { text: "Everything in Sonata", included: true },
@@ -105,7 +132,7 @@ const plans = {
         { text: "Unlimited masterclasses", included: true },
         { text: "Priority support", included: true },
       ],
-      cta: "Contact Sales",
+      cta: "Get Concerto",
       ctaStyle: "outline",
     },
   ],
@@ -113,7 +140,51 @@ const plans = {
 
 export default function PricingSection() {
   const [annual, setAnnual] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const active = annual ? plans.annual : plans.monthly;
+
+  async function handleCheckout(plan: Plan) {
+    // Free plan — no checkout needed
+    if (!plan.priceId || plan.price === 0) return;
+
+    setError(null);
+    setLoadingPlan(plan.name);
+
+    try {
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          priceId: plan.priceId,
+          planName: plan.name.toLowerCase(),
+        }),
+      });
+
+      const data = await res.json();
+
+      // Not logged in → send to login page
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
+
+      if (!res.ok) {
+        setError(data.error || "Something went wrong. Please try again.");
+        return;
+      }
+
+      // ✅ Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      console.error("Checkout error:", err);
+      setError("Network error. Please try again.");
+    } finally {
+      setLoadingPlan(null);
+    }
+  }
 
   return (
     <section className="bg-[#F5F2ED] px-6 py-20 md:py-28">
@@ -145,7 +216,7 @@ export default function PricingSection() {
           </span>
           <button
             onClick={() => setAnnual((v) => !v)}
-            className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${annual ? "bg-[#C9A84C]" : "bg-[#C9A84C]"}`}
+            className="relative w-11 h-6 rounded-full bg-[#C9A84C] transition-colors duration-300"
           >
             <span
               className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform duration-300 ${annual ? "translate-x-5" : "translate-x-0"}`}
@@ -159,13 +230,18 @@ export default function PricingSection() {
           </span>
         </div>
 
+        {/* Error Banner */}
+        {error && (
+          <div className="mb-6 bg-red-500/10 border border-red-500/30 text-red-400 text-xs text-center py-3 px-4 rounded-xl">
+            {error}
+          </div>
+        )}
+
         {/* Cards */}
         <div className="bg-[#1C1C1C] rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#2A2A2A]">
           {active.map((plan) => (
-            <div
-              key={plan.name}
-              className="p-8 flex flex-col gap-6 relative"
-            >
+            <div key={plan.name} className="p-8 flex flex-col gap-6 relative">
+
               {/* Most Popular tag */}
               {plan.tag && (
                 <div className="absolute top-6 left-8">
@@ -206,11 +282,7 @@ export default function PricingSection() {
                     ) : (
                       <span className="w-3.5 h-px bg-[#3A3A3A] shrink-0 ml-0.5" />
                     )}
-                    <span
-                      className={`text-xs ${
-                        f.included ? "text-[#CCCCCC]" : "text-[#3A3A3A]"
-                      }`}
-                    >
+                    <span className={`text-xs ${f.included ? "text-[#CCCCCC]" : "text-[#3A3A3A]"}`}>
                       {f.text}
                     </span>
                   </li>
@@ -220,15 +292,34 @@ export default function PricingSection() {
               {/* CTA */}
               <div className="mt-2">
                 {plan.ctaStyle === "gold" ? (
-                  <button className="w-full bg-[#C9A84C] hover:bg-[#B8963E] text-white text-xs tracking-[0.2em] uppercase font-semibold rounded-full py-3.5 transition-colors duration-200">
-                    {plan.cta}
+                  <button
+                    onClick={() => handleCheckout(plan)}
+                    disabled={loadingPlan === plan.name}
+                    className="w-full bg-[#C9A84C] hover:bg-[#B8963E] disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs tracking-[0.2em] uppercase font-semibold rounded-full py-3.5 transition-colors duration-200 flex items-center justify-center gap-2"
+                  >
+                    {loadingPlan === plan.name ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        Redirecting...
+                      </>
+                    ) : plan.cta}
                   </button>
                 ) : (
-                  <button className="w-full border border-[#3A3A3A] hover:border-[#C9A84C] text-[#AAAAAA] hover:text-[#C9A84C] text-xs tracking-[0.2em] uppercase font-medium rounded-full py-3.5 transition-colors duration-200">
-                    {plan.cta}
+                  <button
+                    onClick={() => handleCheckout(plan)}
+                    disabled={loadingPlan === plan.name}
+                    className="w-full border border-[#3A3A3A] hover:border-[#C9A84C] disabled:opacity-60 disabled:cursor-not-allowed text-[#AAAAAA] hover:text-[#C9A84C] text-xs tracking-[0.2em] uppercase font-medium rounded-full py-3.5 transition-colors duration-200 flex items-center justify-center gap-2"
+                  >
+                    {loadingPlan === plan.name ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-[#C9A84C]/40 border-t-[#C9A84C] rounded-full animate-spin" />
+                        Redirecting...
+                      </>
+                    ) : plan.cta}
                   </button>
                 )}
               </div>
+
             </div>
           ))}
         </div>

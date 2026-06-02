@@ -2,7 +2,7 @@
 
 import Stats from "@/features/home/stats";
 import Hero from "@/features/home/hero";
-import PianoKeys from "@/features/home/pianokeys";
+// import PianoKeys from "@/features/home/pianokeys";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Piano } from "lucide-react";
 import ProcessSection from "@/features/home/process";
@@ -19,10 +19,10 @@ export default function Home() {
   return (
     <div className=" font-[family-name:var(--font-geist-sans)]">
       <div className="overflow-y-auto">
-            <div className="flex  justify-center bg-[#F8F6F1] px-1 py-16">
+            <div className="flex  justify-center bg-[#F8F6F1]">
               <div className=" w-full text-center">
                 <Hero />
-                <PianoKeys />
+                {/* <PianoKeys /> */}
                 <Stats />
                 <ProcessSection />
                 <PlatformSection />

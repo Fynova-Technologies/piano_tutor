@@ -1,11 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+// import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { Sparkles } from "lucide-react";
 import { PianoKeysStripeLight } from "@/features/ai-review/PianoAnalysisChrome";
+import { Lock } from "lucide-react";
+import { useSubscription } from "@/hooks/subscribed/issubscribed";
+import { useState } from "react";
 
 /**
  * Standalone dashboard entry — matches MusicCategories card rhythm (premium white tile, gold hover).
@@ -13,6 +16,21 @@ import { PianoKeysStripeLight } from "@/features/ai-review/PianoAnalysisChrome";
  */
 export default function AiAnalysisDashboardCard() {
   const router = useRouter();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { loading, isAuthenticated, isSubscribed } = useSubscription();
+  const hasAccess = isAuthenticated && isSubscribed;
+  const [popup, setPopup] = useState<{
+  type: "login" | "subscription";
+  message: string;
+} | null>(null);
+
+if (loading) {
+  return (
+    <div className="mt-8 w-full rounded-2xl bg-gray-100 p-10 text-center text-sm text-gray-500">
+      Checking access...
+    </div>
+  );
+}
 
   return (
     <motion.div
@@ -24,22 +42,45 @@ export default function AiAnalysisDashboardCard() {
       <div
         role="button"
         tabIndex={0}
-        onClick={() => router.push("/ai-analysis")}
+        onClick={() => {
+  if (!isAuthenticated) {
+    setPopup({
+      type: "login",
+      message: "Please sign in to access AI Performance Analysis.",
+    });
+    return;
+  }
+
+  if (!isSubscribed) {
+    setPopup({
+      type: "subscription",
+      message: "AI Performance Analysis is available for premium subscribers only.",
+    });
+    return;
+  }
+
+  router.push("/ai-analysis");
+}}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            router.push("/ai-analysis");
+            if (hasAccess) {
+  router.push("/ai-analysis");
+} else {
+  router.push("/pricing");
+}
           }
         }}
         className="relative bg-[#FEFEFE] rounded-2xl w-full hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:shadow-[0_5px_10px_0px_#505050] transition duration-300 cursor-pointer group hover:scale-[1.02] text-left"
       >
-        <Link
+        <Lock className={`absolute right-8 top-4 z-10 h-5 w-5 ${hasAccess ? "text-green-500 hidden" : "text-gray-400 "}`} />
+        {/* <Link
           href="/ai-analysis/recovery"
           onClick={(e) => e.stopPropagation()}
           className="absolute right-4 top-4 z-10 rounded-full border border-[#D4AF37]/40 bg-white/95 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#6b5612] shadow-sm transition hover:bg-[#f2e6c1]"
         >
           Recovery studio
-        </Link>
+        </Link> */}
         <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="relative flex items-center overflow-hidden rounded-3xl">
             <div className="bg-[#FEFEFE] group-hover:bg-[#f2e6c1] transition duration-300 flex flex-col items-start justify-center z-10 min-h-[120px] ml-8 md:ml-16">
@@ -81,6 +122,46 @@ export default function AiAnalysisDashboardCard() {
 
         <PianoKeysStripeLight className="mt-6 rounded-md opacity-[0.55] transition-opacity duration-300 group-hover:opacity-[0.72]" />
       </div>
+      {popup && (
+  <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+      <h3 className="text-xl font-bold text-[#1A1A1A]">
+        {popup.type === "login"
+          ? "Authentication Required"
+          : "Premium Feature"}
+      </h3>
+
+      <p className="mt-3 text-sm text-gray-600">
+        {popup.message}
+      </p>
+
+      <div className="mt-6 flex gap-3 justify-end">
+        <button
+          onClick={() => setPopup(null)}
+          className="rounded-lg border px-4 py-2 text-sm"
+        >
+          Close
+        </button>
+
+        {popup.type === "login" ? (
+          <button
+            onClick={() => router.push("/login")}
+            className="rounded-lg bg-[#D4AF37] px-4 py-2 text-sm text-white"
+          >
+            Login
+          </button>
+        ) : (
+          <button
+            onClick={() => router.push("/pricing")}
+            className="rounded-lg bg-[#D4AF37] px-4 py-2 text-sm text-white"
+          >
+            Upgrade
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+)}
     </motion.div>
   );
 }

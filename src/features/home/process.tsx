@@ -47,27 +47,29 @@ export default function ProcessSection() {
         <div className="flex-1 min-w-0">
           {/* Process label */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-px bg-[#C9A84C]" />
-            <span className="text-[#C9A84C] text-[10px] tracking-[0.3em] uppercase font-medium">
+            <div className="w-8 h-px bg-[#C49A3C]" />
+            <span className="text-[#C49A3C] text-[14px] tracking-[3.26px] uppercase font-medium font-inter">
               Process
             </span>
           </div>
 
           {/* Headline */}
-          <h2 className="font-serif text-5xl md:text-6xl font-black text-[#1A1A1A] leading-tight mb-6">
-            From Zero
-            <br />
-            to{" "}
-            <em className="text-[#C9A84C] font-black not-italic" style={{ fontStyle: "italic" }}>
+          <div className="flex items-start">
+          <span className="font-inter font-bold text-[56px] text-black leading-[60px] tracking-[-0.58px] mb-6">
+            From Zero<br/>to{" "}
+            <em className="text-[#D4AF37] font-black not-italic text-[56px] leading-[60px] tracking-[-0.58px] font-inter" style={{ fontStyle: "italic" }}>
               Sonata
             </em>
-          </h2>
+          </span>
+          </div>
 
           {/* Subtext */}
-          <p className="text-[#7A6E65] text-sm leading-relaxed mb-12 max-w-xs">
+          <div className="flex items-start">
+          <span className="text-[#5D5D5D] font-light text-start text-[14px] leading-relaxed mb-12 max-w-md">
             A structured path that meets you wherever you are — beginner, lapsed
             player, or serious student.
-          </p>
+          </span>
+          </div>
 
           {/* Steps */}
           <div className="flex flex-col gap-8">

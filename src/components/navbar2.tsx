@@ -8,13 +8,13 @@ export default function UnauthUserNavbar() {
       {/* Left nav links */}
       <div className="flex items-center gap-8">
         <a
-          href="#"
+          href="/dashboard"
           className="text-white text-xs tracking-[0.2em] font-medium hover:text-[#C9A84C] transition-colors duration-200 uppercase"
         >
           About
         </a>
         <a
-          href="#"
+          href="/method"
           className="text-white text-xs tracking-[0.2em] font-medium hover:text-[#C9A84C] transition-colors duration-200 uppercase"
         >
           Courses
@@ -33,7 +33,7 @@ export default function UnauthUserNavbar() {
         <Link href={"/login"} className="text-white text-xs tracking-[0.2em] uppercase border border-white/30 rounded-full px-5 py-2 hover:border-white transition-colors duration-200">
           Login
         </Link>
-        <Link href={"/signup"} className="bg-[#C9A84C] text-white text-xs tracking-[0.2em] uppercase rounded-full px-5 py-2 font-semibold hover:bg-[#B8963E] transition-colors duration-200">
+        <Link href={"/dashboard"} className="bg-[#C9A84C] text-white text-xs tracking-[0.2em] uppercase rounded-full px-5 py-2 font-semibold hover:bg-[#B8963E] transition-colors duration-200">
           Get Started
         </Link>
       </div>
