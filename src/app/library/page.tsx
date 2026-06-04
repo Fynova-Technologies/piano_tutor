@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 import { useState, useEffect } from "react";
-import { createBrowserClient } from "@supabase/ssr";
 import SearchSongs from "@/components/library/searchSongs";
 import SongRow from "./songrow";
 import Image from "next/image";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
+import { useSubscription } from "@/hooks/subscribed/issubscribed";
 
 type SongInformation = {
   id: string;
@@ -13,6 +15,7 @@ type SongInformation = {
   variant: string;
   file: string;
   imageUrl: string;
+  isPremium: boolean;
   artist: { id: string; name: string; slug: string };
   categories: {
     genres: { id: string; name: string; slug: string }[];
@@ -22,13 +25,13 @@ type SongInformation = {
 };
 
 export default function Library() {
-const supabase =  createBrowserClient(  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-
+  const supabase =  getSupabaseBrowserClient(); // ← use the singleton client
   const [allSongs, setAllSongs] = useState<SongInformation[]>([]);
   const [liked, setLiked] = useState<Record<string, boolean>>({});
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { isSubscribed, isReady } = useSubscription();
 
   // 1. Get user
   useEffect(() => {
@@ -59,11 +62,11 @@ const supabase =  createBrowserClient(  process.env.NEXT_PUBLIC_SUPABASE_URL!,
         .select("song_id")
         .eq("user_id", user.id); // 👈 use user.id directly, not state
 
-      console.log("favData:", favData, "error:", error);
+      console.log("favData:", favData, "error:", error);  
 
       if (favData) {
         const likedMap: Record<string, boolean> = {};
-        favData.forEach(({ song_id }) => { likedMap[song_id] = true; });
+        favData.forEach(({ song_id }:any) => { likedMap[song_id] = true; });
         setLiked(likedMap);
       }
     }
@@ -91,7 +94,7 @@ const supabase =  createBrowserClient(  process.env.NEXT_PUBLIC_SUPABASE_URL!,
 
         if (favData) {
           const likedMap: Record<string, boolean> = {};
-          favData.forEach(({ song_id }) => { likedMap[song_id] = true; });
+          favData.forEach(({ song_id }:any) => { likedMap[song_id] = true; });
           setLiked(likedMap);
         }
       }
@@ -171,15 +174,15 @@ const supabase =  createBrowserClient(  process.env.NEXT_PUBLIC_SUPABASE_URL!,
                 </div>
               </div>
             ) : (
-              <SongRow title="" songs={favoriteSongs} liked={liked} onToggleLike={handleToggleLike} />
+              <SongRow title="" songs={favoriteSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
             )}
           </div>
 
           {/* Other categories */}
-          <SongRow title="🆕 New Releases" songs={newSongs} liked={liked} onToggleLike={handleToggleLike} />
-          <SongRow title="🎹 Classical" songs={classicalSongs} liked={liked} onToggleLike={handleToggleLike} />
-          <SongRow title="🎸 Rock" songs={rockSongs} liked={liked} onToggleLike={handleToggleLike} />
-          <SongRow title="🟢 Beginner Picks" songs={beginnerSongs} liked={liked} onToggleLike={handleToggleLike} />
+          <SongRow title="🆕 New Releases" songs={newSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+          <SongRow title="🎹 Classical" songs={classicalSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+          <SongRow title="🎸 Rock" songs={rockSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+          <SongRow title="🟢 Beginner Picks" songs={beginnerSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@
     "variant": "beginner",
     "file": "/library/Arabesque_L._66_No._1_in_E_Major.mxl",
     "imageUrl":"/songs/s1.jpg",
+    "isPremium": true,
 
     "artist": {
       "id": "art_0001",
@@ -44,6 +45,7 @@
     "variant": "beginner",
     "file": "/library/Ave_Maria_D839_-_Schubert_-_Solo_Piano_Arrg..mxl",
     "imageUrl":"/songs/s2.jpg",
+    "isPremium": true,
 
     "artist": {
       "id": "art_0002",
@@ -81,6 +83,7 @@
     "variant": "intermediate",
     "file":"/library/Bach_Minuet_in_G_Major_BWV_Anh._114.mxl",
     "imageUrl":"/songs/s3.jpg",
+    "isPremium": false,
 
     "artist": {
       "id": "art_0003",
@@ -118,6 +121,7 @@
         "variant": "beginner",
         "file":"/library/Bach_Toccata_and_Fugue_in_D_Minor_Piano_solo.mxl",
         "imageUrl":"/songs/s4.jpg",
+        "isPremium": false,
     
         "artist": {
         "id": "art_0004",
@@ -155,6 +159,7 @@
         "variant": "intermediate",
         "file":"/library/Beethoven_Symphony_No._5_1st_movement_Piano_solo.mxl",
         "imageUrl":"/songs/s5.jpg",
+        "isPremium": true,
     
         "artist": {
         "id": "art_0005",
@@ -192,6 +197,7 @@
         "variant": "advanced",
         "file":"/library/beethoven-symphony-no-9-op-125.mxl",
         "imageUrl":"/songs/s1.jpg",
+        "isPremium": true,
     
         "artist": {
         "id": "art_0005",
@@ -229,6 +235,7 @@
         "variant": "advanced",
         "file": "/library/Bella_Ciao_-_La_Casa_de_Papel.mxl",
         "imageUrl":"/songs/s2.jpg",
+        "isPremium": false,
     
         "artist": {
         "id": "art_0006",
@@ -266,6 +273,7 @@
         "variant": "advanced",
         "file":"/library/Bella_Ciao.mxl",
         "imageUrl":"/songs/s3.jpg",
+        "isPremium": true,
 
         "artist": {
         "id": "art_0007",
@@ -303,6 +311,7 @@
         "variant": "advanced",
         "file":"/library/Canon_in_D_3.mxl",
         "imageUrl":"/songs/s4.jpg",
+        "isPremium": true,
     
         "artist": {
         "id": "art_0008",
@@ -340,6 +349,7 @@
         "variant": "advanced",
         "file":"/library/Canon_in_D_easy.mxl",
         "imageUrl":"/songs/s5.jpg",
+        "isPremium": true,
     
         "artist": {
         "id": "art_0008",
@@ -377,6 +387,7 @@
         "variant": "advanced",
         "file": "/library/Canon_in_D.mxl",
         "imageUrl":"/songs/s1.jpg",
+        "isPremium": true,
     
         "artist": {
         "id": "art_0008",

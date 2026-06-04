@@ -43,6 +43,9 @@ if (loading) {
         role="button"
         tabIndex={0}
         onClick={() => {
+  // Guard: don't act if subscription state hasn't resolved yet
+  if (loading) return;
+
   if (!isAuthenticated) {
     setPopup({
       type: "login",
@@ -62,15 +65,20 @@ if (loading) {
   router.push("/ai-analysis");
 }}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            if (hasAccess) {
-  router.push("/ai-analysis");
-} else {
-  router.push("/pricing");
-}
-          }
-        }}
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    // ✅ Was using hasAccess (stale snapshot) — now matches onClick logic exactly
+    if (!isAuthenticated) {
+      setPopup({ type: "login", message: "Please sign in to access AI Performance Analysis." });
+      return;
+    }
+    if (!isSubscribed) {
+      setPopup({ type: "subscription", message: "AI Performance Analysis is available for premium subscribers only." });
+      return;
+    }
+    router.push("/ai-analysis");
+  }
+}}
         className="relative bg-[#FEFEFE] rounded-2xl w-full hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:shadow-[0_5px_10px_0px_#505050] transition duration-300 cursor-pointer group hover:scale-[1.02] text-left"
       >
         <Lock className={`absolute right-8 top-4 z-10 h-5 w-5 ${hasAccess ? "text-green-500 hidden" : "text-gray-400 "}`} />
