@@ -264,7 +264,7 @@ export default function CursorControls (props: CursorControlsProps) {
                   <button
                     type="button"
                     className="flex h-14 w-14 items-center justify-center rounded-full border border-[#0A0A0B] bg-white hover:bg-zinc-100 cursor-pointer shadow-sm"
-                    onClick={() => pauseCursor(osmdRef, setIsPlaying, playModeRef)}
+                    onClick={() => pauseCursor(osmdRef, setCountdown, setIsPlaying, playModeRef)}
                     aria-label="Pause"
                   >
                     <FontAwesomeIcon icon={faPause} size="lg" color="#0A0A0B" />
@@ -327,7 +327,7 @@ export default function CursorControls (props: CursorControlsProps) {
                     className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#0A0A0B] bg-white hover:bg-zinc-100 cursor-pointer shadow-md"
                     onClick={() => {
                       if (isPlaying) {
-                        pauseCursor(osmdRef, setIsPlaying, playModeRef);
+                        pauseCursor(osmdRef, setCountdown, setIsPlaying, playModeRef);
                       } else {
                         props.onPlay();
                         playCursor({

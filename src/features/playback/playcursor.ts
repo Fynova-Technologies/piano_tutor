@@ -54,39 +54,50 @@ type PlayCursorArgs = {
       return;
     }
 
-    if (osmd._playTimer) {
-      clearTimeout(osmd._playTimer);
-      osmd._playTimer = null;
-    }
+if (osmd._playTimer) {
+  clearTimeout(osmd._playTimer);
+  osmd._playTimer = null;
+}
 
-      // Reset cursor and show FIRST position
-    osmd.cursor.reset();
-    osmd.cursor.show();
-    notifyPlaybackStarted({ countingIn: true });
-    setCountdown(3);
-    let countdownValue = 3;
-    const countdownInterval = setInterval(() => {
-      countdownValue -= 1;
-      if (countdownValue <= 0) {
-        clearInterval(countdownInterval);
-        setCountdown(null);
-      } else {
-        setCountdown(countdownValue);
-      }
-    }, 1000);
-  
-    playModeRef.current = true;
-    setTimeout(() => {
-      setIsPlaying(true);
-      playModeRef.current = true;
-      totalStepsRef.current = 0;
-      correctStepsRef.current = 0;
-      scoredStepsRef.current.clear();
-      setScore(null);
+// ADD: cancel any in-progress countdown
+if (osmd._countdownInterval) {
+  clearInterval(osmd._countdownInterval);
+  osmd._countdownInterval = null;
+}
+if (osmd._countdownTimeout) {
+  clearTimeout(osmd._countdownTimeout);
+  osmd._countdownTimeout = null;
+}
+setCountdown(null); // always clear UI immediately on re-trigger
 
-      const idx = 0; // Always start from 0 after countdown
-      startActualPlayback(idx, steps);
-    }, 3000); // 3 second countdown
+osmd.cursor.reset();
+osmd.cursor.show();
+notifyPlaybackStarted({ countingIn: true });
+setCountdown(3);
+
+let countdownValue = 3;
+osmd._countdownInterval = setInterval(() => {   // ← store on osmd
+  countdownValue -= 1;
+  if (countdownValue <= 0) {
+    clearInterval(osmd._countdownInterval);
+    osmd._countdownInterval = null;
+    setCountdown(null);
+  } else {
+    setCountdown(countdownValue);
+  }
+}, 1000);
+
+playModeRef.current = true;
+osmd._countdownTimeout = setTimeout(() => {     // ← store on osmd
+  osmd._countdownTimeout = null;
+  setIsPlaying(true);
+  playModeRef.current = true;
+  totalStepsRef.current = 0;
+  correctStepsRef.current = 0;
+  scoredStepsRef.current.clear();
+  setScore(null);
+  startActualPlayback(0, steps);
+}, 3000);
 
     function startActualPlayback(startIdx: number, steps: number[]) {
       const osmd = osmdRef.current;

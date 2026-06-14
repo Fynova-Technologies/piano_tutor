@@ -101,6 +101,7 @@ const [uploadLoading, setUploadLoading] = useState(false);
   const lessons = useLessons();
   const markComplete = lessons?.markComplete;
   const markCompleteRef = useRef(markComplete);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
  
 useEffect(() => {
@@ -492,14 +493,14 @@ useEffect(() => {
 
     const onKey = async (ev: KeyboardEvent) => {
       if (ev.code === "Space") {
-        ev.preventDefault();
-        if (isPlaying) {
-          pausePlayback();
-        } else {
-          startPlayback();
-        }
-        return;
+      ev.preventDefault();
+      if (playModeRef.current) {   // ← use ref, not stale isPlaying state
+        pausePlayback();
+      } else {
+        startPlayback();
       }
+      return;
+    }
 
       const midiNote = keyToMidi[ev.key.toLowerCase()];
       if (midiNote && !ev.repeat) {
@@ -523,9 +524,9 @@ useEffect(() => {
       }
     };
 
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [isPlaying]);
+window.addEventListener("keydown", onKey);
+  return () => window.removeEventListener("keydown", onKey);
+}, []);
 
   // ========== PLAYBACK CONTROL ==========
   const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -536,6 +537,12 @@ useEffect(() => {
       console.error("Cannot start - beat cursor not initialized");
       return;
     }
+      // Cancel any in-progress countdown
+  if (countdownIntervalRef.current) {
+    clearInterval(countdownIntervalRef.current);
+    countdownIntervalRef.current = null;
+  }
+  setCountdown(null);
 
     clearAllTracking();
     mistakeEventsRef.current = [];
@@ -580,22 +587,22 @@ useEffect(() => {
     sessionStartRef.current = Date.now();
 
     setCountdown(3);
-    let countdownValue = 3;
-    const countdownInterval = setInterval(() => {
-      countdownValue--;
-      setCountdown(countdownValue);
+let countdownValue = 3;
+  countdownIntervalRef.current = setInterval(() => {  // ← store it
+    countdownValue--;
+    setCountdown(countdownValue);
 
-      if (countdownValue <= 0) {
-        clearInterval(countdownInterval);
-        setCountdown(null);
+    if (countdownValue <= 0) {
+      clearInterval(countdownIntervalRef.current!);
+      countdownIntervalRef.current = null;
+      setCountdown(null);
 
-        if (beatCursorRef.current) {
-          beatCursorRef.current.startPlayback();
-        }
-
-        startAutomaticPlayback();
+      if (beatCursorRef.current) {
+        beatCursorRef.current.startPlayback();
       }
-    }, 1000);
+      startAutomaticPlayback();
+    }
+  }, 1000);
   }
 
   function startAutomaticPlayback() {
@@ -662,7 +669,14 @@ function tick(now: number) {
 
 }
 
-  function pausePlayback() {
+function pausePlayback() {
+  // Cancel countdown if paused mid-count
+  if (countdownIntervalRef.current) {
+    clearInterval(countdownIntervalRef.current);
+    countdownIntervalRef.current = null;
+  }
+  setCountdown(null);  // ← clears the 3 2 1 UI
+
   setIsPlaying(false);
   playModeRef.current = false;
 
@@ -674,7 +688,6 @@ function tick(now: number) {
     clearInterval(playbackIntervalRef.current);
     playbackIntervalRef.current = null;
   }
-
   if (beatCursorRef.current) {
     beatCursorRef.current.stopPlayback();
   }

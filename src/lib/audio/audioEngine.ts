@@ -55,6 +55,9 @@ export function initAudioEngine(): () => void {
     return () => disposeAudioEngine();
   }
   initialized = true;
+    // tear down any stale subscription before creating a new one
+  unsubscribePlayback?.();
+  unsubscribePlayback = null;
 
   const inst = loadInstrumentSettings();
   usePlaybackStore.getState().setCountInEnabled(inst.metronomeCountIn);
@@ -100,13 +103,14 @@ export function initAudioEngine(): () => void {
 }
 
 export function disposeAudioEngine(): void {
+    initialized = false;
+
   unsubscribePlayback?.();
   unsubscribePlayback = null;
   metronomeService.stop();
   backgroundMusicService.stop();
   countdownSoundService.stop();
   void backgroundMusicService.dispose();
-  initialized = false;
 }
 
 export function notifyPlaybackStarted(opts?: { countingIn?: boolean; tempo?: number }): void {

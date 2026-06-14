@@ -8,6 +8,7 @@ class CountdownSoundService {
   };
   private loaded = false;
   private activeTimeouts: ReturnType<typeof setTimeout>[] = [];
+  private activeSources: AudioBufferSourceNode[] = [];  // ← ADD
 
   private async ensureBuffers(): Promise<void> {
     const ctx = await metronomeService.ensureAudioContext();
@@ -21,9 +22,15 @@ class CountdownSoundService {
   stop(): void {
     this.activeTimeouts.forEach(clearTimeout);
     this.activeTimeouts = [];
+
+    // ← ADD: cancel scheduled audio sources
+    this.activeSources.forEach(source => {
+      try { source.stop(); } catch { /* already stopped */ }
+      source.disconnect();
+    });
+    this.activeSources = [];
   }
 
-  /** Schedule count-in clicks aligned to BPM (4 beats). */
   async playCountIn(bpm: number, onComplete?: () => void): Promise<void> {
     this.stop();
     const enabled = useAudioSettingsStore.getState().getEffectiveVolume("countdown");
@@ -47,6 +54,7 @@ class CountdownSoundService {
       source.connect(gainNode);
       gainNode.connect(ctx.destination);
       source.start(beatTime);
+      this.activeSources.push(source);  // ← ADD
     }
 
     const totalMs = ((4 * 60) / bpm + 0.1) * 1000;
@@ -54,7 +62,7 @@ class CountdownSoundService {
     this.activeTimeouts.push(t);
   }
 
-  /** Play a single countdown buffer (for pattern-practice footer). */
+  // playClickAt unchanged
   playClickAt(time: number, countInIndex: number): void {
     const gain = useAudioSettingsStore.getState().getEffectiveVolume("countdown");
     if (gain <= 0) return;

@@ -5,9 +5,9 @@ export const loadCountInSound = async (
 
 ) => {
   const soundUrls = [
-    '/sound/one.mp3',
-    '/sound/two.mp3',
     '/sound/three.mp3',
+    '/sound/two.mp3',
+    '/sound/one.mp3',
     '/sound/start.mp3',
   ];
 

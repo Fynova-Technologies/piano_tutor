@@ -272,7 +272,7 @@ export default function SasrPlayControls (props: CursorControlsProps) {
         className="cursor-pointer bg-[#D4AF37] rounded-[16px] py-[12px] px-[32px] h-[72px] max-w-[218px]  w-full"
         onClick={() => {
           if (isPlaying) {
-            pauseCursor(osmdRef, setIsPlaying, playModeRef);
+            pauseCursor(osmdRef, setCountdown, setIsPlaying, playModeRef);
           } else {
             playCursor({
               osmdRef,
