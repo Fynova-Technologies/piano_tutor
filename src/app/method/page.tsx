@@ -124,32 +124,43 @@ const UnitLesson: React.FC<UnitLessonProps> = ({
                   });
                   onNavigate(`${lesson.link}?${params.toString()}`);
                 }}
-                className={`group cursor-pointer flex px-4 py-1 items-center hover:rounded-2xl hover:bg-[#D4AF37] ${
-                  isActive ? "bg-[#D4AF37] mb-1 border-b-0 rounded-2xl" : ""
-                }`}
+               className={`group cursor-pointer flex px-4 py-1 items-center hover:rounded-2xl hover:bg-[#D4AF37] ${
+    isActive ? "bg-[#D4AF37] mb-1 border-b-0 rounded-2xl" : ""
+  }`}
               >
                 <div>
-                  <Image
-                    src="/Layer_1.png"
-                    width={56}
-                    height={56}
-                    alt="icon"
-                    className={`${
-                      isActive ? "visible" : "invisible"
-                    } group-hover:visible`}
-                  />
-                </div>
+  {/* Desktop: keeps original invisible behavior (takes space, no layout shift) */}
+  <div className="hidden md:block">
+    <Image
+      src="/Layer_1.png"
+      width={56}
+      height={56}
+      alt="icon"
+      className={`${isActive ? "visible" : "invisible"} group-hover:visible`}
+    />
+  </div>
+
+  {/* Mobile: takes no space when hidden, slides in on hover/active */}
+  <div
+    className={`md:hidden overflow-hidden transition-all duration-500 ease-in-out flex-shrink-0 ${
+      isActive
+        ? "w-[56px] opacity-100"
+        : "w-0 opacity-0 group-hover:w-[56px] group-hover:opacity-100"
+    }`}
+  >
+    <Image
+      src="/Layer_1.png"
+      width={56}
+      height={56}
+      alt="icon"
+    />
+  </div>
+</div>
 
                 <div
-                  className={`${
-                    isMobile
-                      ? `flex flex-col w-full hover:border-0 border-[#0a0a0a] py-1 ${
-                          isActive ? "border-0" : "border-b-1"
-                        }`
-                      : `flex items-center justify-between w-full hover:border-0 border-[#0a0a0a] py-1 ${
-                          isActive ? "border-0" : "border-b-1"
-                        }`
-                  }`}
+                  className={`flex items-center justify-between w-full hover:border-0 border-[#0a0a0a] py-1 ${
+      isActive ? "border-0" : "border-b-1"
+    }`}
                 >
                   <span className="text-[16px] primary-color-text font-medium">
                     {lesson.id}. {lesson.lessontitle}

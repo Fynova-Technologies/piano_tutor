@@ -34,52 +34,54 @@ export default function Page() {
         
         {/* Left Section */}
         <div className="flex-1 ">
-          {/* Top bar */}
-          <div className="flex justify-between items-center mb-6 bg-white p-6 rounded-2xl shadow-md">
-            <div className="flex items-center gap-6">
-              <div className="text-gray-600">
-               
-               <div className="flex items-center">
-                    <Image src="assets/Star.svg" alt="star" width={24} height={24} className="inline-block mr-2"/>
-                    <p className="text-2xl font-bold text-[#FFA801] m-0 p-0">{lastScore}</p>
-               </div>
-                
-                <p className="font-semibold text-[12px] text-[#0A0A0B]"> Last Score</p>
-              </div>
-              <div className="text-gray-600">
-                <div className="flex items-center">
-                    <Image src="Frame.svg" alt="star" width={24} height={24} className="inline-block mr-2"/>
-                    <p className="text-2xl font-bold text-[#FFA801] m-0 p-0">{highScore}</p>
-               </div>
-                
-                <p className="font-semibold text-[12px] text-[#0A0A0B]"> High Score</p>
-              </div>
-            </div>
+          {/* Top bar - unchanged desktop, stack on mobile */}
+<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 bg-white p-6 rounded-2xl shadow-md gap-4">
+  <div className="flex items-center gap-6">
+    <div className="text-gray-600">
+      <div className="flex items-center">
+        <Image src="assets/Star.svg" alt="star" width={24} height={24} className="inline-block mr-2"/>
+        <p className="text-2xl font-bold text-[#FFA801] m-0 p-0">{lastScore}</p>
+      </div>
+      <p className="font-semibold text-[12px] text-[#0A0A0B]">Last Score</p>
+    </div>
+    <div className="text-gray-600">
+      <div className="flex items-center">
+        <Image src="Frame.svg" alt="star" width={24} height={24} className="inline-block mr-2"/>
+        <p className="text-2xl font-bold text-[#FFA801] m-0 p-0">{highScore}</p>
+      </div>
+      <p className="font-semibold text-[12px] text-[#0A0A0B]">High Score</p>
+    </div>
+  </div>
+  {/* Button full width on mobile */}
+  <button
+    onClick={() => setPopupOpen(true)}
+    className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] text-[#151517] text-[16px] px-6 py-3 rounded-2xl transition w-full sm:w-auto"
+  >
+    Start new test
+    <Image src="Union.svg" alt="arrow" width={20} height={12} className="inline-block ml-2"/>
+  </button>
+</div>
 
-            <button onClick={()=> setPopupOpen(true)} className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] ... text-[#151517] text-[16px] px-6 py-3 rounded-2xl  transition">
-              Start new test
-              <Image src="Union.svg" alt="arrow" width={20} height={12} className="inline-block ml-2"/>
-            </button>
-          </div>
-
-          {/* Graph */}
-          <div className="mt-4 bg-white p-6 rounded-2xl shadow-md h-[686px]">
-            <div className="flex justify-between items-center">
-                <h2 className=" mb-2 text-[#0A0A0B] text-2xl font-bold">Your SASR Scores</h2>
-                <button onClick={() => router.push("/reports/sasr")} className="flex bg-[#581845] text-white text-[14px] px-[16px] py-[8px] font-medium rounded-[16px] items-center justify-center">
-                    View full history
-                    <Image src="frame2.svg" alt="arrow" width={30} height={30} className="inline-block ml-2"/>
-                </button>
-            </div>
-            
-            <div className="bg-[#FEFEFE] rounded-xl p-4 relative mt-4 border-4 border-[#BCBCBC] h-[90%] ">
-              
-              <div className="h-[80%]">
-                <SASRReport />
-                
-              </div>
-            </div>
-          </div>
+{/* Graph - fixed height only on desktop */}
+<div className="mt-4 bg-white p-6 rounded-2xl shadow-md h-auto md:h-[686px]">
+  <div className="flex justify-between items-center">
+    <h2 className="mb-2 text-[#0A0A0B] text-2xl font-bold">Your SASR Scores</h2>
+    <button
+      onClick={() => router.push("/reports/sasr")}
+      className="flex bg-[#581845] text-white text-[14px] px-[16px] py-[8px] font-medium rounded-[16px] items-center justify-center"
+    >
+      {/* Hide text on mobile, show on sm+ */}
+      <span className="hidden sm:inline">View full history</span>
+      <span className="sm:hidden">History</span>
+      <Image src="frame2.svg" alt="arrow" width={30} height={30} className="inline-block ml-2"/>
+    </button>
+  </div>
+  <div className="bg-[#FEFEFE] rounded-xl p-4 relative mt-4 border-4 border-[#BCBCBC] h-[300px] md:h-[90%]">
+    <div className="h-full">
+      <SASRReport />
+    </div>
+  </div>
+</div>
         </div>
 
         {/* Right Section */}
@@ -121,11 +123,20 @@ export default function Page() {
 
       </div>
       <div>
-        {popupOpen && ( 
-           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 transition-opacity ">
-                <SasrPopup/>
-           </div>
-        )}
+       {/* Backdrop — clicking outside closes popup */}
+{popupOpen && (
+  <div
+    className="fixed inset-0 z-40 flex items-center justify-center bg-black/40"
+    onClick={() => setPopupOpen(false)} 
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className="z-50"
+    >
+      <SasrPopup />
+    </div>
+  </div>
+)}
       </div>  
     </div>
     </>

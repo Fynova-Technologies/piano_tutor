@@ -34,17 +34,16 @@ const lessons = [
   { title: "Pedal Technique", duration: "28m", done: false },
 ];
 
-// Mini piano key pattern for the dashboard card
 const WHITE_KEYS = 14;
-const pattern = [true, true, false, true, true, true, false]; // which whites have black keys after
+const pattern = [true, true, false, true, true, true, false];
 
 export default function ProcessSection() {
   return (
-    <section className="bg-[#F5F2ED] px-8 py-20 md:py-28">
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-16 items-start">
-        
+    <section className="bg-[#F5F2ED] px-4 sm:px-8 py-16 md:py-28">
+      <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-12 md:gap-16 items-start">
+
         {/* LEFT — text content */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 w-full">
           {/* Process label */}
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-px bg-[#C49A3C]" />
@@ -55,26 +54,26 @@ export default function ProcessSection() {
 
           {/* Headline */}
           <div className="flex items-start">
-          <span className="font-inter font-bold text-[56px] text-black leading-[60px] tracking-[-0.58px] mb-6">
-            From Zero<br/>to{" "}
-            <em className="text-[#D4AF37] font-black not-italic text-[56px] leading-[60px] tracking-[-0.58px] font-inter" style={{ fontStyle: "italic" }}>
-              Sonata
-            </em>
-          </span>
+            <span className="font-inter font-bold text-[clamp(36px,8vw,56px)] text-black leading-[1.08] tracking-[-0.58px] mb-6">
+              From Zero<br />to{" "}
+              <em className="text-[#D4AF37] font-black not-italic font-inter" style={{ fontStyle: "italic" }}>
+                Sonata
+              </em>
+            </span>
           </div>
 
           {/* Subtext */}
           <div className="flex items-start">
-          <span className="text-[#5D5D5D] font-light text-start text-[14px] leading-relaxed mb-12 max-w-md">
-            A structured path that meets you wherever you are — beginner, lapsed
-            player, or serious student.
-          </span>
+            <span className="text-[#5D5D5D] font-light text-start text-[14px] leading-relaxed mb-10 md:mb-12 max-w-md">
+              A structured path that meets you wherever you are — beginner, lapsed
+              player, or serious student.
+            </span>
           </div>
 
           {/* Steps */}
-          <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-7 md:gap-8">
             {steps.map((step) => (
-              <div key={step.number} className="flex gap-6">
+              <div key={step.number} className="flex gap-5 md:gap-6">
                 <span className="text-[#C9A84C] text-xs font-bold tracking-widest mt-0.5 w-6 shrink-0">
                   {step.number}
                 </span>
@@ -92,14 +91,13 @@ export default function ProcessSection() {
         </div>
 
         {/* RIGHT — dashboard card */}
-        <div className="flex-1 min-w-0 flex items-center justify-center">
+        <div className="flex-1 min-w-0 w-full flex items-center justify-center">
           <div className="bg-[#1A1A1A] rounded-2xl overflow-hidden w-full max-w-sm shadow-2xl">
             {/* Card header */}
             <div className="px-5 pt-5 pb-3">
               <p className="text-[#5A5A5A] text-[10px] tracking-[0.2em] uppercase mb-4">
                 learnkeys.app — dashboard
               </p>
-
               <p className="text-[#C9A84C] text-[9px] tracking-[0.25em] uppercase font-medium mb-1">
                 Current Course
               </p>
@@ -122,7 +120,6 @@ export default function ProcessSection() {
               <div className="h-1 bg-[#2A2A2A] rounded-full mb-3">
                 <div className="h-1 bg-[#C9A84C] rounded-full" style={{ width: "64%" }} />
               </div>
-
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-[#5A5A5A] text-[9px] tracking-[0.2em] uppercase">
                   Accuracy
@@ -150,7 +147,6 @@ export default function ProcessSection() {
                     }`}
                   />
                 ))}
-                {/* Black keys */}
                 <div className="absolute inset-0 flex pointer-events-none">
                   {Array.from({ length: WHITE_KEYS }).map((_, i) => {
                     const posInOctave = i % 7;
@@ -159,12 +155,7 @@ export default function ProcessSection() {
                       <div key={`b-${i}`} className="relative" style={{ flex: 1 }}>
                         <div
                           className="absolute bg-[#111] rounded-b-sm z-10"
-                          style={{
-                            width: "62%",
-                            height: "58%",
-                            right: "-31%",
-                            top: 0,
-                          }}
+                          style={{ width: "62%", height: "58%", right: "-31%", top: 0 }}
                         />
                       </div>
                     ) : (
@@ -186,17 +177,11 @@ export default function ProcessSection() {
                       : ""
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     {lesson.done ? (
                       <div className="w-4 h-4 rounded-full bg-[#C9A84C] flex items-center justify-center shrink-0">
                         <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
-                          <path
-                            d="M1 3L3 5L7 1"
-                            stroke="#1A1A1A"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
+                          <path d="M1 3L3 5L7 1" stroke="#1A1A1A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </div>
                     ) : lesson.active ? (
@@ -205,7 +190,7 @@ export default function ProcessSection() {
                       <div className="w-4 h-4 rounded-full border border-[#3A3A3A] shrink-0" />
                     )}
                     <span
-                      className={`text-xs ${
+                      className={`text-xs truncate ${
                         lesson.active
                           ? "text-white font-semibold"
                           : lesson.done

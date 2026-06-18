@@ -21,9 +21,11 @@ function handlePlaybackChange(
       if (metronomeMode === "internal") {
         metronomeService.stop();
       }
-      if (countInEnabled && metronomeMode === "internal") {
-        void countdownSoundService.playCountIn(tempo);
-      }
+      // if (countInEnabled && metronomeMode === "internal") {
+      //   void countdownSoundService.playCountIn(tempo, 60000 / tempo, () => {
+      //     usePlaybackStore.getState().setStatus("playing");
+      //   });
+      // }
       break;
     case "playing":
       countdownSoundService.stop();

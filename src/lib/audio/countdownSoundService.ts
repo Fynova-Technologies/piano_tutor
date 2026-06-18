@@ -31,7 +31,7 @@ class CountdownSoundService {
     this.activeSources = [];
   }
 
-  async playCountIn(bpm: number, onComplete?: () => void): Promise<void> {
+  async playCountIn(bpm: number,stepMs: number, onComplete?: () => void): Promise<void> {
     this.stop();
     const enabled = useAudioSettingsStore.getState().getEffectiveVolume("countdown");
     if (enabled <= 0) {
@@ -44,7 +44,7 @@ class CountdownSoundService {
     const now = ctx.currentTime;
 
     for (let i = 0; i < 4; i++) {
-      const beatTime = now + (i * 60) / bpm;
+          const beatTime = now + (i * stepMs) / 1000;  // UI-matched timing
       const buffer = this.buffersRef.current[i];
       if (!buffer) continue;
       const source = ctx.createBufferSource();
@@ -57,9 +57,9 @@ class CountdownSoundService {
       this.activeSources.push(source);  // ← ADD
     }
 
-    const totalMs = ((4 * 60) / bpm + 0.1) * 1000;
-    const t = setTimeout(() => onComplete?.(), totalMs);
-    this.activeTimeouts.push(t);
+   const totalMs = stepMs * 3 + 100;
+  const t = setTimeout(() => onComplete?.(), totalMs);
+  this.activeTimeouts.push(t);
   }
 
   // playClickAt unchanged

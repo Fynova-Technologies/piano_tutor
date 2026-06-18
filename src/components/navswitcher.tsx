@@ -1,14 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+// import { createClient } from "@supabase/supabase-js";
 import Navbar from "@/components/navbar";
 import UnauthUserNavbar from "@/components/navbar2";
+import { supabase } from "@/lib/supabaseClient";
 
-// Create client ONCE outside component (module-level singleton)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// // Create client ONCE outside component (module-level singleton)
+// const supabase = createClient(
+//   process.env.NEXT_PUBLIC_SUPABASE_URL!,
+//   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// );
 
 export default function NavbarSwitcher() {
   // ✅ Default to true if a token exists in localStorage — instant hint

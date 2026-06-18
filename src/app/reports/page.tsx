@@ -330,11 +330,10 @@ export default function Reports() {
 
       {/* Bottom Section */}
 
-      <div className="flex p-8 w-full h-full">
-        <div className="flex w-full space-x-8 h-full">
+      <div className="flex p-4 md:p-8 w-full h-full">
+    <div className="flex flex-col md:flex-row w-full gap-6 md:gap-8 h-full">
         {/* Streak Calendar */}
-        <div className="bg-white shadow-md rounded-xl p-6 border-4 border-[#C0BABA] w-[360px]">
-
+      <div className="bg-white shadow-md rounded-xl p-6 border-4 border-[#C0BABA] w-full md:w-[360px]">
   {/* Header */}
   <div className="flex justify-between items-center mb-4">
     <div className="flex items-center gap-16">
@@ -417,8 +416,7 @@ export default function Reports() {
 </div>
 
         {/* Sight Reading */}
-        <div className="bg-white shadow-md rounded-xl p-6 border-4 border-[#C0BABA] border-r-[#BCBCBC] h-[345px] w-[360px]">
-          <div className="flex justify-between items-center mb-3">
+      <div className="bg-white shadow-md rounded-xl p-6 border-4 border-[#C0BABA] border-r-[#BCBCBC] h-auto md:h-[345px] w-full md:w-[360px]">          <div className="flex justify-between items-center mb-3">
             <h3 className="font-medium text-[16px] text-[#151517]">Sight Reading</h3>
             <div className="bg-[#E3E3E3] py-[10px] px-[16px] rounded-2xl text-[#151517] text-[16px] font-medium ">
               {attempts} Attempts

@@ -1,8 +1,8 @@
 'use client'
-
 import LogoutButton from '@/app/logout/page';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useEffect, useRef } from 'react';
 import { useAuth } from '@/utils/Authsegment';
 import type { User } from '@supabase/supabase-js';
 
@@ -31,14 +31,28 @@ export default function UserPopup({ userPopupOpen, setUserPopupOpen, userLoggedI
   const auth = useAuth();
   const user = auth?.user ?? null;
   const displayName = displayNameFromUser(user);
+  const popupRef = useRef<HTMLDivElement>(null);
 
   const close = () => {
     onNavigate?.();
     setUserPopupOpen(false);
   };
 
+  useEffect(() => {
+    if (!userPopupOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        setUserPopupOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [userPopupOpen, setUserPopupOpen]);
+
+  if (!userPopupOpen) return null;
+
   return (
-    <div>
+    <div ref={popupRef}>
       <div className="flex items-center justify-between gap-4 border-b px-2 py-2">
         <div className="flex items-center gap-4 px-4 py-2">
           <Image src="/assets/user.png" alt="User" width={50} height={50} />
@@ -62,11 +76,7 @@ export default function UserPopup({ userPopupOpen, setUserPopupOpen, userLoggedI
         <Link href="/accounts" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
           My Account
         </Link>
-        <Link
-          href="/student-classes"
-          className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline"
-          onClick={close}
-        >
+        <Link href="/student-classes" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
           Student & Classes
         </Link>
         <Link href="/instrument-settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
@@ -78,7 +88,6 @@ export default function UserPopup({ userPopupOpen, setUserPopupOpen, userLoggedI
         <Link href="/settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
           Support
         </Link>
-
         {userLoggedIn ? (
           <LogoutButton onAfterSignOut={close} />
         ) : (

@@ -12,7 +12,8 @@ import { saveSession } from "@/datastore/sessionstorage";
 import { useLessons } from "@/utils/userprogress/lessonprogress";
 import { prepareMusicXmlForOsmd } from "@/lib/musicxml/musicxmlPipeline";
 import { extractMusicXmlFromMxlBuffer } from "@/lib/musicxml/buildMxl";
-
+import { metronomeService } from "@/lib/audio/metronomeService";
+import { countdownSoundService } from "@/lib/audio/countdownSoundService";
 
 
 
@@ -585,27 +586,35 @@ window.addEventListener("keydown", onKey);
     setCurrentStepNotes(expectedMIDI);
     currentStepNotesRef.current = expectedMIDI;
     sessionStartRef.current = Date.now();
+    const countInBeatMs = Math.min(1000, Math.max(500, (60 / tempoRef.current) * 1000));
 
-    setCountdown(3);
+// Play audio clicks in sync with UI steps
+void metronomeService.ensureAudioContext().then((ctx) => {
+  const now = ctx.currentTime;
+  for (let i = 0; i < 3; i++) {
+    countdownSoundService.playClickAt(now + (i * countInBeatMs) / 1000, i);
+  }
+});
+
+setCountdown(3);
 let countdownValue = 3;
-  countdownIntervalRef.current = setInterval(() => {  // ← store it
-    countdownValue--;
-    setCountdown(countdownValue);
+countdownIntervalRef.current = setInterval(() => {
+  countdownValue--;
+  setCountdown(countdownValue);
 
-    if (countdownValue <= 0) {
-      clearInterval(countdownIntervalRef.current!);
-      countdownIntervalRef.current = null;
-      setCountdown(null);
-
-      if (beatCursorRef.current) {
-        beatCursorRef.current.startPlayback();
-      }
-      startAutomaticPlayback();
+  if (countdownValue <= 0) {
+    clearInterval(countdownIntervalRef.current!);
+    countdownIntervalRef.current = null;
+    setCountdown(null);
+    if (beatCursorRef.current) {
+      beatCursorRef.current.startPlayback();
     }
-  }, 1000);
+    startAutomaticPlayback();
+  }
+}, countInBeatMs);
   }
 
-  function startAutomaticPlayback() {
+function startAutomaticPlayback() {
   if (playbackIntervalRef.current) {
     clearInterval(playbackIntervalRef.current);
     playbackIntervalRef.current = null;
@@ -615,58 +624,59 @@ let countdownValue = 3;
     rafRef.current = null;
   }
 
-  const beatDuration = (60 / tempoRef.current) * 1000;
   beatStartTimeRef.current = performance.now();
+  beatAdvancedRef.current = false;
 
   console.log(`🎵 Starting RAF playback at ${tempoRef.current} BPM`);
 
-function tick(now: number) {
-  if (!playModeRef.current || !beatCursorRef.current) return;
+  function tick(now: number) {
+    if (!playModeRef.current || !beatCursorRef.current) return;
 
-  const beatDuration = (60 / tempoRef.current) * 1000;
-  const elapsed = now - beatStartTimeRef.current;
-  const progress = elapsed / beatDuration;
+    const beatDuration = (60 / tempoRef.current) * 1000;
+    const elapsed = now - beatStartTimeRef.current;
+    const progress = Math.min(elapsed / beatDuration, 1); // clamp to avoid overshoot
 
-  beatCursorRef.current.setInterpolatedPosition(progress);
+    beatCursorRef.current.setInterpolatedPosition(progress);
 
-  const MOVE_FRACTION = 0.7;
+    // Pre-advance at 85% instead of 70% — gives less "early" feel at slow tempos
+    const MOVE_FRACTION = 0.85;
 
-  if (elapsed >= beatDuration * MOVE_FRACTION && !beatAdvancedRef.current) {
-  beatAdvancedRef.current = true;
+    if (elapsed >= beatDuration * MOVE_FRACTION && !beatAdvancedRef.current) {
+      beatAdvancedRef.current = true;
 
-  const nextIndex = beatCursorRef.current.getCurrentIndex() + 1;
-  const nextBeat = beatCursorRef.current.getBeatAt(nextIndex);
+      const nextIndex = beatCursorRef.current.getCurrentIndex() + 1;
+      const nextBeat = beatCursorRef.current.getBeatAt(nextIndex);
 
-  if (nextBeat) {
-    const nextMIDI = nextBeat.expectedNotes.map((ht: number) => ht + 12);
-    setCurrentStepNotes(nextMIDI);
-    currentStepNotesRef.current = nextMIDI;
-    currentCursorStepRef.current = nextIndex;
-
-    // Set color based on what the NEXT beat actually is
-    beatCursorRef.current.setDefaultColor(nextIndex);
-  }
-}
-
-  if (elapsed >= beatDuration) {
-    beatStartTimeRef.current = now;
-    beatAdvancedRef.current = false;
-
-    const moved = beatCursorRef.current.next();
-    if (moved) {
-      const newIndex = beatCursorRef.current.getCurrentIndex();
-      setCurrentBeatIndex(newIndex);
-      setPlayIndex(newIndex);
-    } else {
-      handleEndOfPiece();
-      return;
+      if (nextBeat) {
+        const nextMIDI = nextBeat.expectedNotes.map((ht: number) => ht + 12);
+        setCurrentStepNotes(nextMIDI);
+        currentStepNotesRef.current = nextMIDI;
+        currentCursorStepRef.current = nextIndex;
+        beatCursorRef.current.setDefaultColor(nextIndex);
+      }
     }
+
+    if (elapsed >= beatDuration) {
+      // ← KEY FIX: advance by exact beatDuration, not reset to `now`
+      // This prevents drift accumulating at slow tempos
+      beatStartTimeRef.current = beatStartTimeRef.current + beatDuration;
+      beatAdvancedRef.current = false;
+
+      const moved = beatCursorRef.current.next();
+      if (moved) {
+        const newIndex = beatCursorRef.current.getCurrentIndex();
+        setCurrentBeatIndex(newIndex);
+        setPlayIndex(newIndex);
+      } else {
+        handleEndOfPiece();
+        return;
+      }
+    }
+
+    rafRef.current = requestAnimationFrame(tick);
   }
 
   rafRef.current = requestAnimationFrame(tick);
-}
-  rafRef.current = requestAnimationFrame(tick);
-
 }
 
 function pausePlayback() {
