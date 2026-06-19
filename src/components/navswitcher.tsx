@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 // import { createClient } from "@supabase/supabase-js";
 import Navbar from "@/components/navbar";
 import UnauthUserNavbar from "@/components/navbar2";
-import { supabase } from "@/lib/supabaseClient";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 
 // // Create client ONCE outside component (module-level singleton)
 // const supabase = createClient(
@@ -24,13 +24,15 @@ export default function NavbarSwitcher() {
 
   useEffect(() => {
     // Confirm real session state (validates/refreshes token)
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseBrowserClient().auth.getSession().then(({ data: { session } }: any) => {
       setIsAuthenticated(!!session);
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } = getSupabaseBrowserClient().auth.onAuthStateChange((_event: any, session: any) => {
       setIsAuthenticated(!!session);
     });
 

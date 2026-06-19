@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // context/AuthContext.jsx
 "use client"
 import { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 
 interface AuthContextType {
   user: User | null;
@@ -20,14 +21,15 @@ export function AuthProvider({ children }: PropsWithChildren<object>) {
 
   useEffect(() => {
     // Get current session on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getSupabaseBrowserClient().auth.getSession().then(({ data: { session } }:any) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
     // Keep user in sync with auth state
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+    const { data: { subscription } } = getSupabaseBrowserClient().auth.onAuthStateChange(
+      (_event: any, session: { user: any; }) => {
         setUser(session?.user ?? null);
       }
     );

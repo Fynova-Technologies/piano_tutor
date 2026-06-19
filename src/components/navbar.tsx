@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browserclient';
 import UserPopup from '@/features/components/userpopup';
 import NotificationPopup from '@/features/components/notification';
 
@@ -39,7 +39,7 @@ export default function Navbar() {
   useEffect(() => {
     const getSession = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
+        const { data, error } = await getSupabaseBrowserClient().auth.getSession();
         if (data.session) setUserLoggedIn(true);
         if (error) throw error;
       } catch (error) {

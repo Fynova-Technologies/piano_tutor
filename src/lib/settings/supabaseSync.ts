@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabaseClient";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 import {
   coerceInstrumentSettings,
   defaultInstrumentSettings,
@@ -34,7 +34,7 @@ export async function fetchInstrumentSettings(
     };
   }
 
-  const { data: row, error } = await supabase
+  const { data: row, error } = await getSupabaseBrowserClient()
     .from("instrument_settings")
     .select("settings, updated_at")
     .eq("user_id", userId)
@@ -63,7 +63,7 @@ export async function upsertInstrumentSettings(
   userId: string,
   settings: InstrumentSettings,
 ): Promise<string | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabaseBrowserClient()
     .from("instrument_settings")
     .upsert(
       { user_id: userId, settings },
@@ -90,7 +90,7 @@ export async function fetchUserPreferences(
     };
   }
 
-  const { data: row, error } = await supabase
+  const { data: row, error } = await getSupabaseBrowserClient()
     .from("user_preferences")
     .select("preferences, updated_at")
     .eq("user_id", userId)
@@ -119,7 +119,7 @@ export async function upsertUserPreferences(
   userId: string,
   preferences: AppPreferences,
 ): Promise<string | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabaseBrowserClient()
     .from("user_preferences")
     .upsert(
       { user_id: userId, preferences },

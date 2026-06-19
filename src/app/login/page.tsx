@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import React, { useState, useEffect } from 'react';
 import Image from "next/image";
-import { supabase } from "@/lib/supabaseClient"
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient"
 import { useRouter } from "next/navigation"
 
 const MailIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -54,10 +55,10 @@ export default function LoginPage() {
   const [messageSuccess, setMessageSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    getSupabaseBrowserClient().auth.getSession().then(({ data }: any) => {
       if (data.session) router.push("/")
     })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+    const { data: { subscription } } = getSupabaseBrowserClient().auth.onAuthStateChange((_: any, session: any) => {
       if (session) router.push("/")
     })
     return () => subscription?.unsubscribe()
@@ -69,10 +70,10 @@ export default function LoginPage() {
       setLoading(true);
       setError(null);
       if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await getSupabaseBrowserClient().auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { error } = await getSupabaseBrowserClient().auth.signUp({
           email, password,
           options: { data: { display_name: username } }
         });
@@ -89,7 +90,7 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
+    await getSupabaseBrowserClient().auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL }
     })

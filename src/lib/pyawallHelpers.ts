@@ -1,11 +1,11 @@
-import { supabase } from "./supabaseClient";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 
 
 export async function getUserUsage() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await getSupabaseBrowserClient().auth.getUser()
   if (!user) return null
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabaseBrowserClient()
     .from("user_usage")
     .select("*")
     .eq("user_id", user.id)
@@ -13,7 +13,7 @@ export async function getUserUsage() {
 
   // If user doesn't exist in table, create entry
   if (error && error.code === "PGRST116") { // row not found
-    const { data: newData } = await supabase
+    const { data: newData } = await getSupabaseBrowserClient()
       .from("user_usage")
       .insert({ user_id: user.id })
       .select()
@@ -25,7 +25,7 @@ export async function getUserUsage() {
 }
 
 export async function recordPlay() {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user } } = await getSupabaseBrowserClient().auth.getUser()
   if (!user) return { paywalled: false, error: "User not logged in" }
 
   const usage = await getUserUsage()
@@ -39,7 +39,7 @@ export async function recordPlay() {
   // Reset if 24h passed
   if (now.getTime() - lastReset.getTime() > oneDay) {
     playCount = 0
-    await supabase
+    await getSupabaseBrowserClient()
       .from("user_usage")
       .update({ play_count: 0, last_reset: now })
       .eq("user_id", user.id)
@@ -52,7 +52,7 @@ export async function recordPlay() {
   }
 
   // Increment play count
-  const { data, error } = await supabase
+  const { data, error } = await getSupabaseBrowserClient()
     .from("user_usage")
     .update({ play_count: playCount + 1 })
     .eq("user_id", user.id)

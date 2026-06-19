@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { MutableRefObject, Dispatch, SetStateAction, useEffect } from "react";
 import { getUserUsage, recordPlay } from "@/lib/pyawallHelpers"
 import { useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 import PaywallButton from "../paywallcomponents/paywallWidget";
 import FingerprintJS from '@fingerprintjs/fingerprintjs';
 
@@ -140,7 +140,7 @@ useEffect(() => {
     }
 
     try {
-      const { data, error } = await supabase.auth.getSession();
+      const { data, error } = await getSupabaseBrowserClient().auth.getSession();
       if(data.session){setUserLoggedIn(true);}
       if (error) throw error;
     } catch (error) {

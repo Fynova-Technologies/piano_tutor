@@ -7,8 +7,9 @@ import { LessonsProvider } from "@/utils/userprogress/lessonprogress";
 import { AudioProvider } from "@/components/audio/AudioProvider";
 // import UnauthUserNavbar from "@/components/navbar2";
 import {createServerSupabase} from "@/lib/supabase/server"
-import Navbar from "@/components/navbar";
-import UnauthUserNavbar from "@/components/navbar2";
+// import Navbar from "@/components/navbar";
+// import UnauthUserNavbar from "@/components/navbar2";
+import NavbarSwitcher from "@/components/navswitcher";
 
 
 const inter = Inter({
@@ -41,6 +42,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
    const supabase = await createServerSupabase();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { data: { session } } = await supabase.auth.getSession();
   return (
     <html lang="en">
@@ -48,7 +50,8 @@ export default async function RootLayout({
       <body
         className={`${inter.variable} ${poppins.variable} ${playfair.variable}`}
       >
-        {session ? <Navbar /> : <UnauthUserNavbar />}
+        {/* {session ? <Navbar /> : <UnauthUserNavbar />} */}
+        <NavbarSwitcher />
         <main className="w-full">
           <AuthProvider>
             <AudioProvider>

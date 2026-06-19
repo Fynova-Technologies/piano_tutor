@@ -1,7 +1,7 @@
-import { supabase } from "@/lib/supabaseClient";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 
 export async function getUserProgress(userId: string | undefined) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabaseBrowserClient()
     .from("user_progress")
     .select("*")
     .eq("user_id", userId);
@@ -15,7 +15,7 @@ export async function upsertProgress(
   lessonId: string,
   completed: boolean
 ) {
-  const { error } = await supabase
+  const { error } = await getSupabaseBrowserClient()
     .from("user_progress")
     .upsert(
       {
@@ -31,7 +31,7 @@ export async function upsertProgress(
 }
 
 export async function getUserUnitProgress(userId: string | undefined) {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabaseBrowserClient()
     .from("user_unit_progress")
     .select("*")
     .eq("user_id", userId);
@@ -41,7 +41,7 @@ export async function getUserUnitProgress(userId: string | undefined) {
 
 // fkid is the single unit key — no more unit_id
 export async function unlockUnit(userId: string, fkid: string) {
-  const { error } = await supabase
+  const { error } = await getSupabaseBrowserClient()
     .from("user_unit_progress")
     .upsert(
       {
@@ -56,7 +56,7 @@ export async function unlockUnit(userId: string, fkid: string) {
 }
 
 export async function markUnitCompleted(userId: string, fkid: string) {
-  const { error } = await supabase
+  const { error } = await getSupabaseBrowserClient()
     .from("user_unit_progress")
     .upsert(
       {
