@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browserclient';
 import UserPopup from '@/features/components/userpopup';
 import NotificationPopup from '@/features/components/notification';
+import Link from 'next/link'; 
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard' },
@@ -54,10 +55,14 @@ export default function Navbar() {
       <div className="w-full mx-auto flex items-center justify-between">
 
         {/* Logo */}
-        <div className="flex items-center gap-2">
-          <Image src="/assets/Mask group.svg" alt="Logo" width={36} height={36} className="rounded-full" />
+        <Link href="/" className="flex items-center gap-2 no-underline">
+          <div className="flex items-center gap-2">
+            <Image src="/assets/Mask group.svg" alt="Logo" width={36} height={36} className="rounded-full" />
+          
           <span className="text-xl font-bold text-white">Logo</span>
+          
         </div>
+        </Link>
 
         {/* Desktop Nav */}
         <div className="hidden md:flex space-x-1">

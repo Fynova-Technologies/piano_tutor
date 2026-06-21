@@ -199,19 +199,21 @@ export default function SupportPageUI() {
   };
 
   return (
-    <div className="bg-[#FAFAFA] min-h-screen p-16">
-      <div className="w-full mx-auto bg-white rounded-2xl p-8 shadow-sm">
-        {/* Heading aligned only above cards column */}
+    <div className="bg-[#FAFAFA] min-h-screen p-4 md:p-16">
+      <div className="w-full mx-auto bg-white rounded-2xl p-4 md:p-8 shadow-sm">
+        {/* Heading aligned only above cards column on desktop */}
         <h1
-          className="text-2xl font-semibold text-[#0A0A0B] mb-6"
-          style={{ paddingLeft: "calc(200px + 1.5rem)" }}
+          className="text-xl md:text-2xl font-semibold text-[#0A0A0B] mb-4 md:mb-6 md:pl-[calc(200px+1.5rem)]"
         >
           {tabTitle[activeTab]}
         </h1>
 
-        <div className="grid gap-6" style={{ gridTemplateColumns: "200px 1fr" }}>
+        <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-[200px_1fr]">
           {/* Sidebar */}
-          <nav className="flex flex-col gap-1" aria-label="Support sections">
+          <nav
+            className="flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-visible -mx-1 px-1 md:mx-0 md:px-0"
+            aria-label="Support sections"
+          >
             <SidebarItem
               active={activeTab === "browse"}
               label="Browse topics"
@@ -251,7 +253,7 @@ export default function SupportPageUI() {
 
                 {/* Topic cards */}
                 <SectionCard title="Browse help topics">
-                  <div className="grid grid-cols-3 gap-[10px]">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[10px]">
                     {TOPICS.map((topic) => (
                       <div
                         key={topic.tag}
@@ -307,7 +309,7 @@ export default function SupportPageUI() {
             {activeTab === "contact" && (
               <SectionCard title="Get in touch">
                 {/* Channel cards */}
-                <div className="grid grid-cols-3 gap-[10px] mb-5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-[10px] mb-5">
                   {CONTACT_CHANNELS.map((ch) => (
                     <div
                       key={ch.label}
@@ -326,7 +328,7 @@ export default function SupportPageUI() {
                     Send us a message
                   </p>
 
-                  <div className="grid grid-cols-2 gap-[10px] mb-[10px]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px] mb-[10px]">
                     <div className="flex flex-col gap-[6px]">
                       <label className="text-[13px] font-medium text-[#6E6E73]">
                         First name
@@ -392,7 +394,7 @@ export default function SupportPageUI() {
                     />
                   </div>
 
-                  <button className="bg-[#581845] text-white px-6 py-[11px] rounded-xl text-[15px] font-medium hover:opacity-90 transition-opacity cursor-pointer border-none">
+                  <button className="bg-[#581845] text-white px-6 py-[11px] rounded-xl text-[15px] font-medium hover:opacity-90 transition-opacity cursor-pointer border-none w-full md:w-auto">
                     Send message
                   </button>
                 </div>

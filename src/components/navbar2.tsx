@@ -29,11 +29,13 @@ export default function UnauthUserNavbar() {
       </button>
 
       {/* Centered logo */}
+      <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 no-underline">
       <div className="absolute left-1/2 -translate-x-1/2">
         <span className="text-white font-bold text-xl tracking-wide">
           Learn<span className="text-[#C9A84C] italic font-light">keys</span>
         </span>
       </div>
+      </Link>
 
       {/* Right CTA buttons — hidden on mobile */}
       <div className="hidden sm:flex items-center gap-3">

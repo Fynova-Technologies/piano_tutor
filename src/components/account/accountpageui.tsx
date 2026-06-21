@@ -98,35 +98,32 @@ export default function AccountPageUI({
   }
 
   return (
-    <div className="bg-[#FEFEFE] min-h-screen p-16">
-      <div className="w-full h-full mx-auto bg-white rounded-2xl p-8 shadow-sm">
+    <div className="bg-[#FEFEFE] min-h-screen p-4 md:p-16">
+      <div className="w-full h-full mx-auto bg-white rounded-2xl p-4 md:p-8 shadow-sm">
 {activeTab === "account" && (
   <h1
-    className="text-2xl text-[#0A0A0B] font-semibold mb-6"
-    style={{ paddingLeft: "calc(220px + 1.5rem)" }}
+    className="text-xl md:text-2xl text-[#0A0A0B] font-semibold mb-4 md:mb-6 md:pl-[calc(220px+1.5rem)]"
   >
     My Account
   </h1>
 )}
 {activeTab === "billing" && (
   <h1
-    className="text-2xl text-[#0A0A0B] font-semibold mb-6"
-    style={{ paddingLeft: "calc(220px + 1.5rem)" }}
+    className="text-xl md:text-2xl text-[#0A0A0B] font-semibold mb-4 md:mb-6 md:pl-[calc(220px+1.5rem)]"
   >
     Billings
   </h1>
 )}
 {activeTab === "music" && (
   <h1
-    className="text-2xl text-[#0A0A0B] font-semibold mb-6"
-    style={{ paddingLeft: "calc(220px + 1.5rem)" }}
+    className="text-xl md:text-2xl text-[#0A0A0B] font-semibold mb-4 md:mb-6 md:pl-[calc(220px+1.5rem)]"
   >
     My Music Sheet
   </h1>
 )}
-        <div className="grid grid-cols-[220px_1fr] gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 md:gap-6">
           {/* Sidebar */}
-          <div className="space-y-3">
+          <div className="flex flex-row md:flex-col md:space-y-3 gap-2 md:gap-0 overflow-x-auto md:overflow-visible -mx-1 px-1 md:mx-0 md:px-0">
             <SidebarItem
               active={activeTab === "account"}
               label="My Account"
@@ -150,7 +147,7 @@ export default function AccountPageUI({
           </div>
 
           {/* RIGHT CONTENT */}
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* ================= ACCOUNT ================= */}
             {activeTab === "account" && (
               <>
@@ -158,7 +155,7 @@ export default function AccountPageUI({
 
                 {/* Personal Info */}
                 <SectionCard title="Personal Information" activeTab={activeTab}>
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <Info
                       label="First Name"
                       value={firstName || "Anonymous"}
@@ -178,7 +175,7 @@ export default function AccountPageUI({
 
                 {/* Account Info */}
                 <SectionCard title="Account Info" activeTab={activeTab}>
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <Info
                       label="Account Type"
                       value={subscription?.plan || "Free Trial"}
@@ -214,7 +211,7 @@ export default function AccountPageUI({
 
                 {/* Current Plan */}
                 <SectionCard title="Current Subscription" activeTab={activeTab}>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                       <h3 className="text-xl font-semibold text-[#151517]">
                         {subscription?.plan || "Free Trial"}
@@ -233,7 +230,7 @@ export default function AccountPageUI({
                       </p>
                     </div>
 
-                    <button className="bg-[#D4AF37] text-[#151517] px-5 py-3 rounded-xl font-medium hover:opacity-90 transition">
+                    <button className="bg-[#D4AF37] text-[#151517] px-5 py-3 rounded-xl font-medium hover:opacity-90 transition w-full md:w-auto">
                       Upgrade Plan
                     </button>
                   </div>
@@ -242,7 +239,7 @@ export default function AccountPageUI({
                 {/* Billing History */}
                 <SectionCard title="Billing History" activeTab={activeTab}>
                   <div className="overflow-x-auto">
-                    <table className="w-full border-separate border-spacing-y-3">
+                    <table className="w-full border-separate border-spacing-y-3 min-w-[480px]">
                       <thead>
                         <tr className="text-left text-[#6E6E73] text-sm">
                           <th>Date</th>
@@ -297,7 +294,7 @@ export default function AccountPageUI({
 
                 <SectionCard title="" activeTab={activeTab}>
                   {musicSheets.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {musicSheets.map((sheet, index) => (
                         <div
                           key={index}
