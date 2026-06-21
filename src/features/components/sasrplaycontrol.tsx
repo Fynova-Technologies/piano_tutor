@@ -163,28 +163,28 @@ export default function SasrPlayControls (props: CursorControlsProps) {
           </div>
           */}
 
-          <div className={`bg-[#FEFEFE] w-full h-[20%] flex justify-between items-center ${isPlaying ? 'hidden' : ''}`} style={{
+          <div className={`bg-[#FEFEFE] w-full h-auto sm:h-[20%] flex flex-col sm:flex-row sm:justify-between items-center gap-2 sm:gap-0 px-4 sm:px-0 py-3 sm:py-0 ${isPlaying ? 'hidden' : ''}`} style={{
               boxShadow: '0 10px 30px rgba(50, 50, 93, 0.25)' // or use your own shadow
             }}>
-                      <div className="p-5 flex-2">
-                        <span className="text-[#0A0A0B] font-medium text-[24px] ml-10">{courseTitle}</span>
+                      <div className="sm:p-5 sm:flex-2 w-full sm:w-auto text-center sm:text-left">
+                        <span className="text-[#0A0A0B] font-medium text-lg sm:text-[24px] sm:ml-10">{courseTitle}</span>
                       </div>
-                      <div className="p-4 mr-12">
-                        <div className="flex space-x-8 items-center">
-                          <div className="flex items-center space-x-3">
-                              <Image src="/Frame.svg" width={28} height={20} alt="icon"/>
-                              <span className="font-semibold text-[24px] primary-color-text font-inter"> {highScore} </span>
-                              <span className=" font-medium primary-color-text text-[16px]">  High Score</span>
+                      <div className="sm:p-4 sm:mr-12 w-full sm:w-auto">
+                        <div className="flex flex-wrap justify-center sm:justify-end gap-x-4 sm:space-x-8 gap-y-2 items-center">
+                          <div className="flex items-center space-x-2 sm:space-x-3">
+                              <Image src="/Frame.svg" width={28} height={20} alt="icon" className="w-5 h-4 sm:w-7 sm:h-5"/>
+                              <span className="font-semibold text-lg sm:text-[24px] primary-color-text font-inter"> {highScore} </span>
+                              <span className="font-medium primary-color-text text-xs sm:text-[16px] whitespace-nowrap">High Score</span>
                           </div>
-                          <div className="flex items-center space-x-3">
-                              <Image src="/SVGRepo_iconCarrier (1).svg" width={25} height={20} alt="icon"/>
-                              <span className="font-semibold text-[24px] primary-color-text font-inter"> {lastScore} </span>
-                              <span className="font-medium primary-color-text  text-[16px]">Last Score</span>
+                          <div className="flex items-center space-x-2 sm:space-x-3">
+                              <Image src="/SVGRepo_iconCarrier (1).svg" width={25} height={20} alt="icon" className="w-5 h-4 sm:w-[25px] sm:h-5"/>
+                              <span className="font-semibold text-lg sm:text-[24px] primary-color-text font-inter"> {lastScore} </span>
+                              <span className="font-medium primary-color-text text-xs sm:text-[16px] whitespace-nowrap">Last Score</span>
                           </div>
-                          <div className="flex items-center space-x-3">
-                              <Image src="/autoplay (1).svg" width={28} height={20} alt="icon"/>
-                              <span className="font-semibold text-[24px] primary-color-text font-inter"> playCount </span>
-                              <span className="font-medium primary-color-text  text-[16px]">Play Count</span>
+                          <div className="flex items-center space-x-2 sm:space-x-3">
+                              <Image src="/autoplay (1).svg" width={28} height={20} alt="icon" className="w-5 h-4 sm:w-7 sm:h-5"/>
+                              <span className="font-semibold text-lg sm:text-[24px] primary-color-text font-inter"> playCount </span>
+                              <span className="font-medium primary-color-text text-xs sm:text-[16px] whitespace-nowrap">Play Count</span>
                           </div>          
                         </div>
                       </div>
@@ -196,7 +196,7 @@ export default function SasrPlayControls (props: CursorControlsProps) {
         style={{ background: "#EBEBEC", paddingBottom: 24 }}
       >
         <div
-          className="mx-auto box-border"
+          className="mx-auto box-border overflow-x-auto"
           style={{
             marginTop: 16,
             marginBottom: 16,
@@ -222,7 +222,10 @@ export default function SasrPlayControls (props: CursorControlsProps) {
         </div>
       </section>
     
-    <div className="w-full h-20 flex items-center justify-center relative">
+    {/* ✅ DESKTOP CONTROL BAR — completely untouched, just gated behind hidden sm:flex
+        so the absolute-positioned layout (ml-72, left-4, right-4, transform) only
+        ever renders at sm: and up, where those fixed offsets were designed to work. */}
+    <div className="w-full h-20 hidden sm:flex items-center justify-center relative">
       {openDialogue && (
         <OptionPopup openDialogue={openDialogue} setOpenDialogue={setOpenDialogue} />
       )}
@@ -257,15 +260,6 @@ export default function SasrPlayControls (props: CursorControlsProps) {
 {/* Center Play Button */}
 <div className="flex items-center justify-center w-full">
     <div className="flex items-center justify-center gap-2 w-full ">
-      
-      {/* Previous Button */}
-      {/* <button
-        className="bg-transparent p-0 border-0 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-        onClick={() => hasPrevious && !isPlaying && goToLesson(unitlessonsData[currentIndex - 1])}
-        disabled={!hasPrevious || isPlaying}
-      >
-        <Image src="/skip_previous_filled.svg" alt="skip previous" width={35} height={35} />
-      </button> */}
 
       {/* Play/Pause Button */}
       <button
@@ -302,15 +296,6 @@ export default function SasrPlayControls (props: CursorControlsProps) {
         </div>
          </button>
 
-      {/* Next Button
-      <button
-        className="bg-transparent p-0 border-0 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-        disabled={!hasNext || isPlaying}
-        onClick={() => hasNext && !isPlaying && goToLesson(unitlessonsData[currentIndex + 1])}
-      >
-        <Image src="/skip_next_filled.png" width={35} height={35} alt="skip next" />
-      </button> */}
-
       <div className="flex mb-5 ml-20 transform -translate-x-1/2">
         <button className="mt-6 text-white px-6 py-2 bg-black rounded-lg hover:bg-green-700 transition">
           Play Note free left
@@ -322,11 +307,6 @@ export default function SasrPlayControls (props: CursorControlsProps) {
       {/* Right Icon — Far Right */}
       <div className="Settings absolute right-4 p-3 gap-4">
         <div className="flex items-center justify-end gap-4">
-            {/* <button className="bg-[#D4AF37] py-[6px] w-[101px] h-[48px] px-[16px] rounded-2xl border border-solid flex gap-2 primary-color-text items-center text-[16px]">
-                <Image src="/icon.svg" width={15} height={10} alt="icon"/> Learn
-            </button> */}
-
-                  {/* ✅ FIXED: Properly pass mistakeCount and maxMistakes */}
                   <StrikeIndicator 
                     mistakeCount={mistakeCount} 
                     maxMistakes={maxMistakes} 
@@ -340,7 +320,94 @@ export default function SasrPlayControls (props: CursorControlsProps) {
               
         </div>
 
-    </div>      
+    </div>
+
+    {/* ✅ MOBILE CONTROL BAR — new, simplified, stacked layout.
+        Same controls, but reflowed into rows that actually fit a phone width.
+        No absolute positioning, no fixed huge margins. */}
+    <div className="flex sm:hidden flex-col gap-3 px-4 py-3 w-full relative">
+      {openDialogue && (
+        <OptionPopup openDialogue={openDialogue} setOpenDialogue={setOpenDialogue} />
+      )}
+
+      {/* Score / Level / BPM row */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex gap-4">
+          <div className="flex flex-col">
+            <span className="text-white font-medium text-sm">Score</span>
+            <span className="text-lg font-bold">100</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-white font-medium text-sm">Level</span>
+            <span className="text-lg font-bold">1A</span>
+          </div>
+        </div>
+
+        <button
+          className="p-2 rounded-[4px] border border-solid shadow bg-white hover:shadow-lg"
+          onClick={() => hasPrevious && !isPlaying && goToLesson(unitlessonsData[currentIndex - 1])}
+          disabled={!hasPrevious}
+        >
+          <div className="flex flex-col items-center justify-center text-xs font-medium text-[#151517] gap-1 px-1">
+            <span>100</span>
+            <span>BPM</span>
+          </div>
+        </button>
+
+        <div className="flex items-center gap-3">
+          <StrikeIndicator
+            mistakeCount={mistakeCount}
+            maxMistakes={maxMistakes}
+          />
+          <Image src="/settings.svg" width={32} height={32} alt="icon"
+            className="border-gray-300 cursor-pointer p-1"
+            onClick={() => setOpenDialogue(!openDialogue)}
+          />
+        </div>
+      </div>
+
+      {/* Play button + secondary action, full width and stacked */}
+      <div className="flex flex-col items-center gap-2 w-full">
+        <button
+          className="cursor-pointer bg-[#D4AF37] rounded-[16px] py-[12px] px-[24px] h-[60px] w-full max-w-[280px]"
+          onClick={() => {
+            if (isPlaying) {
+              pauseCursor(osmdRef, setCountdown, setIsPlaying, playModeRef);
+            } else {
+              playCursor({
+                osmdRef,
+                setIsPlaying,
+                playModeRef,
+                totalStepsRef,
+                correctStepsRef,
+                scoredStepsRef,
+                currentCursorStepRef,
+                currentStepNotesRef,
+                setPlayIndex,
+                setCurrentStepNotes,
+                setScore,
+                midiOutputs: midiOutputs,
+                playbackMidiGuard,
+                setCountdown,
+                setHighScore,
+                setLastScore,
+                clearHighlight,
+              });
+            }
+          }}
+        >
+          <div className="flex items-center justify-center gap-3">
+            <span className="text-base font-medium">Play</span>
+            <Image src="/Union.svg" width={15} height={15} alt="icon" />
+          </div>
+        </button>
+
+        <button className="text-white px-5 py-2 bg-black rounded-lg hover:bg-green-700 transition text-sm">
+          Play Note free left
+        </button>
+      </div>
+    </div>
+      
       {countdown !== null && (
   <div
     style={{
@@ -350,7 +417,7 @@ export default function SasrPlayControls (props: CursorControlsProps) {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      fontSize: 96,
+      fontSize: "clamp(48px, 20vw, 96px)",
       color: "white",
       zIndex: 99999,
       fontWeight: "bold",
@@ -358,7 +425,7 @@ export default function SasrPlayControls (props: CursorControlsProps) {
   >
     {countdown === 0 ? "GO!" : countdown}
   </div>
-)}
+)}  
         </>
     )
 }

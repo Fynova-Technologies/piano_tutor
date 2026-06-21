@@ -1198,7 +1198,8 @@ function clearAllTracking() {
         fontFamily: 'monospace',
         zIndex: 10000,
         maxWidth: '280px'
-      }}>
+        
+      }} className="hidden md:block">
         {(() => {
           const info = getCurrentBeatInfo();
           const currentScore = scoreableNotesRef.current > 0 

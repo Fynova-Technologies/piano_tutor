@@ -139,53 +139,50 @@ export default function Library() {
   return (
     <>
     <div className="bg-[#F8F6F1] flex flex-col w-full">
-      <div className="flex justify-center items-center mt-16 w-full">
-        <SearchSongs />
-      </div>
-
-      <div className="flex justify-center px-4">
-        <div className="max-w-[1200px] w-full flex flex-col gap-16 mt-10 pb-16">
-
-          {/* Favorites — personalized, shows empty state */}
-          <div>
-            <h2 className="text-xl font-bold mb-4 text-[#151517]">Favorites</h2>
-            {favoriteSongs.length === 0 ? (
-              <div className="border-2 border-dashed border-gray-300 rounded-2xl flex items-center justify-center px-12 py-10">
-                <div className="flex items-center gap-10">
-                  <div className="relative w-36 h-36 flex-shrink-0">
-                    <Image
-                      src="/assets/favoritevinyl.png"
-                      alt="No favorites"
-                      className="object-contain"
-                      height={144}
-                      width={144}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <h2 className="text-xl font-bold text-[#151517]">No Favorite songs yet</h2>
-                    <p className="text-sm text-gray-500">Save songs and exercises you love for quick access later.</p>
-                    <button
-                      onClick={() => window.scrollTo({ top: 400, behavior: 'smooth' })}
-                      className="mt-2 w-fit flex items-center gap-2 bg-gradient-to-l from-[#FFD700] via-[#FFA500] to-[#FFEC8B] transition-colors text-[#151517] font-semibold text-sm px-5 py-2.5 rounded-full"
-                    >
+      <div className="flex justify-center items-center mt-8 sm:mt-16 w-full px-4">
+<SearchSongs />
+</div>
+<div className="flex justify-center px-4">
+<div className="max-w-[1200px] w-full flex flex-col gap-10 sm:gap-16 mt-6 sm:mt-10 pb-16">
+{/* Favorites — personalized, shows empty state */}
+<div>
+<h2 className="text-xl font-bold mb-4 text-[#151517]">Favorites</h2>
+{favoriteSongs.length === 0 ? (
+<div className="border-2 border-dashed border-gray-300 rounded-2xl flex items-center justify-center px-6 sm:px-12 py-8 sm:py-10">
+<div className="flex flex-col sm:flex-row items-center text-center sm:text-left gap-6 sm:gap-10">
+<div className="relative w-28 h-28 sm:w-36 sm:h-36 flex-shrink-0">
+<Image
+src="/assets/favoritevinyl.png"
+alt="No favorites"
+className="object-contain"
+height={144}
+width={144}
+/>
+</div>
+<div className="flex flex-col items-center sm:items-start gap-2">
+<h2 className="text-xl font-bold text-[#151517]">No Favorite songs yet</h2>
+<p className="text-sm text-gray-500">Save songs and exercises you love for quick access later.</p>
+<button
+onClick={() => window.scrollTo({ top: 400, behavior: 'smooth' })}
+className="mt-2 w-fit flex items-center gap-2 bg-gradient-to-l from-[#FFD700] via-[#FFA500] to-[#FFEC8B] transition-colors text-[#151517] font-semibold text-sm px-5 py-2.5 rounded-full"
+>
                       Explore Music <span>›</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
+</button>
+</div>
+</div>
+</div>
             ) : (
-              <SongRow title="" songs={favoriteSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+<SongRow title="" songs={favoriteSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
             )}
-          </div>
-
-          {/* Other categories */}
-          <SongRow title="🆕 New Releases" songs={newSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
-          <SongRow title="🎹 Classical" songs={classicalSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
-          <SongRow title="🎸 Rock" songs={rockSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
-          <SongRow title="🟢 Beginner Picks" songs={beginnerSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
-        </div>
-      </div>
-    </div>
+</div>
+{/* Other categories */}
+<SongRow title="🆕 New Releases" songs={newSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+<SongRow title="🎹 Classical" songs={classicalSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+<SongRow title="🎸 Rock" songs={rockSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+<SongRow title="🟢 Beginner Picks" songs={beginnerSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+</div>
+</div>
+</div>
     </>
   );
 }

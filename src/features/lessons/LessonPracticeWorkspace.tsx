@@ -1259,6 +1259,7 @@ if (bassStaveObj && bassStaveObj.y !== trebleStaveObj?.y && osmdHT < 48) {
           overflowY: "auto",
           boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
         }}
+        className="hidden md:block"
       >
         {(() => {
           const info = getCurrentBeatInfo();

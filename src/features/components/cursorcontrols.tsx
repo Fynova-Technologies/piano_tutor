@@ -183,36 +183,36 @@ export default function CursorControls (props: CursorControlsProps) {
             }}
           >
             <div className="min-w-0 flex-1">
-              <span className="text-[#0A0A0B] font-medium text-lg md:text-2xl font-inter truncate block">
+              <span className="text-[#0A0A0B] font-medium text-base sm:text-lg md:text-2xl font-inter truncate block">
                 {courseTitle}
               </span>
             </div>
             <div className="shrink-0">
-              <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 md:gap-x-8">
+              <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 md:gap-x-8">
                 <div className="flex items-center gap-2 md:gap-3">
                   <Image src="/Frame.svg" width={24} height={18} alt="" className="shrink-0" />
-                  <span className="font-semibold text-lg md:text-2xl primary-color-text font-inter tabular-nums">
+                  <span className="font-semibold text-base sm:text-lg md:text-2xl primary-color-text font-inter tabular-nums">
                     {highScore}
                   </span>
-                  <span className="font-medium primary-color-text text-sm md:text-base whitespace-nowrap">
+                  <span className="font-medium primary-color-text text-xs sm:text-sm md:text-base whitespace-nowrap">
                     High Score
                   </span>
                 </div>
                 <div className="flex items-center gap-2 md:gap-3">
                   <Image src="/SVGRepo_iconCarrier (1).svg" width={22} height={18} alt="" className="shrink-0" />
-                  <span className="font-semibold text-lg md:text-2xl primary-color-text font-inter tabular-nums">
+                  <span className="font-semibold text-base sm:text-lg md:text-2xl primary-color-text font-inter tabular-nums">
                     {lastScore ?? "—"}
                   </span>
-                  <span className="font-medium primary-color-text text-sm md:text-base whitespace-nowrap">
+                  <span className="font-medium primary-color-text text-xs sm:text-sm md:text-base whitespace-nowrap">
                     Last Score
                   </span>
                 </div>
                 <div className="flex items-center gap-2 md:gap-3">
                   <Image src="/autoplay (1).svg" width={24} height={18} alt="" className="shrink-0" />
-                  <span className="font-semibold text-lg md:text-2xl primary-color-text font-inter tabular-nums">
+                  <span className="font-semibold text-base sm:text-lg md:text-2xl primary-color-text font-inter tabular-nums">
                     {playCount}
                   </span>
-                  <span className="font-medium primary-color-text text-sm md:text-base whitespace-nowrap">
+                  <span className="font-medium primary-color-text text-xs sm:text-sm md:text-base whitespace-nowrap">
                     Play Count
                   </span>
                 </div>
@@ -221,15 +221,14 @@ export default function CursorControls (props: CursorControlsProps) {
           </div>
 
           <section
-            className="w-full box-border"
+            className="w-full box-border pb-[220px] sm:pb-[100px] md:pb-[88px]"
             style={{
-              paddingBottom: "88px",
               background: "#EBEBEC",
             }}
           >
-            <div className="w-full max-w-[1440px] mx-auto box-border px-4 md:px-4 py-4">
+            <div className="w-full max-w-[1440px] mx-auto box-border px-2 sm:px-4 py-4">
               <div
-                className="mx-auto box-border w-full max-w-[1200px]"
+                className="mx-auto box-border w-full max-w-[1200px] overflow-x-auto"
                 style={{
                   background: "#FFFFFF",
                   border: "1px solid rgba(10, 10, 11, 0.12)",
@@ -256,11 +255,14 @@ export default function CursorControls (props: CursorControlsProps) {
             />
           )}
 
-          <div className="fixed bottom-0 left-0 right-0 z-50 h-20 bg-[#0A0A0B] border-t border-white/10 px-3 md:px-6 grid grid-cols-[1fr_minmax(auto,max-content)_1fr] items-center gap-2">
+          {/* ✅ Footer: stacks into rows on mobile instead of crushing 8 controls into one h-20 row.
+              Each child gets w-full so its existing justify-start/center/end still aligns
+              content left/center/right within its own full-width row when stacked. */}
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0B] border-t border-white/10 px-3 md:px-6 py-3 sm:py-0 sm:h-20 flex flex-col sm:grid sm:grid-cols-[1fr_minmax(auto,max-content)_1fr] items-stretch sm:items-center gap-2">
             {isPlaying ? (
               <>
-                <div />
-                <div className="flex justify-center">
+                <div className="hidden sm:block" />
+                <div className="flex justify-center w-full sm:w-auto">
                   <button
                     type="button"
                     className="flex h-14 w-14 items-center justify-center rounded-full border border-[#0A0A0B] bg-white hover:bg-zinc-100 cursor-pointer shadow-sm"
@@ -270,7 +272,7 @@ export default function CursorControls (props: CursorControlsProps) {
                     <FontAwesomeIcon icon={faPause} size="lg" color="#0A0A0B" />
                   </button>
                 </div>
-                <div className="flex justify-end items-center gap-2 pr-1">
+                <div className="flex justify-end items-center gap-2 pr-1 w-full sm:w-auto">
                   <button
                     type="button"
                     className="p-2 rounded-lg hover:bg-white/10"
@@ -283,7 +285,7 @@ export default function CursorControls (props: CursorControlsProps) {
               </>
             ) : (
               <>
-                <div className="flex items-center justify-start gap-1.5 min-w-0">
+                <div className="flex items-center justify-start gap-1.5 min-w-0 w-full sm:w-auto">
                   {onTempoChange ? (
                     <>
                       <button
@@ -311,7 +313,7 @@ export default function CursorControls (props: CursorControlsProps) {
                   ) : null}
                 </div>
 
-                <div className="flex justify-center items-center gap-3 md:gap-5">
+                <div className="flex justify-center items-center gap-3 md:gap-5 w-full sm:w-auto">
                   <button
                     type="button"
                     className="bg-transparent p-0 border-0 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
@@ -367,7 +369,7 @@ export default function CursorControls (props: CursorControlsProps) {
                   </button>
                 </div>
 
-                <div className="flex justify-end items-center gap-2 md:gap-3 pr-1">
+                <div className="flex justify-end items-center gap-2 md:gap-3 pr-1 w-full sm:w-auto">
                   <button
                     type="button"
                     className="bg-[#D4AF37] h-11 min-w-[6.25rem] px-4 rounded-2xl border border-[#b8922c] flex gap-2 primary-color-text items-center justify-center text-[15px] font-medium shrink-0"
@@ -397,7 +399,7 @@ export default function CursorControls (props: CursorControlsProps) {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      fontSize: 96,
+      fontSize: "clamp(48px, 20vw, 96px)",
       color: "white",
       zIndex: 99999,
       fontWeight: "bold",
@@ -410,11 +412,13 @@ export default function CursorControls (props: CursorControlsProps) {
 {props.score > 0 && !isPlaying && (
   <div style={{
     position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
-    display: "flex", alignItems: "center", justifyContent: "center", zIndex: 99998
+    display: "flex", alignItems: "center", justifyContent: "center", zIndex: 99998,
+    padding: "16px",
   }}>
     <div style={{
-      background: "white", borderRadius: "16px", padding: "32px 36px",
-      width: "100%", maxWidth: "420px", border: "0.5px solid #e5e5e5"
+      background: "white", borderRadius: "16px", padding: "24px 20px",
+      width: "100%", maxWidth: "420px", border: "0.5px solid #e5e5e5",
+      maxHeight: "90vh", overflowY: "auto",
     }}>
       {/* Header */}
       <div style={{ textAlign: "center", marginBottom: "24px" }}>
@@ -425,7 +429,7 @@ export default function CursorControls (props: CursorControlsProps) {
             <circle cx="12" cy="12" r="9" stroke="#3B6D11" strokeWidth="2"/>
           </svg>
         </div>
-        <p style={{ fontSize: 24, color: "#0A0A0B", marginBottom: 4, fontWeight: 400 }}>{courseTitle}</p>
+        <p style={{ fontSize: "clamp(18px, 5vw, 24px)", color: "#0A0A0B", marginBottom: 4, fontWeight: 400 }}>{courseTitle}</p>
         <p style={{ fontSize: 18, color:"#0A0A0B" }}>Song complete</p>
       </div>
 
@@ -436,9 +440,9 @@ export default function CursorControls (props: CursorControlsProps) {
           { label: "High score", value: `${highScore ?? 0}%` },
           { label: "Last score", value: `${lastScore ?? 0}%` },
         ].map(({ label, value }) => (
-          <div key={label} style={{ background: "#f5f5f5", borderRadius: 8, padding: 12, textAlign: "center" }}>
-            <p style={{ fontSize: 13, color: "#0A0A0B" , fontWeight: 500  }}>{label}</p>
-            <p style={{ fontSize: 24,color: "#808080", fontWeight: 500 }}>{value}</p>
+          <div key={label} style={{ background: "#f5f5f5", borderRadius: 8, padding: "10px 6px", textAlign: "center" }}>
+            <p style={{ fontSize: 12, color: "#0A0A0B" , fontWeight: 500  }}>{label}</p>
+            <p style={{ fontSize: "clamp(18px, 5vw, 24px)",color: "#808080", fontWeight: 500 }}>{value}</p>
           </div>
         ))}
       </div>
@@ -475,7 +479,8 @@ export default function CursorControls (props: CursorControlsProps) {
 {props.showScorePopup && !isPlaying && (
   <div style={{
     position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
-    display: "flex", alignItems: "center", justifyContent: "center", zIndex: 99998
+    display: "flex", alignItems: "center", justifyContent: "center", zIndex: 99998,
+    padding: "16px",
   }}>
     {/* ... same popup content ... */}
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
