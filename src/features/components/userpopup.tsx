@@ -1,8 +1,9 @@
-'use client'
+'use client';
 import LogoutButton from '@/app/logout/page';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createBrowserClient } from '@supabase/ssr';
 import { useAuth } from '@/utils/Authsegment';
 import type { User } from '@supabase/supabase-js';
 
@@ -32,6 +33,41 @@ export default function UserPopup({ userPopupOpen, setUserPopupOpen, userLoggedI
   const user = auth?.user ?? null;
   const displayName = displayNameFromUser(user);
   const popupRef = useRef<HTMLDivElement>(null);
+
+  const [role, setRole] = useState<'teacher' | 'student' | null>(null);
+
+  const supabase = useMemo(
+    () =>
+      createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      ),
+    []
+  );
+
+  useEffect(() => {
+    if (!user) {
+      setRole(null);
+      return;
+    }
+    let isMounted = true;
+    supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+      .then(({ data, error }) => {
+        if (!isMounted) return;
+        if (error) {
+          console.error('Failed to fetch role:', error);
+          return;
+        }
+        setRole((data?.role as 'teacher' | 'student') ?? 'student');
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [user, supabase]);
 
   const close = () => {
     onNavigate?.();
@@ -76,9 +112,15 @@ export default function UserPopup({ userPopupOpen, setUserPopupOpen, userLoggedI
         <Link href="/accounts" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
           My Account
         </Link>
-        <Link href="/student-classes" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
-          Student & Classes
-        </Link>
+        {role === 'teacher' ? (
+          <Link href="/teacher" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
+            Teacher Dashboard
+          </Link>
+        ) : (
+          <Link href="/student-classes" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
+            Student & Classes
+          </Link>
+        )}
         <Link href="/instrument-settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
           Instrument Settings
         </Link>

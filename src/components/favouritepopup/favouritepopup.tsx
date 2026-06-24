@@ -118,97 +118,96 @@ export default function GetPopupContainer({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#FEFEFE] rounded-4xl shadow-lg w-full max-w-[60%] p-6 flex flex-col gap-6">
+  <div className="bg-[#FEFEFE] rounded-4xl shadow-lg w-full max-w-[95%] sm:max-w-[80%] lg:max-w-[60%] p-4 sm:p-6 flex flex-col gap-4 sm:gap-6 max-h-[90vh] overflow-y-auto">
 
-        {/* Header */}
-        <div className="flex justify-between">
-          <h2 className="text-lg font-bold mb-4 text-black">{dialogueSong.title}</h2>
-          <div className="flex justify-space-between items-center gap-4">
-            <div className="cursor-pointer text-black" onClick={() => onToggleLike(dialogueSong.id)}>
-  <PopupHeartIcon isLiked={!!liked[dialogueSong.id]} />  {/* ✅ uses shared state */}
-</div>
-            <Image
-              src="/assets/cross-circle.svg"
-              alt="Close"
-              height={32}
-              width={32}
-              className="rounded-2xl border cursor-pointer"
-              onClick={() => setOpenDialogue(!openDialogue)}
-            />
-          </div>
+    {/* Header */}
+    <div className="flex justify-between">
+      <h2 className="text-lg font-bold mb-4 text-black">{dialogueSong.title}</h2>
+      <div className="flex justify-space-between items-center gap-4">
+        <div className="cursor-pointer text-black" onClick={() => onToggleLike(dialogueSong.id)}>
+          <PopupHeartIcon isLiked={!!liked[dialogueSong.id]} />
         </div>
-
-        {/* Body */}
-        <div className="flex relative">
-
-          {/* Album art */}
-          <div className="w-[40%] mr-10">
-            <Image
-              src={dialogueSong.imageUrl || "/songs/s1.jpg"}
-              alt="Album cover"
-              height={600}
-              width={200}
-              className="w-full h-[100%] rounded-2xl border"
-            />
-          </div>
-
-          {/* Levels */}
-          <div className="w-[60%]">
-            {ALL_LEVELS.map((level, idx) => {
-              const levelRank = LEVEL_RANK[level.variant] ?? 99;
-              const isUnlocked = levelRank <= songVariantRank;
-
-              return (
-                <div
-                  key={idx}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b last:border-none"
-                >
-                  {/* Difficulty label + lock */}
-                  <div className="flex items-center gap-2 sm:w-[40%]">
-                    <Image
-                      src={isUnlocked ? "/assets/unlock.svg" : "/assets/lock.svg"}
-                      alt={isUnlocked ? "Unlocked" : "Locked"}
-                      width={16}
-                      height={16}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-black">{level.difficulty}</span>
-                  </div>
-
-                  {/* Sub-levels */}
-                  <div className="flex items-center gap-8 flex-wrap mt-2 sm:mt-0 sm:w-[60%]">
-                    {level.subLevels.map((sub, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleSubLevelClick(level, sub)}
-                        className={[
-                          "flex flex-col items-center gap-1 group transition-opacity",
-                          // All clickable per requirement — but visually dim locked rows
-                          isUnlocked
-                            ? "opacity-100 cursor-pointer"
-                            : "opacity-40 cursor-pointer",
-                        ].join(" ")}
-                      >
-                        <Image
-                          src="/assets/Star.svg"
-                          alt="Star icon"
-                          width={16}
-                          height={16}
-                          className="group-hover:scale-110 transition-transform"
-                        />
-                        <span className="text-sm text-black group-hover:font-semibold transition-all">
-                          {sub.name}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
+        <Image
+          src="/assets/cross-circle.svg"
+          alt="Close"
+          height={32}
+          width={32}
+          className="rounded-2xl border cursor-pointer"
+          onClick={() => setOpenDialogue(!openDialogue)}
+        />
       </div>
     </div>
+
+    {/* Body */}
+    <div className="flex flex-col lg:flex-row relative gap-6">
+
+      {/* Album art */}
+      <div className="w-full lg:w-[40%]">
+        <Image
+          src={dialogueSong.imageUrl || "/songs/s1.jpg"}
+          alt="Album cover"
+          height={600}
+          width={200}
+          className="w-full h-48 sm:h-64 lg:h-full object-cover rounded-2xl border"
+        />
+      </div>
+
+      {/* Levels */}
+      <div className="w-full lg:w-[60%]">
+        {ALL_LEVELS.map((level, idx) => {
+          const levelRank = LEVEL_RANK[level.variant] ?? 99;
+          const isUnlocked = levelRank <= songVariantRank;
+
+          return (
+            <div
+              key={idx}
+              className="flex flex-col sm:flex-row sm:items-center justify-between py-3 border-b last:border-none gap-2"
+            >
+              {/* Difficulty label + lock */}
+              <div className="flex items-center gap-2 sm:w-[40%]">
+                <Image
+                  src=  "/assets/lock.svg"
+                  alt={isUnlocked ? "Unlocked" : "Locked"}
+                  width={16}
+                  height={16}
+                  className={`w-4 h-4 ${isUnlocked ? "hidden" : "block"}`}
+                />
+                <span className="text-black">{level.difficulty}</span>
+              </div>
+
+              {/* Sub-levels */}
+              <div className="flex items-center gap-4 sm:gap-6 flex-wrap sm:w-[60%]">
+                {level.subLevels.map((sub, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSubLevelClick(level, sub)}
+                    className={[
+                      "flex flex-col items-center gap-1 group transition-opacity",
+                      isUnlocked
+                        ? "opacity-100 cursor-pointer"
+                        : "opacity-40 cursor-pointer",
+                    ].join(" ")}
+                  >
+                    <Image
+                      src="/assets/Star.svg"
+                      alt="Star icon"
+                      width={16}
+                      height={16}
+                      className="group-hover:scale-110 transition-transform"
+                    />
+                    <span className="text-sm text-black group-hover:font-semibold transition-all">
+                      {sub.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+
+  </div>
+</div>
   );
 }
