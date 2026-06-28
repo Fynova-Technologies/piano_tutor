@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStudentDashboardData, type TeacherAssignment } from "@/hooks/useStudentDashboardData";
 import type { RecentLesson } from "@/utils/userprogress/userrecentpost";
+import JoinClassroomModal from "@/features/components/JoinClassroomModal";
 
 const FALLBACK_THUMB = "/assets/C1.png";
 
@@ -99,6 +101,8 @@ export default function StudentClassesPage() {
     assignments,
   } = useStudentDashboardData();
 
+  const [showJoinClassroom, setShowJoinClassroom] = useState(false);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F8F6F1] flex items-center justify-center">
@@ -131,6 +135,13 @@ export default function StudentClassesPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setShowJoinClassroom(true)}
+              className="inline-flex items-center justify-center rounded-full bg-[#581845] text-white px-5 py-2.5 text-sm font-semibold hover:bg-[#4F163E] transition-colors"
+            >
+              Join a classroom
+            </button>
             <Link
               href="/method"
               className="inline-flex items-center justify-center rounded-full bg-[#D4AF37] text-[#0A0A0B] px-5 py-2.5 text-sm font-semibold no-underline hover:opacity-95 transition-opacity"
@@ -352,10 +363,16 @@ export default function StudentClassesPage() {
               {assignments.length === 0 ? (
                 <div className="space-y-5">
                   <div className="rounded-xl border border-dashed border-[#D4AF37]/40 bg-[#FFFDF8] px-4 py-5 text-center">
-                    <p className="text-sm text-[#6E6E73]">
-                      No active assignments from your teacher yet. When your studio connects this account, exercises,
-                      songs, scales, and tempo targets will appear above this section.
+                    <p className="text-sm text-[#6E6E73] mb-3">
+                      No active assignments yet. Joined a classroom but nothing&apos;s assigned? Check back soon.
                     </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowJoinClassroom(true)}
+                      className="inline-flex items-center justify-center rounded-full bg-[#581845] text-white px-5 py-2 text-sm font-semibold hover:bg-[#4F163E] transition-colors"
+                    >
+                      Join a classroom
+                    </button>
                   </div>
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-[#6E6E73] mb-3">
@@ -452,6 +469,8 @@ export default function StudentClassesPage() {
           </div>
         </section>
       </div>
+
+      {showJoinClassroom && <JoinClassroomModal onClose={() => setShowJoinClassroom(false)} />}
     </div>
   );
 }

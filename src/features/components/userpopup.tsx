@@ -30,7 +30,10 @@ type UserPopupProps = {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function UserPopup({ userPopupOpen, setUserPopupOpen, userLoggedIn, onNavigate }: UserPopupProps) {
   const auth = useAuth();
+  console.log('[UserPopup] auth:', auth);
   const user = auth?.user ?? null;
+  console.log('[UserPopup] user:', user?.id ?? 'null');
+  const loading = auth?.loading ?? true;
   const displayName = displayNameFromUser(user);
   const popupRef = useRef<HTMLDivElement>(null);
 
@@ -45,29 +48,25 @@ export default function UserPopup({ userPopupOpen, setUserPopupOpen, userLoggedI
     []
   );
 
-  useEffect(() => {
-    if (!user) {
-      setRole(null);
-      return;
-    }
-    let isMounted = true;
-    supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-      .then(({ data, error }) => {
-        if (!isMounted) return;
-        if (error) {
-          console.error('Failed to fetch role:', error);
-          return;
-        }
-        setRole((data?.role as 'teacher' | 'student') ?? 'student');
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, [user, supabase]);
+useEffect(() => {
+  if (loading) return;  // ← wait for auth to finish
+  
+  if (!user) {
+    setRole(null);
+    return;
+  }
+
+  supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+    .then(({ data, error }) => {
+      if (error) { console.error(error); return; }
+      setRole((data?.role as 'teacher' | 'student') ?? 'student');
+    });
+
+}, [user?.id, loading, supabase]);
 
   const close = () => {
     onNavigate?.();

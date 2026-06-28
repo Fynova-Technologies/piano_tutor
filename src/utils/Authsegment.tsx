@@ -31,6 +31,8 @@ export function AuthProvider({ children }: PropsWithChildren<object>) {
     const { data: { subscription } } = getSupabaseBrowserClient().auth.onAuthStateChange(
       (_event: any, session: { user: any; }) => {
         setUser(session?.user ?? null);
+            setLoading(false);  // ← add this here too
+
       }
     );
 
