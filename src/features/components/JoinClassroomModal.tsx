@@ -35,9 +35,12 @@ export default function JoinClassroomModal({ onClose }: JoinClassroomModalProps)
         console.error("join_classroom_by_code error:", rpcError);
         throw rpcError;
       }
+      const result = data as {
+  result_classroom_id: string;
+};
 
       onClose();
-      router.push(`/student/classrooms/${data.result_classroom_id}`);
+      router.push(`/student/classrooms/${result.result_classroom_id}`);
     } catch (err) {
       const supabaseStyleError = err as { message?: string; details?: string; hint?: string } | null;
       const readableMessage =

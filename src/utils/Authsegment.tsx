@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// context/AuthContext.jsx
 "use client"
 import { createContext, useContext, useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";

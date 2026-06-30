@@ -65,6 +65,8 @@ useEffect(() => {
       if (error) { console.error(error); return; }
       setRole((data?.role as 'teacher' | 'student') ?? 'student');
     });
+    console.log('[UserPopup] auth:', auth);
+console.log('[UserPopup] user:', user?.id ?? 'null');
 
 }, [user?.id, loading, supabase]);
 
