@@ -27,7 +27,6 @@ function collectMeasurePositions(
   const graphicSheet = osmd.GraphicSheet;
 
   if (!graphicSheet?.MeasureList) {
-    console.error("❌ No graphic sheet found");
     return map;
   }
 
@@ -35,13 +34,32 @@ function collectMeasurePositions(
   if (osmd.drawer?.backend) {
     const innerElement = osmd.drawer.backend.getInnerElement?.();
     if (innerElement?.offsetWidth && graphicSheet.ParentMusicSheet?.pageWidth) {
-      unitInPixels =
-        innerElement.offsetWidth / graphicSheet.ParentMusicSheet.pageWidth;
+      unitInPixels = innerElement.offsetWidth / graphicSheet.ParentMusicSheet.pageWidth;
     }
   }
 
   console.log("🔍 === COLLECTING MEASURE POSITIONS ===");
   console.log(`Unit conversion: ${unitInPixels.toFixed(2)} px/unit`);
+
+  const systemGeometry = new Map<any, { top: number; height: number }>();
+  function getSystemGeometry(musicSystem: any) {
+    if (!musicSystem) return { top: 0, height: 100 };
+    if (systemGeometry.has(musicSystem)) return systemGeometry.get(musicSystem)!;
+
+    let top = 0, height = 100;
+    if (musicSystem.StaffLines?.length > 0) {
+      const firstStaff = musicSystem.StaffLines[0];
+      const lastStaff = musicSystem.StaffLines[musicSystem.StaffLines.length - 1];
+      const firstY = (firstStaff.PositionAndShape?.AbsolutePosition?.y ?? 0) * unitInPixels;
+      const lastY = (lastStaff.PositionAndShape?.AbsolutePosition?.y ?? 0) * unitInPixels;
+      const lastHeight = (lastStaff.PositionAndShape?.Size?.height ?? 40) * unitInPixels;
+      top = firstY;
+      height = lastY + lastHeight - firstY + 20;
+    }
+    const geo = { top, height };
+    systemGeometry.set(musicSystem, geo);
+    return geo;
+  }
 
   for (let measureIdx = 0; measureIdx < graphicSheet.MeasureList.length; measureIdx++) {
     const measureList = graphicSheet.MeasureList[measureIdx];
@@ -71,17 +89,20 @@ function collectMeasurePositions(
       const lastHeight =
         (lastStaff.PositionAndShape?.Size?.height ?? 40) * unitInPixels;
       systemTopY = firstY;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       systemHeight = lastY + lastHeight - firstY + 20;
     }
 
     const xPixels = position.x * unitInPixels;
     const widthPixels = size.width * unitInPixels;
 
+    const { top, height } = getSystemGeometry(measure.ParentMusicSystem);
+
     map.set(measureIdx, {
       x: xPixels,
       width: widthPixels,
-      y: systemTopY,
-      height: systemHeight,
+      y: top,
+      height: height,
     });
 
     if (measureIdx < 10) {

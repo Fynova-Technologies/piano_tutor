@@ -1,10 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
 import type { PracticeSession } from "@/datastore/sessionstorage";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase = getSupabaseBrowserClient();
 
 // Retry queue — survives brief network hiccups
 const pendingQueue: PracticeSession[] = [];
@@ -85,7 +82,8 @@ export async function fetchSessionsFromSupabase(): Promise<PracticeSession[]> {
 
   if (error || !data) return [];
 
-  return data.map((r) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return data.map((r: { id: any; started_at: string | number | Date; ended_at: string | number | Date; duration_sec: any; lesson_uid: any; lesson_id: any; lesson_title: any; lesson_source: any; attempts: any; score: any; accuracy: any; correct_notes: any; incorrect_notes: any; total_scoreable: any; session_category: any; lesson_file: any; tempo_bpm: any; completion_status: any; weak_areas: any; mistake_events: any; ai_feedback_snapshot: any; progress_metrics: any; }) => ({
     id: r.id,
     startedAt: new Date(r.started_at).getTime(),
     endedAt: new Date(r.ended_at).getTime(),

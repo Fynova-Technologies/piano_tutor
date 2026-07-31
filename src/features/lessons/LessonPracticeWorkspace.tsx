@@ -200,6 +200,9 @@ useEffect(() => {
     document.head.appendChild(style);
   }, []);
 
+      const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+
   // ========== OSMD: full rebuild when MusicXML changes (CDN load or recovery injection) ==========
   useEffect(() => {
     attemptCountRef.current = 0;
@@ -207,7 +210,7 @@ useEffect(() => {
 
     if (!containerRef.current) return;
 
-    let cancelled = false;
+    const cancelled = false;
 
     try {
       if (beatCursorRef.current) {
@@ -300,37 +303,39 @@ useEffect(() => {
       }
     })();
 
-    const onResize = () => {
-      try {
-        if (!osmdRef.current) return;
-        osmd.render();
+    
+const onResize = () => {
+  if (resizeTimeoutRef.current) {
+    clearTimeout(resizeTimeoutRef.current);
+  }
+  resizeTimeoutRef.current = setTimeout(() => {
+    if (!osmdRef.current) return;
+    try {
+      osmd.render();
+      // wait one more frame so layout/reflow has actually settled
+      requestAnimationFrame(() => {
+        if (!beatCursorRef.current || !osmdRef.current) return;
+        const currentIndex = beatCursorRef.current.getCurrentIndex();
+        beatCursorRef.current.destroy();
+        const newCursor = new BeatCursor(osmdRef.current);
+        newCursor.setPosition(currentIndex);
+        beatCursorRef.current = newCursor;
+        setTotalSteps(newCursor.getTotalBeats());
+        const expectedMIDI = newCursor.getCurrentExpectedMIDI();
+        setCurrentStepNotes(expectedMIDI);
+        currentStepNotesRef.current = expectedMIDI;
+      });
+    } catch (e) {
+      console.error("Resize error:", e);
+    }
+  }, 250); // only rebuild once resizing has paused for 250ms
+};
 
-        setTimeout(() => {
-          if (beatCursorRef.current && osmdRef.current) {
-            const currentIndex = beatCursorRef.current.getCurrentIndex();
+window.addEventListener("resize", onResize);
 
-            beatCursorRef.current.destroy();
-            const newCursor = new BeatCursor(osmdRef.current);
-            newCursor.setPosition(currentIndex);
-            beatCursorRef.current = newCursor;
-
-            setTotalSteps(newCursor.getTotalBeats());
-
-            const expectedMIDI = newCursor.getCurrentExpectedMIDI();
-            setCurrentStepNotes(expectedMIDI);
-            currentStepNotesRef.current = expectedMIDI;
-          }
-        }, 200);
-      } catch (e) {
-        console.error("Resize error:", e);
-      }
-    };
-
-    window.addEventListener("resize", onResize);
-
-    return () => {
-      cancelled = true;
-      window.removeEventListener("resize", onResize);
+return () => {
+  if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
+  window.removeEventListener("resize", onResize);
       try {
         if (beatCursorRef.current) {
           beatCursorRef.current.destroy();

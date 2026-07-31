@@ -35,6 +35,21 @@ function ymdLocal(ts: number): string {
   return `${y}-${m}-${day}`;
 }
 
+function getStorageKey(userId?: string | null): string {
+  return `practice_sessions_${userId ?? "guest"}`;
+}
+
+export function getSessions(userId?: string | null): PracticeSession[] {
+  if (typeof window === "undefined") return [];
+  const raw = localStorage.getItem(getStorageKey(userId));
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
 function computePracticeStreak(practiceDays: Set<string>): number {
   const today = ymdLocal(Date.now());
   const y = new Date();
@@ -118,6 +133,8 @@ export function useStudentDashboardData() {
       setAssignments([]);
     }
   }, [user?.id]);
+
+  
 
   const displayName = useMemo(() => {
     if (!user) return "Guest";
@@ -226,50 +243,25 @@ export function useStudentDashboardData() {
     return Math.round((done / sightLessons.length) * 100);
   }, [lessons, sasrStats]);
 
-  const courseTracks = useMemo(() => {
-    const methodUnits = lessons.filter((u) =>
-      u.unitlessons?.some(
-        (l) => typeof l.source === "string" && l.source.toLowerCase().includes("method")
-      )
-    );
-    const scaleUnits = lessons.filter((u) => u.unitlessons?.some((l) => lessonMatchesScale(l)));
-    const sightUnits = lessons.filter((u) => u.unitlessons?.some((l) => lessonMatchesSight(l)));
+const courseTracks = useMemo(() => {
+  // ✅ Method % — matches MusicCategories' "Method Lessons" card (unit fkid "1")
+  const methodPct = getUnitProgress("1");
 
-    const methodPct =
-      methodUnits.length > 0
-        ? Math.round(methodUnits.reduce((sum, u) => sum + getUnitProgress(u.fkid), 0) / methodUnits.length)
-        : topLessons.length > 0
-          ? getUnitProgress(String(topLessons[0].fkid))
-          : overallPct;
+  // ✅ Scales/Technique % — matches MusicCategories' "Technique Lessons" card (unit fkid "2")
+  const scalesPct = getUnitProgress("2");
 
-    const scalesPct =
-      scaleUnits.length > 0
-        ? Math.round(scaleUnits.reduce((sum, u) => sum + getUnitProgress(u.fkid), 0) / scaleUnits.length)
-        : Math.min(100, Math.round((completedLessonCount / Math.max(1, totalLessonCount)) * 55));
+  // ✅ Sight reading % — always the real SASR-derived score, same as the stat card above
+  const sightPct = sightReadingScore ?? 0;
 
-    const sightPct =
-      sightUnits.length > 0
-        ? Math.round(sightUnits.reduce((sum, u) => sum + getUnitProgress(u.fkid), 0) / sightUnits.length)
-        : sightReadingScore ?? Math.min(100, Math.round((sasrStats.avgScore || 0) * 0.85));
+  const bookTitle = topLessons[0]?.title != null ? String(topLessons[0].title) : "1A";
+  const methodLabel = `Method book ${bookTitle}`;
 
-    const bookTitle = topLessons[0]?.title != null ? String(topLessons[0].title) : "1A";
-    const methodLabel = `Method book ${bookTitle}`;
-
-    return [
-      { key: "method", label: methodLabel, percent: Math.min(100, Math.max(0, methodPct)) },
-      { key: "scales", label: "Scales", percent: Math.min(100, Math.max(0, scalesPct)) },
-      { key: "sight", label: "Sight reading", percent: Math.min(100, Math.max(0, sightPct)) },
-    ];
-  }, [
-    lessons,
-    topLessons,
-    getUnitProgress,
-    overallPct,
-    completedLessonCount,
-    totalLessonCount,
-    sightReadingScore,
-    sasrStats.avgScore,
-  ]);
+  return [
+    { key: "method", label: methodLabel, percent: Math.min(100, Math.max(0, methodPct)) },
+    { key: "scales", label: "Techniques", percent: Math.min(100, Math.max(0, scalesPct)) },
+    { key: "sight", label: "Sight reading", percent: Math.min(100, Math.max(0, sightPct)) },
+  ];
+}, [topLessons, getUnitProgress, sightReadingScore]);
 
   const firstRecent = recentLessons[0] ?? null;
 
