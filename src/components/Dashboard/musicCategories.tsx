@@ -67,7 +67,7 @@ const techniqueOffset = circumference - (techniqueProgress / 100) * circumferenc
 
         {/* Sight Reading Card */}
         <div
-          onClick={() => router.push("/method")}
+          onClick={() => router.push("/sasr")}
           className="bg-[#FEFEFE] rounded-2xl w-full hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-[0_5px_10px_0px_#505050] transition duration-300 cursor-pointer group hover:scale-[1.03] min-h-[140px]"
         >
            {/* ✅ center everything when stacked on mobile */}
@@ -102,7 +102,7 @@ const techniqueOffset = circumference - (techniqueProgress / 100) * circumferenc
       <div className="flex flex-col md:flex-row justify-center md:space-x-8 space-y-4 md:space-y-0 items-stretch mt-4">
 
   {/* Method Lessons Card */}
-  <div onClick={() => router.push("/sasr")} className="bg-[#FEFEFE] rounded-2xl w-full hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-[0_5px_10px_0px_#505050] transition duration-300 cursor-pointer group hover:scale-[1.03]">
+  <div onClick={() => router.push("/method")} className="bg-[#FEFEFE] rounded-2xl w-full hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-[0_5px_10px_0px_#505050] transition duration-300 cursor-pointer group hover:scale-[1.03]">
     {/* ✅ center title + circle on mobile */}
     <div className="relative flex flex-col items-center sm:items-stretch sm:flex-row gap-4 sm:gap-0">
       <div className="relative flex items-center justify-center sm:justify-between sm:space-x-4 overflow-hidden w-full sm:flex-1 z-10 rounded-3xl">

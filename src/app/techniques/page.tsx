@@ -4,12 +4,9 @@ import { useRouter } from "next/navigation";
 import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useMediaQuery } from "@/components/MediaQuery/useMediaQueryHook";
-import { createClient } from "@supabase/supabase-js";
+import {getSupabaseBrowserClient} from "@/lib/supabase/browserclient"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase = getSupabaseBrowserClient();
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -42,7 +39,7 @@ async function fetchProgress(userId: string): Promise<ProgressMap> {
   if (error || !data) return {};
 
   const map: ProgressMap = {};
-  data.forEach((row) => {
+  data.forEach((row: { fkid: string | number; lesson_id: string | number; completed: boolean; }) => {
     if (!map[row.fkid]) map[row.fkid] = {};
     map[row.fkid][row.lesson_id] = row.completed;
   });
@@ -81,11 +78,15 @@ export default function Techniques() {
   const [progressLoading, setProgressLoading] = useState(true);
 
   // ── Auth + progress fetch ──────────────────────────────────────────────────
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setUserId(data.user.id);
-    });
-  }, []);
+useEffect(() => {
+  supabase.auth.getUser().then(({ data }:any) => {
+    if (data.user) {
+      setUserId(data.user.id);
+    } else {
+      setProgressLoading(false); // no user — stop the spinner
+    }
+  });
+}, []);
 
   useEffect(() => {
     if (!userId) return;
