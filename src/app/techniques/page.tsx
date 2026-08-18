@@ -4,9 +4,8 @@ import { useRouter } from "next/navigation";
 import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useMediaQuery } from "@/components/MediaQuery/useMediaQueryHook";
-import {getSupabaseBrowserClient} from "@/lib/supabase/browserclient"
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 
-const supabase = getSupabaseBrowserClient();
 const supabase = getSupabaseBrowserClient();
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -40,7 +39,6 @@ async function fetchProgress(userId: string): Promise<ProgressMap> {
   if (error || !data) return {};
 
   const map: ProgressMap = {};
-  data.forEach((row: { fkid: string | number; lesson_id: string | number; completed: boolean; }) => {
   data.forEach((row: { fkid: string | number; lesson_id: string | number; completed: boolean; }) => {
     if (!map[row.fkid]) map[row.fkid] = {};
     map[row.fkid][row.lesson_id] = row.completed;
@@ -80,15 +78,16 @@ export default function Techniques() {
   const [progressLoading, setProgressLoading] = useState(true);
 
   // ── Auth + progress fetch ──────────────────────────────────────────────────
-useEffect(() => {
-  supabase.auth.getUser().then(({ data }:any) => {
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    supabase.auth.getUser().then(({ data } : any) => {
     if (data.user) {
       setUserId(data.user.id);
     } else {
       setProgressLoading(false); // no user — stop the spinner
     }
   });
-}, []);
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
