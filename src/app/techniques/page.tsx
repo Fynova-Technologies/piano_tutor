@@ -7,6 +7,7 @@ import { useMediaQuery } from "@/components/MediaQuery/useMediaQueryHook";
 import {getSupabaseBrowserClient} from "@/lib/supabase/browserclient"
 
 const supabase = getSupabaseBrowserClient();
+const supabase = getSupabaseBrowserClient();
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,7 @@ async function fetchProgress(userId: string): Promise<ProgressMap> {
   if (error || !data) return {};
 
   const map: ProgressMap = {};
+  data.forEach((row: { fkid: string | number; lesson_id: string | number; completed: boolean; }) => {
   data.forEach((row: { fkid: string | number; lesson_id: string | number; completed: boolean; }) => {
     if (!map[row.fkid]) map[row.fkid] = {};
     map[row.fkid][row.lesson_id] = row.completed;

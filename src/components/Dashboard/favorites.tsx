@@ -145,7 +145,7 @@ access later.                  </p>
   );
 
   return (
-    <div className="bg-[#F8F6F1] flex justify px-4 pb-8">
+    <div className="bg-[#F8F6F1] flex justify-center px-4 pb-8">
       <div className="max-w-[90%] w-full">
         <h1 className="text-2xl font-bold mb-6 text-[#151517]">Favorites</h1>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">

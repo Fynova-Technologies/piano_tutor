@@ -68,18 +68,55 @@ export default function FooterMusicsheet({
   id,
   backgroundSoundRef,
 }: FooterMusicsheetProps) {
+ 
   useEffect(() => {
-    if (!isMetronomeRunning) {
-      return;
-    }
-    if (isPlaying || isCountingIn) {
-      return () => {
-        clearInterval(timerID.current as NodeJS.Timeout);
-        timerID.current = setInterval(scheduler, 25);
-      };
-    }
+  if (!isMetronomeRunning) return;
+  if (isPlaying || isCountingIn) {
+    timerID.current = setInterval(scheduler, 25);
     return () => clearInterval(timerID.current as NodeJS.Timeout);
-  }, [isCountingIn, isMetronomeRunning, isPlaying, scheduler, timerID]);
+  }
+  return () => clearInterval(timerID.current as NodeJS.Timeout);
+}, [isCountingIn, isMetronomeRunning, isPlaying, scheduler, timerID]);
+
+useEffect(() => {
+  return () => {
+    clearInterval(timerID.current as NodeJS.Timeout);
+    if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      audioContextRef.current.close();
+    }
+    setIsPlaying(false);
+    setIsMetronomeRunning(false);
+    setIsCountingIn(false);
+  };
+}, []); // runs only on unmount
+
+useEffect(() => {
+  const stopEverything = () => {
+    clearInterval(timerID.current as NodeJS.Timeout);
+    if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+      audioContextRef.current.close();
+    }
+    if (backgroundSoundRef.current) {
+      backgroundSoundRef.current.pause();
+      backgroundSoundRef.current.currentTime = 0;
+    }
+    setIsPlaying(false);
+    setIsMetronomeRunning(false);
+    setIsCountingIn(false);
+  };
+
+  // Real browser back/forward always fires this, even if Next.js
+  // restores the page from its router cache instead of remounting.
+  window.addEventListener("popstate", stopEverything);
+
+  // Also cover real unmounts (e.g. normal link navigation).
+  return () => {
+    window.removeEventListener("popstate", stopEverything);
+    stopEverything();
+  };
+}, [audioContextRef, backgroundSoundRef, timerID, setIsPlaying, setIsMetronomeRunning, setIsCountingIn]);
+
 
   const [openDialogue, setOpenDialogue] = useState(false);
 
