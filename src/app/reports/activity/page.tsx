@@ -4,14 +4,10 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { useState, useMemo, useEffect } from "react";
 import { ArrowUpDown, MoreVertical } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
 import { PracticeSession } from "@/datastore/sessionstorage";
 // import ActivityChart from "@/features/components/activitychart"; // ← new
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
+const supabase = getSupabaseBrowserClient();
 
 async function fetchAllSessionsFromSupabase(): Promise<PracticeSession[]> {
   const { data, error } = await supabase
@@ -24,7 +20,7 @@ async function fetchAllSessionsFromSupabase(): Promise<PracticeSession[]> {
     return [];
   }
 
-  return data.map((r) => ({
+  return data.map((r: any) => ({
     id: r.id,
     startedAt: new Date(r.started_at).getTime(),
     endedAt: new Date(r.ended_at).getTime(),

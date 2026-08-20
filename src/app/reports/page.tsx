@@ -1,47 +1,50 @@
 "use client";
-import { BarChart, Bar, XAxis, ResponsiveContainer, CartesianGrid, YAxis, Cell } from "recharts";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import SasrReport from "@/features/components/sasrreport";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { getSessions, PracticeSession } from "@/datastore/sessionstorage";
 import ActivityChart from "@/features/components/activitychart";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 
+const supabase = getSupabaseBrowserClient();
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+type ViewMode = "week" | "month";
 
 // ── Supabase-based activity builders ──────────────────────────────────────────
 
-function buildWeeklyActivity(sessions: { startedAt: number; durationSec: number }[]) {
+function buildWeeklyActivity(sessions: { startedAt: number; performance: { score: number } }[]) {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const map: Record<string, number> = {};
-  days.forEach((d) => (map[d] = 0));
+  const map: Record<string, { total: number; count: number }> = {};
+  days.forEach((d) => (map[d] = { total: 0, count: 0 }));
 
   const now = new Date();
   const startOfWeek = new Date(now);
   startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
   startOfWeek.setHours(0, 0, 0, 0);
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 7);
 
   sessions.forEach((s) => {
     const d = new Date(s.startedAt);
-    if (d >= startOfWeek) {
+    if (d >= startOfWeek && d < endOfWeek) {
       const label = days[d.getDay()];
-      map[label] += Math.round(s.durationSec / 60);
+      map[label].total += s.performance?.score ?? 0;
+      map[label].count += 1;
     }
   });
 
-  return days.map((day) => ({ day, minutes: map[day] }));
+  return days.map((day) => ({
+    day,
+    score: map[day].count > 0 ? Math.round(map[day].total / map[day].count) : 0,
+  }));
 }
 
-function buildMonthlyActivity(sessions: { startedAt: number; durationSec: number }[]) {
+function buildMonthlyActivity(sessions: { startedAt: number; performance: { score: number } }[]) {
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const map: Record<string, number> = {};
-  months.forEach((m) => (map[m] = 0));
+  const map: Record<string, { total: number; count: number }> = {};
+  months.forEach((m) => (map[m] = { total: 0, count: 0 }));
 
   const now = new Date();
   const startOfYear = new Date(now.getFullYear(), 0, 1);
@@ -50,45 +53,27 @@ function buildMonthlyActivity(sessions: { startedAt: number; durationSec: number
     const d = new Date(s.startedAt);
     if (d >= startOfYear) {
       const label = months[d.getMonth()];
-      map[label] += Math.round(s.durationSec / 60);
+      map[label].total += s.performance?.score ?? 0;
+      map[label].count += 1;
     }
   });
 
-  return months.map((month) => ({ month, minutes: map[month] }));
+  return months.map((month) => ({
+    month,
+    score: map[month].count > 0 ? Math.round(map[month].total / map[month].count) : 0,
+  }));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CustomLabel = (props: { x: any; y: any; width: any; value: any }) => {
-  const { x, y, width, value } = props;
-  return (
-    <text x={x + width / 2} y={y - 5} fill="#151517" textAnchor="middle" fontSize="8">
-      {value} min
-    </text>
-  );
-};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CustomBackground = (props: { x: any; y: any; width: any; height: any; index: any }) => {
-  const { x, y, width, height } = props;
-  return (
-    <g>
-      <rect x={x} y={y} width={width} height={height} fill="#D6DBED66" />
-    </g>
-  );
-};
 
 export default function Reports() {
   const router = useRouter();
   const [attempts] = useState(15);
   const [highestScore] = useState(240);
   const [lastScore] = useState(100);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [activityData, setActivityData] = useState<any[]>([]);
+
+  const [viewMode, setViewMode] = useState<ViewMode>("week");
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [activityLoading, setActivityLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<"week" | "month">("week");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [playedDays, setPlayedDays] = useState<Set<string>>(new Set());
@@ -96,47 +81,22 @@ export default function Reports() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [sessions, setSessions] = useState<PracticeSession[]>([]);
   const [loading, setLoading] = useState(true);
-  const hasActivity = activityData.some((d) => d.minutes > 0);
-
-  type RangeType = "week" | "month" | "3month" | "custom";
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [range, setRange] = useState<RangeType>("week");
-
-  function isInRange(timestamp: number): boolean {
-    const now = new Date();
-    if (range === "week") {
-      const start = new Date(now);
-      start.setDate(now.getDate() - now.getDay() + 1);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 7);
-      return timestamp >= start.getTime() && timestamp < end.getTime();
-    }
-    if (range === "month") {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      return timestamp >= start.getTime();
-    }
-    if (range === "3month") {
-      const start = new Date(now);
-      start.setMonth(now.getMonth() - 3);
-      return timestamp >= start.getTime();
-    }
-    return true;
-  }
-
+  // near your other useState declarations
+  const [sasrRange, setSasrRange] = useState<"week" | "month">("month");
 
   async function fetchAllSessionsFromSupabase(): Promise<PracticeSession[]> {
     const { data, error } = await supabase
       .from("practice_sessions")
       .select("*")
       .order("started_at", { ascending: false });
-  
+
     if (error || !data) {
       console.error("Failed to fetch sessions:", error?.message);
       return [];
     }
-  
-    return data.map((r) => ({
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return data.map((r: any) => ({
       id: r.id,
       startedAt: new Date(r.started_at).getTime(),
       endedAt: new Date(r.ended_at).getTime(),
@@ -165,57 +125,23 @@ export default function Reports() {
       progressMetrics: r.progress_metrics,
     }));
   }
-  
-  const rangedSessions = sessions.filter((s) => isInRange(s.startedAt));
 
-    useEffect(() => {
-      fetchAllSessionsFromSupabase()
-        .then(setSessions)
-        .finally(() => setLoading(false));
-    }, []);
-
-
-    
-
-
-  // ── Fetch activity data from Supabase ──────────────────────────────────────
   useEffect(() => {
-    async function loadActivity() {
-      setActivityLoading(true);
+    fetchAllSessionsFromSupabase()
+      .then(setSessions)
+      .finally(() => setLoading(false));
+  }, []);
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setActivityLoading(false);
-        return;
-      }
+  // ── Derived activity chart data (from the same Supabase sessions) ─────────
+  const activityData =
+    viewMode === "week"
+      ? buildWeeklyActivity(sessions)
+      : buildMonthlyActivity(sessions);
 
-      const { data, error } = await supabase
-        .from("practice_sessions")
-        .select("started_at, duration_sec")
-        .eq("user_id", user.id);
-
-      if (error || !data) {
-        console.error("Failed to load activity:", error?.message);
-        setActivityLoading(false);
-        return;
-      }
-
-      const normalized = data.map((r) => ({
-        startedAt: new Date(r.started_at).getTime(),
-        durationSec: r.duration_sec,
-      }));
-
-      const chart =
-        viewMode === "week"
-          ? buildWeeklyActivity(normalized)
-          : buildMonthlyActivity(normalized);
-
-      setActivityData(chart);
-      setActivityLoading(false);
-    }
-
-    loadActivity();
-  }, [viewMode]); // re-runs when user switches week ↔ month
+  // ── Derived SASR flag ───────────────────────────────────────────────────
+  const hasSasrData = sessions.some(
+    (s) => s.lesson?.source?.toUpperCase() === "SASR"
+  );
 
   // ── Streak calendar (still from localStorage — unchanged) ─────────────────
   useEffect(() => {
@@ -278,129 +204,56 @@ export default function Reports() {
   const today = new Date();
   const todayKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
 
-
-
   return (
     <>
     <div className="min-h-screen bg-[#f8f5ef] p-8 flex flex-col items-center gap-8">
       {/* Top Charts */}
       <div className="grid md:grid-cols-2 gap-8 w-full p-8">
-        
+
         {/* Activity Chart */}
-<div className="bg-white shadow-[2px_4px_8px_1px_#0000003B] rounded-2xl p-4 border-4 border-[#C0BABA] border-r-[#BCBCBC]">
-  <div className="flex justify-between items-center mb-2">
-
-    <div className="relative" ref={dropdownRef}>
-      {/* <button
-        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="bg-[#E4E4E4] rounded-lg px-4 py-2 text-sm text-[#151517] cursor-pointer flex items-center gap-2"
-      >
-        {viewMode === "week" ? "Week" : "Month"}
-        <Image
-          src="/Icon3.svg"
-          alt="dropdown"
-          width={12}
-          height={12}
-          className={`transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
-        />
-      </button> */}
-
-      {isDropdownOpen && (
-        <div className="absolute right-0 mt-2 w-32 shadow-lg z-10 bg-[#E4E4E4] rounded-lg px-4 py-2 text-sm text-[#151517] cursor-pointer flex items-center gap-2">
-          <button
-            onClick={() => { setViewMode("week"); setIsDropdownOpen(false); }}
-            className={`w-full text-left px-4 py-2 text-sm rounded-t-lg hover:bg-[#E4E4E4] ${
-              viewMode === "week" ? "bg-[#E4E4E4] text-[#000000] font-medium" : "text-[#151517]"
-            }`}
-          >
-            Week
-          </button>
-          <button
-            onClick={() => { setViewMode("month"); setIsDropdownOpen(false); }}
-            className={`w-full text-left px-4 py-2 text-sm rounded-b-lg hover:bg-gray-100 ${
-              viewMode === "month" ? "bg-white text-[#000000] font-medium" : "text-[#151517]"
-            }`}
-          >
-            Month
-          </button>
+        <div className="bg-white shadow-[2px_4px_8px_1px_#0000003B] rounded-2xl p-4 border-4 border-[#C0BABA] border-r-[#BCBCBC]">
+          <ActivityChart
+            sessionCount={sessions.length}
+            loading={loading}
+            data={activityData}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onViewReports={() => router.push("/reports/activity")}
+          />
         </div>
-      )}
-    </div>
-  </div>
-
-  {!activityLoading && !hasActivity ? (
-    // Empty state — matches your design
-    <div className="mt-4">
-      <ActivityChart sessionCount={rangedSessions.length} loading={loading} />
-    </div>
-  ) : (
-    <>
-      <div className="h-60 mt-8">
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={activityData} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
-            <defs>
-              <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#a855f7" />
-                <stop offset="100%" stopColor="#7c3aed" />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="0" stroke="#e5e7eb" vertical horizontal />
-            <XAxis
-              dataKey={viewMode === "week" ? "day" : "month"}
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "#000000", fillOpacity: "0.8", fontSize: 12 }}
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tick={{ fill: "#6b7280", fontSize: 12 }}
-              domain={[0, 100]}
-              ticks={[0, 20, 40, 60, 80, 100]}
-            />
-            <Bar
-              dataKey="minutes"
-              radius={[16, 16, 0, 0]}
-              maxBarSize={53}
-              label={<CustomLabel x={undefined} y={undefined} width={undefined} value={undefined} />}
-              background={<CustomBackground x={undefined} y={undefined} width={undefined} height={undefined} index={undefined} />}
-            >
-              {activityData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill="#581845" />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      <div className="text-center mt-20">
-        <button
-          onClick={() => router.push("/reports/activity")}
-          className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] text-[#151517] font-medium text-[14px] px-6 py-3 rounded-2xl transition flex items-center justify-center gap-2 mx-auto"
-        >
-          View Reports <Image src="icon2.svg" alt="arrow" width={16} height={16} className="inline-block ml-2" />
-        </button>
-      </div>
-    </>
-  )}
-</div>
 
         {/* SASR Growth Report */}
         <div className="bg-white shadow-md rounded-xl p-4 border-4 border-[#C0BABA] border-r-[#BCBCBC]">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="text-[#151517] text-[16px] font-medium">SASR Growth Report</h2>
-            <div className="bg-[#E4E4E4] rounded-lg px-4 py-2 text-sm text-[#151517] cursor-pointer">
-              Month <Image src="/Icon3.svg" alt="dropdown" width={12} height={12} className="inline-block ml-2"/>
+  <h2 className="text-[#151517] text-[16px] font-medium">SASR Growth Report</h2>
+  <div className="relative">
+    <select
+      value={sasrRange}
+      onChange={(e) => setSasrRange(e.target.value as "week" | "month")}
+      className="bg-[#E4E4E4] rounded-lg px-4 py-2 pr-8 text-sm text-[#151517] cursor-pointer appearance-none"
+    >
+      <option value="week">Week</option>
+      <option value="month">Month</option>
+    </select>
+    <Image
+      src="/Icon3.svg"
+      alt="dropdown"
+      width={12}
+      height={12}
+      className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
+    />
+  </div>
+</div>
+<div className="h-75 mt-8">
+  <SasrReport sessions={sessions} loading={loading} range={sasrRange} />
+</div>
+          {hasSasrData && (
+            <div className="text-center mt-4">
+              <button onClick={()=>router.push("/reports/sasr")} className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] text-[#151517] font-medium text-[14px] px-6 py-3 rounded-2xl transition flex items-center justify-center gap-2 mx-auto">
+                View Reports <Image src="icon2.svg" alt="arrow" width={16} height={16} className="inline-block ml-2"/>
+              </button>
             </div>
-          </div>
-          <div className="h-75 mt-8">
-            <SasrReport />
-          </div>
-          <div className="text-center mt-4">
-            <button onClick={()=>router.push("/reports/sasr")} className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] ... text-[#151517] font-medium text-[14px] px-6 py-3 rounded-2xl  transition flex items-center justify-center gap-2 mx-auto">
-              View Reports <Image src="icon2.svg" alt="arrow" width={16} height={16} className="inline-block ml-2"/>
-            </button>
-          </div>
+          )}
         </div>
 
       </div>
@@ -415,10 +268,7 @@ export default function Reports() {
   <div className="flex justify-between items-center mb-4">
     <div className="flex items-center gap-16">
       <h3 className="font-medium text-[16px] text-[#151517]">Streak</h3>
-      
-
     </div>
-    
 
     <div className="flex items-center gap-4">
       <span className=" text-[13px] font-medium text-[#151517]">
@@ -428,10 +278,7 @@ export default function Reports() {
         className="w-6 h-6 text-[#151517] cursor-pointer"
         onClick={prevMonth}
         strokeWidth={3}
-      
       />
-
-      
 
       <ChevronRight
         className="w-6 h-6 text-[#151517] cursor-pointer"
@@ -512,7 +359,7 @@ export default function Reports() {
               </div>
             </div>
 
-            <button className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] ... text-[#151517] font-medium text-[14px] px-6 py-3 rounded-2xl  transition flex items-center justify-center gap-2 mx-auto mt-10">
+            <button className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] text-[#151517] font-medium text-[14px] px-6 py-3 rounded-2xl  transition flex items-center justify-center gap-2 mx-auto mt-10">
               View Reports <Image src="icon2.svg" alt="arrow" width={16} height={16} className="inline-block ml-2"/>
             </button>
           </div>

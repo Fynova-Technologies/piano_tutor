@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   XAxis,
   YAxis,
@@ -9,7 +9,7 @@ import {
   AreaChart,
   CartesianGrid,
 } from "recharts";
-import { getSessions, PracticeSession } from "@/datastore/sessionstorage";
+import { PracticeSession } from "@/datastore/sessionstorage";
 import { useRouter } from "next/navigation";
 
 // ── Ghost data to render faded chart behind empty state ──────────────────
@@ -24,14 +24,14 @@ const GHOST_DATA = [
   { date: "05/29/2025", score: 90 },
 ];
 
-export default function SASRReport() {
-  const router = useRouter();
-  const [sessions, setSessions] = useState<PracticeSession[]>([]);
+interface SasrReportProps {
+  sessions: PracticeSession[];
+  loading?: boolean;
+  range?: "week" | "month";
+}
 
-  useEffect(() => {
-    const data = getSessions();
-    setSessions(data);
-  }, []);
+export default function SASRReport({ sessions, loading, range = "month" }: SasrReportProps) {
+  const router = useRouter();
 
   function formatDate(timestamp: number) {
     const d = new Date(timestamp);
@@ -41,10 +41,27 @@ export default function SASRReport() {
     return `${month}/${day}/${year}`;
   }
 
+  function isInRange(timestamp: number): boolean {
+    const now = new Date();
+    if (range === "week") {
+      const start = new Date(now);
+      start.setDate(now.getDate() - now.getDay()); // Sunday
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 7);
+      return timestamp >= start.getTime() && timestamp < end.getTime();
+    }
+    // month
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return timestamp >= start.getTime() && timestamp < end.getTime();
+  }
+
   const chartData = useMemo(() => {
     const dailyMap: Record<string, { total: number; count: number }> = {};
     const sasrSessions = sessions.filter(
-      (s) => s.lesson?.source?.toUpperCase() === "SASR"
+      (s) =>
+        s.lesson?.source?.toUpperCase() === "SASR" && isInRange(s.endedAt)
     );
     sasrSessions.forEach((session) => {
       const dateKey = formatDate(session.endedAt);
@@ -61,7 +78,16 @@ export default function SASRReport() {
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
     return result;
-  }, [sessions]);
+  }, [sessions, range]);
+
+  // Avoid flashing the empty state while sessions are still loading
+  if (loading) {
+    return (
+      <div className="w-full h-full min-h-[250px] flex items-center justify-center">
+        <div className="animate-pulse text-[#7A7A7A] text-sm">Loading...</div>
+      </div>
+    );
+  }
 
   // ── Empty State ────────────────────────────────────────────────────────
   if (chartData.length === 0) {
@@ -77,29 +103,28 @@ export default function SASRReport() {
                   <stop offset="100%" stopColor="#000000B2" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis 
-  dataKey="date" 
-  tick={(props) => {
-    const { x, y, payload } = props;
-    return (
-      <text x={x} y={y} dy={16} textAnchor="middle" fill="#1A1A1A" fontSize={12}>
-        {payload.value}
-      </text>
-    );
-  }}
-/>
-
-<YAxis 
-  domain={[0, 100]}
-  tick={(props) => {
-    const { x, y, payload } = props;
-    return (
-      <text x={x} y={y} dy={4} textAnchor="end" fill="#1A1A1A" fontSize={12}>
-        {payload.value}
-      </text>
-    );
-  }}
-/>
+              <XAxis
+                dataKey="date"
+                tick={(props) => {
+                  const { x, y, payload } = props;
+                  return (
+                    <text x={x} y={y} dy={16} textAnchor="middle" fill="#1A1A1A" fontSize={12}>
+                      {payload.value}
+                    </text>
+                  );
+                }}
+              />
+              <YAxis
+                domain={[0, 100]}
+                tick={(props) => {
+                  const { x, y, payload } = props;
+                  return (
+                    <text x={x} y={y} dy={4} textAnchor="end" fill="#1A1A1A" fontSize={12}>
+                      {payload.value}
+                    </text>
+                  );
+                }}
+              />
               <CartesianGrid strokeDasharray="6 6" opacity={0.4} />
               <Area
                 dataKey="score"
@@ -116,9 +141,7 @@ export default function SASRReport() {
 
         {/* Overlay content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4">
-          {/* Floating decorations */}
           <div className="relative w-full flex items-center justify-center">
-            {/* Sparkle top-left */}
             <svg
               className="absolute"
               style={{ left: "20%", top: "-48px" }}
@@ -126,7 +149,6 @@ export default function SASRReport() {
             >
               <path d="M9 0 L10.2 6.8 L17 9 L10.2 11.2 L9 18 L7.8 11.2 L1 9 L7.8 6.8 Z" fill="#7C3F6B" opacity="0.5" />
             </svg>
-            {/* Musical note left */}
             <svg
               className="absolute"
               style={{ left: "26%", top: "-28px" }}
@@ -136,7 +158,6 @@ export default function SASRReport() {
               <circle cx="5" cy="17" r="2.5" fill="#7C3F6B" opacity="0.55" />
               <circle cx="15" cy="15" r="2.5" fill="#7C3F6B" opacity="0.55" />
             </svg>
-            {/* Sparkle top-right */}
             <svg
               className="absolute"
               style={{ right: "22%", top: "-56px" }}
@@ -144,7 +165,6 @@ export default function SASRReport() {
             >
               <path d="M7 0 L8 5 L13 7 L8 9 L7 14 L6 9 L1 7 L6 5 Z" fill="#7C3F6B" opacity="0.45" />
             </svg>
-            {/* Musical note right */}
             <svg
               className="absolute"
               style={{ right: "24%", top: "-30px" }}
@@ -155,7 +175,6 @@ export default function SASRReport() {
               <circle cx="13" cy="13" r="2.2" fill="#7C3F6B" opacity="0.5" />
             </svg>
 
-            {/* Center circle with music note */}
             <div
               className="flex items-center justify-center rounded-full"
               style={{
@@ -178,7 +197,6 @@ export default function SASRReport() {
             </div>
           </div>
 
-          {/* Text */}
           <div className="text-center mt-2">
             <p className="text-[#0A0A0B] font-bold text-base sm:text-lg leading-snug">
               No SASR score yet
@@ -188,7 +206,6 @@ export default function SASRReport() {
             </p>
           </div>
 
-          {/* CTA button */}
           <button
             onClick={() => router.push("/sasr")}
             className="mt-1 flex items-center gap-2 bg-gradient-to-l from-[#FFD700] via-[#FFA500] to-[#FFEC8B] hover:bg-[#e8b800] active:bg-[#d4a800] transition-colors duration-200 text-[#151517] text-sm px-5 py-2.5 rounded-full shadow-sm"
@@ -211,29 +228,28 @@ export default function SASRReport() {
             <stop offset="100%" stopColor="#581845" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <XAxis 
-  dataKey="date" 
-  tick={(props) => {
-    const { x, y, payload } = props;
-    return (
-      <text x={x} y={y} dy={16} textAnchor="middle" fill="#1A1A1A" fontSize={12}>
-        {payload.value}
-      </text>
-    );
-  }}
-/>
-
-<YAxis 
-  domain={[0, 100]}
-  tick={(props) => {
-    const { x, y, payload } = props;
-    return (
-      <text x={x} y={y} dy={4} textAnchor="end" fill="#1A1A1A" fontSize={12}>
-        {payload.value}
-      </text>
-    );
-  }}
-/>
+        <XAxis
+          dataKey="date"
+          tick={(props) => {
+            const { x, y, payload } = props;
+            return (
+              <text x={x} y={y} dy={16} textAnchor="middle" fill="#1A1A1A" fontSize={12}>
+                {payload.value}
+              </text>
+            );
+          }}
+        />
+        <YAxis
+          domain={[0, 100]}
+          tick={(props) => {
+            const { x, y, payload } = props;
+            return (
+              <text x={x} y={y} dy={4} textAnchor="end" fill="#1A1A1A" fontSize={12}>
+                {payload.value}
+              </text>
+            );
+          }}
+        />
         <CartesianGrid strokeDasharray="6 6" opacity={0.4} />
         <Tooltip />
         <Area

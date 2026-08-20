@@ -1,9 +1,56 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import SASRReport from "@/features/components/sasrreport";
 import { useRouter } from "next/navigation";
 import SasrPopup from "@/features/components/sasrpopup";
+import { PracticeSession } from "@/datastore/sessionstorage";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
+
+const supabase = getSupabaseBrowserClient();
+
+
+async function fetchAllSessionsFromSupabase(): Promise<PracticeSession[]> {
+    const { data, error } = await supabase
+      .from("practice_sessions")
+      .select("*")
+      .order("started_at", { ascending: false });
+
+    if (error || !data) {
+      console.error("Failed to fetch sessions:", error?.message);
+      return [];
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return data.map((r: any) => ({
+      id: r.id,
+      startedAt: new Date(r.started_at).getTime(),
+      endedAt: new Date(r.ended_at).getTime(),
+      durationSec: r.duration_sec,
+      lesson: {
+        uid: r.lesson_uid,
+        id: r.lesson_id,
+        title: r.lesson_title,
+        source: r.lesson_source,
+      },
+      performance: {
+        attempts: r.attempts,
+        score: r.score,
+        accuracy: r.accuracy,
+        correctNotes: r.correct_notes,
+        incorrectNotes: r.incorrect_notes,
+        totalScoreable: r.total_scoreable,
+      },
+      sessionCategory: r.session_category,
+      lessonFile: r.lesson_file,
+      tempoBpm: r.tempo_bpm,
+      completionStatus: r.completion_status,
+      weakAreas: r.weak_areas,
+      mistakeEvents: r.mistake_events,
+      aiFeedbackSnapshot: r.ai_feedback_snapshot,
+      progressMetrics: r.progress_metrics,
+    }));
+  }
 
 
 export default function Page() {
@@ -11,6 +58,17 @@ export default function Page() {
   const [lastScore] = useState(200);
   const [highScore] = useState(800);
   const imagePath = "/piano.jpg";
+  const [sessions, setSessions] = useState<PracticeSession[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [sasrRange, setSasrRange] = useState<"week" | "month">("month");
+
+    useEffect(() => {
+      fetchAllSessionsFromSupabase()
+        .then(setSessions)
+        .finally(() => setLoading(false));
+    }, []);
 
   const tiers = [
     { level: "Fundamental", score: 189, range: "0-189" },
@@ -78,7 +136,7 @@ export default function Page() {
   </div>
   <div className="bg-[#FEFEFE] rounded-xl p-4 relative mt-4 border-4 border-[#BCBCBC] h-[300px] md:h-[90%]">
     <div className="h-full">
-      <SASRReport />
+      <SASRReport sessions={sessions} loading={loading} range={sasrRange} />
     </div>
   </div>
 </div>

@@ -4,13 +4,10 @@ import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useState, useMemo, useEffect } from "react";
 import { ArrowUpDown, MoreVertical, Download, Printer } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
 import { PracticeSession } from "@/datastore/sessionstorage";
+import {getSupabaseBrowserClient} from "@/lib/supabase/browserclient";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase = getSupabaseBrowserClient();
 
 type RangeType = "week" | "month" | "3month" | "custom";
 
@@ -81,7 +78,8 @@ export default function SASRReportPage() {
         return;
       }
 
-      const mapped: PracticeSession[] = data.map((r) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mapped: PracticeSession[] = data.map((r:any) => ({
         id: r.id,
         startedAt: new Date(r.started_at).getTime(),
         endedAt: new Date(r.ended_at).getTime(),
