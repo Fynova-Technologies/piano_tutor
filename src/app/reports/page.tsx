@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { getSessions, PracticeSession } from "@/datastore/sessionstorage";
+import ActivityChart from "@/features/components/activitychart";
+
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -92,6 +94,89 @@ export default function Reports() {
   const [playedDays, setPlayedDays] = useState<Set<string>>(new Set());
   const [calendarDays, setCalendarDays] = useState<(string | null)[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [sessions, setSessions] = useState<PracticeSession[]>([]);
+  const [loading, setLoading] = useState(true);
+  const hasActivity = activityData.some((d) => d.minutes > 0);
+
+  type RangeType = "week" | "month" | "3month" | "custom";
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [range, setRange] = useState<RangeType>("week");
+
+  function isInRange(timestamp: number): boolean {
+    const now = new Date();
+    if (range === "week") {
+      const start = new Date(now);
+      start.setDate(now.getDate() - now.getDay() + 1);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 7);
+      return timestamp >= start.getTime() && timestamp < end.getTime();
+    }
+    if (range === "month") {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      return timestamp >= start.getTime();
+    }
+    if (range === "3month") {
+      const start = new Date(now);
+      start.setMonth(now.getMonth() - 3);
+      return timestamp >= start.getTime();
+    }
+    return true;
+  }
+
+
+  async function fetchAllSessionsFromSupabase(): Promise<PracticeSession[]> {
+    const { data, error } = await supabase
+      .from("practice_sessions")
+      .select("*")
+      .order("started_at", { ascending: false });
+  
+    if (error || !data) {
+      console.error("Failed to fetch sessions:", error?.message);
+      return [];
+    }
+  
+    return data.map((r) => ({
+      id: r.id,
+      startedAt: new Date(r.started_at).getTime(),
+      endedAt: new Date(r.ended_at).getTime(),
+      durationSec: r.duration_sec,
+      lesson: {
+        uid: r.lesson_uid,
+        id: r.lesson_id,
+        title: r.lesson_title,
+        source: r.lesson_source,
+      },
+      performance: {
+        attempts: r.attempts,
+        score: r.score,
+        accuracy: r.accuracy,
+        correctNotes: r.correct_notes,
+        incorrectNotes: r.incorrect_notes,
+        totalScoreable: r.total_scoreable,
+      },
+      sessionCategory: r.session_category,
+      lessonFile: r.lesson_file,
+      tempoBpm: r.tempo_bpm,
+      completionStatus: r.completion_status,
+      weakAreas: r.weak_areas,
+      mistakeEvents: r.mistake_events,
+      aiFeedbackSnapshot: r.ai_feedback_snapshot,
+      progressMetrics: r.progress_metrics,
+    }));
+  }
+  
+  const rangedSessions = sessions.filter((s) => isInRange(s.startedAt));
+
+    useEffect(() => {
+      fetchAllSessionsFromSupabase()
+        .then(setSessions)
+        .finally(() => setLoading(false));
+    }, []);
+
+
+    
+
 
   // ── Fetch activity data from Supabase ──────────────────────────────────────
   useEffect(() => {
@@ -202,112 +287,102 @@ export default function Reports() {
       <div className="grid md:grid-cols-2 gap-8 w-full p-8">
         
         {/* Activity Chart */}
-        <div className="bg-white shadow-[2px_4px_8px_1px_#0000003B] rounded-2xl p-4 border-4 border-[#C0BABA] border-r-[#BCBCBC]">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-[#151517] text-[16px] font-medium">Activity Chart</h2>
+<div className="bg-white shadow-[2px_4px_8px_1px_#0000003B] rounded-2xl p-4 border-4 border-[#C0BABA] border-r-[#BCBCBC]">
+  <div className="flex justify-between items-center mb-2">
 
-            {/* Dropdown */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="bg-[#E4E4E4] rounded-lg px-4 py-2 text-sm text-[#151517] cursor-pointer flex items-center gap-2"
-        >
-          {viewMode === "week" ? "Week" : "Month"}
-          <Image 
-            src="/Icon3.svg" 
-            alt="dropdown" 
-            width={12} 
-            height={12} 
-            className={`transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
-          />
-        </button>
-
-        {/* Dropdown Menu */}
-        {isDropdownOpen && (
-          <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-            <button
-              onClick={() => {
-                setViewMode("week");
-                setIsDropdownOpen(false);
-              }}
-              className={`w-full text-left px-4 py-2 text-sm rounded-t-lg hover:bg-gray-100 ${
-                viewMode === "week" ? "bg-white text-[#000000]  font-medium" : "text-[#151517]"
-              }`}
-            >
-              Week
-            </button>
-            <button
-              onClick={() => {
-                setViewMode("month");
-                setIsDropdownOpen(false);
-              }}
-              className={`w-full text-left px-4 py-2 text-sm rounded-b-lg hover:bg-gray-100 ${
-                viewMode === "month" ? "bg-white text-[#000000] font-medium" : "text-[#151517]"
-              }`}
-            >
-              Month
-            </button>
-          </div>
-          
-        )}
-        
-      </div>
-    </div>
-
-  <div className="h-60 mt-8">
-    <ResponsiveContainer width="100%" height={300}>
-      <BarChart 
-        data={activityData}
-        margin={{ top: 20, right: 10, left: -20, bottom: 5 }}
+    <div className="relative" ref={dropdownRef}>
+      {/* <button
+        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+        className="bg-[#E4E4E4] rounded-lg px-4 py-2 text-sm text-[#151517] cursor-pointer flex items-center gap-2"
       >
-        <defs>
-          <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#a855f7" />
-            <stop offset="100%" stopColor="#7c3aed" />
-          </linearGradient>
-        </defs>
-        <CartesianGrid 
-          strokeDasharray="0" 
-          stroke="#e5e7eb" 
-          vertical={true}
-          horizontal={true}
+        {viewMode === "week" ? "Week" : "Month"}
+        <Image
+          src="/Icon3.svg"
+          alt="dropdown"
+          width={12}
+          height={12}
+          className={`transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
         />
-        <XAxis 
-          dataKey={viewMode === "week" ? "day" : "month"}                   
-          axisLine={false}
-          tickLine={false}
-          tick={{ fill: '#000000', fillOpacity: "0.8", fontSize: 12 }}
-        />
-        <YAxis 
-          axisLine={false}
-          tickLine={false}
-          tick={{ fill: '#6b7280', fontSize: 12 }}
-          domain={[0, 100]}
-          ticks={[0, 20, 40, 60, 80, 100]}
-        />
-        <Bar 
-          dataKey="minutes" 
-          radius={[16, 16, 0, 0]}
-          maxBarSize={53}
-          label={<CustomLabel x={undefined} y={undefined} width={undefined} value={undefined} />}
-          background={<CustomBackground x={undefined} y={undefined} width={undefined} height={undefined} index={undefined} />}
-        >
-          {activityData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill="#581845" />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>          
+      </button> */}
+
+      {isDropdownOpen && (
+        <div className="absolute right-0 mt-2 w-32 shadow-lg z-10 bg-[#E4E4E4] rounded-lg px-4 py-2 text-sm text-[#151517] cursor-pointer flex items-center gap-2">
+          <button
+            onClick={() => { setViewMode("week"); setIsDropdownOpen(false); }}
+            className={`w-full text-left px-4 py-2 text-sm rounded-t-lg hover:bg-[#E4E4E4] ${
+              viewMode === "week" ? "bg-[#E4E4E4] text-[#000000] font-medium" : "text-[#151517]"
+            }`}
+          >
+            Week
+          </button>
+          <button
+            onClick={() => { setViewMode("month"); setIsDropdownOpen(false); }}
+            className={`w-full text-left px-4 py-2 text-sm rounded-b-lg hover:bg-gray-100 ${
+              viewMode === "month" ? "bg-white text-[#000000] font-medium" : "text-[#151517]"
+            }`}
+          >
+            Month
+          </button>
+        </div>
+      )}
+    </div>
   </div>
 
-  <div className="text-center mt-20">
-    <button 
-      onClick={() => router.push("/reports/activity")} 
-      className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] text-[#151517] font-medium text-[14px] px-6 py-3 rounded-2xl transition flex items-center justify-center gap-2 mx-auto"
-    >
-      View Reports <Image src="icon2.svg" alt="arrow" width={16} height={16} className="inline-block ml-2"/>
-    </button>
-  </div>
+  {!activityLoading && !hasActivity ? (
+    // Empty state — matches your design
+    <div className="mt-4">
+      <ActivityChart sessionCount={rangedSessions.length} loading={loading} />
+    </div>
+  ) : (
+    <>
+      <div className="h-60 mt-8">
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={activityData} margin={{ top: 20, right: 10, left: -20, bottom: 5 }}>
+            <defs>
+              <linearGradient id="purpleGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#a855f7" />
+                <stop offset="100%" stopColor="#7c3aed" />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="0" stroke="#e5e7eb" vertical horizontal />
+            <XAxis
+              dataKey={viewMode === "week" ? "day" : "month"}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "#000000", fillOpacity: "0.8", fontSize: 12 }}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "#6b7280", fontSize: 12 }}
+              domain={[0, 100]}
+              ticks={[0, 20, 40, 60, 80, 100]}
+            />
+            <Bar
+              dataKey="minutes"
+              radius={[16, 16, 0, 0]}
+              maxBarSize={53}
+              label={<CustomLabel x={undefined} y={undefined} width={undefined} value={undefined} />}
+              background={<CustomBackground x={undefined} y={undefined} width={undefined} height={undefined} index={undefined} />}
+            >
+              {activityData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill="#581845" />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="text-center mt-20">
+        <button
+          onClick={() => router.push("/reports/activity")}
+          className="bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFEC8B] text-[#151517] font-medium text-[14px] px-6 py-3 rounded-2xl transition flex items-center justify-center gap-2 mx-auto"
+        >
+          View Reports <Image src="icon2.svg" alt="arrow" width={16} height={16} className="inline-block ml-2" />
+        </button>
+      </div>
+    </>
+  )}
 </div>
 
         {/* SASR Growth Report */}

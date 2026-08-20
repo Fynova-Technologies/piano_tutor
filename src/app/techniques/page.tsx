@@ -8,8 +8,6 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 
 const supabase = getSupabaseBrowserClient();
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 type RawLesson = {
   id: string;
   lessontitle: string;

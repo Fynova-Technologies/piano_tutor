@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect } from "react";
 import { ArrowUpDown, MoreVertical } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 import { PracticeSession } from "@/datastore/sessionstorage";
-import ActivityChart from "@/features/components/activitychart"; // ← new
+// import ActivityChart from "@/features/components/activitychart"; // ← new
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -162,11 +162,10 @@ export default function ActivitiesReportPage() {
         <span className="text-lg sm:text-2xl text-[#151517] font-medium">My Activity</span>
       </div>
 
-      {/* ── Activity Chart card ────────────────────────────────────── */}
-      <div className="mt-4">
+      {/* ── ─────────────── */}
+      {/* <div className="mt-4">
         <ActivityChart sessionCount={rangedSessions.length} loading={loading} />
-      </div>
-
+      </div> */}
       {/* ── Main table card ────────────────────────────────────────── */}
       <div className="bg-[#FEFEFE] w-full rounded-2xl p-4 sm:p-6 mt-4">
         {/* Header totals */}

@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
+import Image from "next/image";
 type RangeType = "week" | "month" | "3month" | "custom";
 
 interface ActivityChartProps {
@@ -28,7 +28,7 @@ export default function ActivityChart({ sessionCount, loading = false }: Activit
   const isEmpty = !loading && sessionCount === 0;
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-[#EBEBEB] p-5 w-full">
+    <div className="bg-white rounded-2xl shadow-sm  p-5 w-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-[#0A0A0B] text-base font-semibold">Activity Chart</h2>
@@ -38,7 +38,7 @@ export default function ActivityChart({ sessionCount, loading = false }: Activit
           <select
             value={range}
             onChange={(e) => setRange(e.target.value as RangeType)}
-            className="appearance-none rounded-lg border border-[#D8D8D8] bg-[#F5F5F5] pl-3 pr-7 py-1.5 text-[13px] font-medium text-[#151517] focus:outline-none cursor-pointer"
+            className="appearance-none rounded-lg -center gap-2 pl-3 pr-7  text-[14px] font-medium text-[#151517] focus:outline-none cursor-pointer"
           >
             <option value="week">Week</option>
             <option value="month">Month</option>
@@ -46,12 +46,8 @@ export default function ActivityChart({ sessionCount, loading = false }: Activit
             <option value="custom">Custom</option>
           </select>
           {/* Chevron */}
-          <svg
-            className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2"
-            width="12" height="12" viewBox="0 0 12 12" fill="none"
-          >
-            <path d="M2.5 4.5L6 8L9.5 4.5" stroke="#555" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+                      <Image src="/Icon3.svg" alt="dropdown" width={12} height={12} className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+          
         </div>
       </div>
 
