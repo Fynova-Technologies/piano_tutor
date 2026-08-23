@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 import LogoutButton from '@/app/logout/page';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
 import { useAuth } from '@/utils/Authsegment';
 import type { User } from '@supabase/supabase-js';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browserclient';
 
 function displayNameFromUser(user: User | null): string {
   if (!user) return 'Guest';
@@ -30,45 +31,49 @@ type UserPopupProps = {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function UserPopup({ userPopupOpen, setUserPopupOpen, userLoggedIn, onNavigate }: UserPopupProps) {
   const auth = useAuth();
-  console.log('[UserPopup] auth:', auth);
   const user = auth?.user ?? null;
-  console.log('[UserPopup] user:', user?.id ?? 'null');
   const loading = auth?.loading ?? true;
   const displayName = displayNameFromUser(user);
   const popupRef = useRef<HTMLDivElement>(null);
 
   const [role, setRole] = useState<'teacher' | 'student' | null>(null);
+  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
 
   const supabase = useMemo(
     () =>
-      createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      ),
+      getSupabaseBrowserClient(),
     []
   );
 
-useEffect(() => {
-  if (loading) return;  // ← wait for auth to finish
-  
-  if (!user) {
-    setRole(null);
-    return;
-  }
+  useEffect(() => {
+    if (loading) return; // ← wait for auth to finish
 
-  supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle()
-    .then(({ data, error }) => {
-      if (error) { console.error(error); return; }
-      setRole((data?.role as 'teacher' | 'student') ?? 'student');
-    });
-    console.log('[UserPopup] auth:', auth);
-console.log('[UserPopup] user:', user?.id ?? 'null');
+    if (!user) {
+      setRole(null);
+      setIsSubscribed(null);
+      return;
+    }
 
-}, [user?.id, loading, supabase]);
+    supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data, error }:{data: any, error: any}) => {
+        if (error) { console.error(error); return; }
+        setRole((data?.role as 'teacher' | 'student') ?? 'student');
+      });
+
+    supabase
+      .from('user_usage')
+      .select('is_subscribed')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data, error }:{data: any, error: any}) => {
+        if (error) { console.error(error); return; }
+        setIsSubscribed(Boolean(data?.is_subscribed));
+      });
+  }, [user?.id, loading, supabase]);
 
   const close = () => {
     onNavigate?.();
@@ -88,55 +93,66 @@ console.log('[UserPopup] user:', user?.id ?? 'null');
 
   if (!userPopupOpen) return null;
 
+  const showUpgrade = userLoggedIn && isSubscribed === false;
+
   return (
-    <div ref={popupRef}>
-      <div className="flex items-center justify-between gap-4 border-b px-2 py-2">
-        <div className="flex items-center gap-4 px-4 py-2">
-          <Image src="/assets/user.png" alt="User" width={50} height={50} />
-          <div className="flex flex-col gap-2">
-            <span className="text-[#151517] font-medium text-[16px]">{displayName}</span>
-            <span className="text-[#1E90FF] font-medium text-[12px]">
+    <div
+      ref={popupRef}
+      className="absolute right-0 top-full mt-2 w-[300px] max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden"
+    >
+      <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <Image src="/assets/user.png" alt="User" width={48} height={48} className="rounded-full shrink-0" />
+          <div className="flex flex-col gap-1 min-w-0">
+            <span className="text-[#151517] font-medium text-[16px] truncate">{displayName}</span>
+            <span className="text-[#1E90FF] font-medium text-[13px]">
               {userLoggedIn ? 'Member' : 'Free Trial'}
             </span>
           </div>
         </div>
-        <div>
-          <button
-            type="button"
-            className="w-full text-center text-[14px] bg-[#581845] text-white px-4 py-2 rounded-lg hover:bg-[#4F163E]"
-          >
-            Upgrade
-          </button>
-        </div>
+        {showUpgrade && (
+          <Link href="/pricing" onClick={close} className="shrink-0">
+            <button
+              type="button"
+              className="whitespace-nowrap text-center text-[13px] bg-[#581845] text-white px-4 py-2.5 rounded-full hover:bg-[#4F163E] transition-colors"
+            >
+              Upgrade
+            </button>
+          </Link>
+        )}
       </div>
       <nav className="text-[16px] no-underline" aria-label="Account menu">
-        <Link href="/accounts" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
+        <Link href="/accounts" className="block px-5 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
           My Account
         </Link>
         {role === 'teacher' ? (
-          <Link href="/teacher" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
+          <Link href="/teacher" className="block px-5 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
             Teacher Dashboard
           </Link>
         ) : (
-          <Link href="/student-classes" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
+          <Link href="/student-classes" className="block px-5 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
             Student & Classes
           </Link>
         )}
-        <Link href="/instrument-settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
+        <Link href="/instrument-settings" className="block px-5 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
           Instrument Settings
         </Link>
-        <Link href="/preferences" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
+        <Link href="/preferences" className="block px-5 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
           Preferences
         </Link>
-        <Link href="/settings" className="block px-4 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
+        <Link href="/settings" className="block px-5 py-4 text-[#151517] hover:bg-gray-100 no-underline" onClick={close}>
           Support
         </Link>
         {userLoggedIn ? (
-          <LogoutButton onAfterSignOut={close} />
+          <div className="border-t border-gray-100">
+            <LogoutButton
+              onAfterSignOut={close}
+            />
+          </div>
         ) : (
-          <div className="border-t-[#6E6E73] border-t-1">
-            <Link href="/login" className="text-[#151517] rounded-lg no-underline" onClick={close}>
-              <div className="space-x-4 px-4 py-4">
+          <div className="border-t border-gray-100">
+            <Link href="/login" className="block px-5 py-4 text-[#151517] no-underline hover:bg-gray-100" onClick={close}>
+              <div className="flex items-center gap-3">
                 <Image src="/loginicon.svg" height={13} width={13} alt="" />
                 <span>Login</span>
               </div>

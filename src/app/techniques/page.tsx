@@ -5,6 +5,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useMediaQuery } from "@/components/MediaQuery/useMediaQueryHook";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
+import { getUserTechniqueUnitProgress, markTechniqueUnitCompleted, unlockTechniqueUnit } from "@/utils/userprogress/progressService";
 
 const supabase = getSupabaseBrowserClient();
 
@@ -75,6 +76,24 @@ export default function Techniques() {
   const [userId, setUserId] = useState<string | null>(null);
   const [progressLoading, setProgressLoading] = useState(true);
 
+  const [unitProgress, setUnitProgress] = useState<
+    Record<string, { unlocked: boolean; completed: boolean }>
+  >({});
+
+useEffect(() => {
+  if (!userId) return;
+  getUserTechniqueUnitProgress(userId).then((rows) => {
+    const map: typeof unitProgress = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rows.forEach((r: any) => {
+      map[r.fkid] = { unlocked: r.unlocked, completed: r.completed };
+    });
+    setUnitProgress(map);
+  });
+}, [userId]);
+
+
+
   // ── Auth + progress fetch ──────────────────────────────────────────────────
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -122,23 +141,32 @@ export default function Techniques() {
   );
 
   // ── Toggle completion (optimistic update) ─────────────────────────────────
-  const toggleLesson = useCallback(
-    async (fkid: string, lessonId: string, current: boolean) => {
-      if (!userId) return;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const completeTechniqueLesson = useCallback(
+  async (fkid: string, lessonId: string) => {
+    if (!userId) return;
+    const updated = { ...(progressMap[fkid] ?? {}), [lessonId]: true };
+    setProgressMap((prev) => ({ ...prev, [fkid]: updated }));
+    await markLessonComplete(userId, fkid, lessonId, true);
 
-      // Optimistic UI update
-      setProgressMap((prev) => ({
+    const unit = unitLessonsData2.find((u) => u.fkid === fkid);
+    const allDone = unit?.unitlessons.every((l) => updated[l.id]) ?? false;
+
+    if (allDone) {
+      await markTechniqueUnitCompleted(userId, fkid);
+      const idx = unitLessonsData2.findIndex((u) => u.fkid === fkid);
+      const nextUnit = unitLessonsData2[idx + 1];
+      if (nextUnit) await unlockTechniqueUnit(userId, nextUnit.fkid);
+
+      setUnitProgress((prev) => ({
         ...prev,
-        [fkid]: {
-          ...(prev[fkid] ?? {}),
-          [lessonId]: !current,
-        },
+        [fkid]: { unlocked: true, completed: true },
+        ...(nextUnit ? { [nextUnit.fkid]: { unlocked: true, completed: false } } : {}),
       }));
-
-      await markLessonComplete(userId, fkid, lessonId, !current);
-    },
-    [userId]
-  );
+    }
+  },
+  [userId, progressMap, unitLessonsData2]
+);
 
   const handleClick = useCallback((id: string) => {
   setClassId(id);
@@ -256,12 +284,12 @@ export default function Techniques() {
                         {lesson.id}. {lesson.lessontitle}
                       </span>
 
-                      <button
-                        onClick={(e) => {
-                          // Prevent li click (navigation) when toggling
-                          e.stopPropagation();
-                          toggleLesson(unit.fkid, lesson.id, completed);
-                        }}
+                      <span
+                        // onClick={(e) => {
+                        //   // Prevent li click (navigation) when toggling
+                        //   e.stopPropagation();
+                        //   toggleLesson(unit.fkid, lesson.id, completed);
+                        // }}
                         className={`${isMobile
                           ? `rounded-2xl py-1 border-none mt-2 ${completed ? "bg-[#84FF10]" : "bg-[#0a0a0a]"}`
                           : `rounded-2xl py-2 px-6 border-none h-[36px] ${completed ? "bg-[#84FF10]" : "bg-[#0a0a0a]"}`
@@ -270,7 +298,7 @@ export default function Techniques() {
                         <span className={`${completed ? "text-[#151517]" : "text-white"} font-medium text-sm`}>
                           {completed ? "Completed" : "Incomplete"}
                         </span>
-                      </button>
+                      </span>
                     </div>
                   </li>
                 );
@@ -316,6 +344,9 @@ export default function Techniques() {
                         whileHover={{ backgroundColor: ["#f1f1f1", "#e9e9ea", "#d2d2d4"] }}
                         transition={{ duration: 0.9, times: [0, 0.3, 0.5], ease: "easeInOut" }}
                         onClick={() => {
+                          const isUnlocked = unitProgress[lesson.id]?.unlocked ?? index === 0;
+                          if (!isUnlocked) return; // locked — do nothing (or show a toast)
+                          if (userId) unlockTechniqueUnit(userId, lesson.id); // no-op if already unlocked
                           handleClick(lesson.id);
                           setMethodName(lesson.title);
                         }}
@@ -329,6 +360,10 @@ export default function Techniques() {
                             ? "absolute left-0 top-0 z-10 w-[40px] h-[150px] bg-black rounded-b-lg"
                             : "absolute left-0 bottom-0 translate-y-1/2 z-10 w-[180px] h-[36px] bg-black rounded-r-lg"
                           }`} />
+                        )}
+
+                        {!(unitProgress[lesson.id]?.unlocked ?? index === 0) && (
+                          <Image src="/lock-icon.svg" width={24} height={24} alt="locked" className="absolute z-20 ..." />
                         )}
 
                         <span className={`mt-auto bg-[#e9e9ea] shadow-[inset_0px_0px_4px_#0A254059] primary-color-text font-bold rounded ${

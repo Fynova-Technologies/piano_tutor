@@ -4,6 +4,7 @@ import "./globals.css";
 // import Navbar from "@/components/navbar";
 import { AuthProvider } from "@/utils/Authsegment";
 import { LessonsProvider } from "@/utils/userprogress/lessonprogress";
+import { TechniquesProvider } from "@/utils/userprogress/techniqueContext";
 import { AudioProvider } from "@/components/audio/AudioProvider";
 // import UnauthUserNavbar from "@/components/navbar2";
 import { createServerSupabase } from "@/lib/supabase/server";
@@ -53,7 +54,7 @@ export default async function RootLayout({
           <NavbarSwitcher />
           <main className="w-full">
             <AudioProvider>
-              <LessonsProvider>{children}</LessonsProvider>
+              <LessonsProvider><TechniquesProvider>{children}</TechniquesProvider></LessonsProvider>
             </AudioProvider>
           </main>
         </AuthProvider>
