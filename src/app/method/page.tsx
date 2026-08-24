@@ -121,6 +121,7 @@ const UnitLesson: React.FC<UnitLessonProps> = ({
                     source: lesson.source ?? "",
                     lessonid: lesson.id ?? "",
                     fkid: classId,
+                    category: "method_lesson",
                   });
                   onNavigate(`${lesson.link}?${params.toString()}`);
                 }}

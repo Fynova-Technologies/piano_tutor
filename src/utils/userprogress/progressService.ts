@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
-const CDN_BASE = "https://cdn-dataforpiano.netlify.app";
+// const CDN_BASE = "https://cdn-dataforpiano.netlify.app";
 
 
 export async function getUserProgress(userId: string | undefined) {
@@ -31,6 +31,25 @@ export async function upsertProgress(
       { onConflict: "user_id,fkid,lesson_id" }
     );
   if (error) throw error;
+}
+
+export async function upsertTechniqueProgress(
+  userId: string,
+  fkid: string,
+  lessonId: string,
+  completed: boolean
+) {
+  await getSupabaseBrowserClient().from("technique_progress").upsert(
+    {
+      user_id: userId,
+      fkid,
+      lesson_id: lessonId,
+      completed,
+      completed_at: completed ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,fkid,lesson_id" }
+  );
 }
 
 export async function getUserUnitProgress(userId: string | undefined) {
@@ -97,28 +116,28 @@ export async function markTechniqueUnitCompleted(userId: string, fkid: string) {
   );
 }
 
-// progressService.ts
-export async function completeTechniqueLessonById(
-  userId: string,
-  fkid: string,
-  lessonId: string
-) {
-  await getSupabaseBrowserClient().from("technique_progress").upsert(
-    { user_id: userId, fkid, lesson_id: lessonId, completed: true, completed_at: new Date().toISOString() },
-    { onConflict: "user_id,fkid,lesson_id" }
-  );
+// // progressService.ts
+// export async function completeTechniqueLessonById(
+//   userId: string,
+//   fkid: string,
+//   lessonId: string
+// ) {
+//   await getSupabaseBrowserClient().from("technique_progress").upsert(
+//     { user_id: userId, fkid, lesson_id: lessonId, completed: true, completed_at: new Date().toISOString() },
+//     { onConflict: "user_id,fkid,lesson_id" }
+//   );
 
-  const res = await fetch(`${CDN_BASE}/techniques.json`);
-  const { Techniques } = await res.json();
-  const unit = Techniques.find((u: any) => u.fkid === fkid);
-  const progress = await getUserProgress(userId); // or a techniques-specific fetch
-  const allDone = unit?.unitlessons.every((l: any) =>
-    progress.find((p: any) => p.fkid === fkid && p.lesson_id === l.id)?.completed
-  );
+//   const res = await fetch(`${CDN_BASE}/techniques.json`);
+//   const { Techniques } = await res.json();
+//   const unit = Techniques.find((u: any) => u.fkid === fkid);
+//   const progress = await getUserProgress(userId); // or a techniques-specific fetch
+//   const allDone = unit?.unitlessons.every((l: any) =>
+//     progress.find((p: any) => p.fkid === fkid && p.lesson_id === l.id)?.completed
+//   );
 
-  if (allDone) {
-    await markTechniqueUnitCompleted(userId, fkid);
-    const idx = Techniques.findIndex((u: any) => u.fkid === fkid);
-    if (Techniques[idx + 1]) await unlockTechniqueUnit(userId, Techniques[idx + 1].fkid);
-  }
-}
+//   if (allDone) {
+//     await markTechniqueUnitCompleted(userId, fkid);
+//     const idx = Techniques.findIndex((u: any) => u.fkid === fkid);
+//     if (Techniques[idx + 1]) await unlockTechniqueUnit(userId, Techniques[idx + 1].fkid);
+//   }
+// }

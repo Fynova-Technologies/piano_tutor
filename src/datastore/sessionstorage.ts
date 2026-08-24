@@ -8,6 +8,7 @@ export type PracticeSessionCategory =
   | "library_song"
   | "sasr"
   | "recovery_drill"
+  | "technique_lesson"
   | "unspecified";
 
 /** Per-event mistakes for Supabase + AI recovery drills (lesson flow). */

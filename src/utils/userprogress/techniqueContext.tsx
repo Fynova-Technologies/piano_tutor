@@ -6,8 +6,8 @@ import {
   getUserTechniqueUnitProgress,
   unlockTechniqueUnit,
   markTechniqueUnitCompleted,
+  upsertProgress
 } from "./progressService";
-import { getUserTechniqueProgress, upsertTechniqueProgress } from "./techniquesProgressService";
 
 const CDN_BASE = "https://cdn-dataforpiano.netlify.app";
 
@@ -26,6 +26,7 @@ type TechniquesContextType = {
   isUnitComplete: (fkid: string) => boolean;
   getUnitProgress: (fkid: string) => number;
   accessUnit: (fkid: string) => Promise<void>;
+    getOverallProgress: () => number;
 };
 
 const TechniquesContext = createContext<TechniquesContextType | undefined>(undefined);
@@ -62,7 +63,7 @@ export function TechniquesProvider({ children }: { children: ReactNode }) {
     try {
       const [res, progressRows, unitRows] = await Promise.all([
         fetch(`${CDN_BASE}/techniques.json`),
-        getUserTechniqueProgress(user!.id),
+          getUserTechniqueUnitProgress(user!.id),
         getUserTechniqueUnitProgress(user!.id),
       ]);
       const data = await res.json();
@@ -110,7 +111,7 @@ export function TechniquesProvider({ children }: { children: ReactNode }) {
   const completeLesson = async (fkid: string, lessonId: string) => {
     if (!user) return;
 
-    await upsertTechniqueProgress(user.id, fkid, lessonId, true);
+    await upsertProgress(user.id, fkid, lessonId, true);
 
     const updatedMap = { ...progressMap, [fkid]: { ...(progressMap[fkid] ?? {}), [lessonId]: true } };
     setProgressMap(updatedMap);
@@ -150,6 +151,19 @@ export function TechniquesProvider({ children }: { children: ReactNode }) {
     return Math.round((done / unit.unitlessons.length) * 100);
   };
 
+  const getOverallProgress = () => {
+  let total = 0;
+  let done = 0;
+  techniques.forEach((unit) => {
+    unit.unitlessons.forEach((lesson) => {
+      total += 1;
+      if (progressMap[unit.fkid]?.[lesson.id]) done += 1;
+    });
+  });
+  if (!total) return 0;
+  return Math.round((done / total) * 100);
+};
+
   return (
     <TechniquesContext.Provider
       value={{
@@ -162,6 +176,7 @@ export function TechniquesProvider({ children }: { children: ReactNode }) {
         isUnitComplete,
         getUnitProgress,
         accessUnit,
+        getOverallProgress,
       }}
     >
       {children}
@@ -174,3 +189,4 @@ export const useTechniques = () => {
   if (!ctx) throw new Error("useTechniques must be used inside TechniquesProvider");
   return ctx;
 };
+

@@ -36,7 +36,8 @@ export type LessonPracticeWorkspaceProps = {
   lessonId: string;
   displayFileName: string;
   lessonUid: string;
-  sessionCategory: "method_lesson" | "recovery_drill";
+  sessionCategory: "method_lesson" | "recovery_drill" | "technique_lesson";
+  onPerfectScore?: (lessonId: string, fkid?: string) => void | Promise<void>;
   fkid?: string;
 };
 
@@ -50,6 +51,7 @@ export function LessonPracticeWorkspace({
   displayFileName: fileName,
   lessonUid,
   sessionCategory,
+  onPerfectScore,
   fkid,
 }: LessonPracticeWorkspaceProps) {
 const [uploadedMusicXML, setUploadedMusicXML] = useState<string | null>(null);  
@@ -103,11 +105,16 @@ const [uploadLoading, setUploadLoading] = useState(false);
   const markComplete = lessons?.markComplete;
   const markCompleteRef = useRef(markComplete);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const onPerfectScoreRef = useRef(onPerfectScore);
 
  
 useEffect(() => {
   markCompleteRef.current = markComplete;
 }, [markComplete]);
+
+useEffect(() => {
+  onPerfectScoreRef.current = onPerfectScore;
+}, [onPerfectScore]);
 
 
 
@@ -747,12 +754,10 @@ async function handleEndOfPiece() {
   }
 
   // ✅ Use the ref that was set at component top level — no hook call needed
-  if (finalScore === 100 && sessionCategory === "method_lesson") {
+  if (finalScore === 100 && sessionCategory != "recovery_drill") {
     const lid = lessonId || "0";
     const fk = fkid ?? "1";
-    if (markCompleteRef.current) {
-      markCompleteRef.current(fk, lid);
-    }
+    await onPerfectScoreRef.current?.(lid, fk);
   }
 
   const endTime = Date.now();

@@ -2,6 +2,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ProgressCircle from "@/components/progressCircle";
 import {useLessons} from "@/utils/userprogress/lessonprogress"
+import { useTechniques } from "@/utils/userprogress/techniqueContext";
 
  // Assuming you have a ProgressCircle component
 export default function MusicCategories() {
@@ -21,18 +22,18 @@ export default function MusicCategories() {
       // const unit1Progress = getUnitProgress("1");
        // ✅ Dynamic progress values
       const methodProgress = getUnitProgress("1");     // unit 1 for Method Lessons
-      const techniqueProgress = getUnitProgress("2");  // unit 2 for Technique Lessons
+      const techniques = useTechniques();
+      const getTechniquesOverallProgress = techniques?.getOverallProgress ?? (() => 0);
+
+      const techniqueProgress = getTechniquesOverallProgress();
       // const overallProgress = getOverallProgress();
 
       // ✅ Compute offsets per card
       const actualRadius = normalizedRadius * 1.5;
-const circumference = 2 * Math.PI * actualRadius; // ✅ correct
-    // const strokeDashoffset = circumference - (progress / 100) * circumference;
-
-
-const methodOffset = circumference - (methodProgress / 100) * circumference;
-const techniqueOffset = circumference - (techniqueProgress / 100) * circumference;
-
+      const circumference = 2 * Math.PI * actualRadius; // ✅ correct
+      // const strokeDashoffset = circumference - (progress / 100) * circumference;
+      const methodOffset = circumference - (methodProgress / 100) * circumference;
+      const techniqueOffset = circumference - (techniqueProgress / 100) * circumference;
 
     return(
          <div>
@@ -109,7 +110,7 @@ const techniqueOffset = circumference - (techniqueProgress / 100) * circumferenc
         <div className="absolute left-[150px] group-hover:translate-x-24 transition-transform duration-1000 ease-in-out hidden sm:block">
           <Image src="/assets/bro.svg" alt="Bro" width={300} height={200} />
         </div>
-        <div className="bg-[#FEFEFE] group-hover:bg-[#f2e6c1] transition duration-300 flex flex-col items-center sm:items-start justify-center text-center sm:text-left z-10 h-full ml-0 md:ml-16 w-[180px] md:w-[200px]">
+        <div className="bg-[#FEFEFE]r:bg-[#f2e6c1] transition duration-300 flex flex-col items-center sm:items-start justify-center text-center sm:text-left z-10 h-full ml-0 md:ml-16 w-[180px] md:w-[200px]">
           <h3 className="text-2xl sm:text-4xl font-bold primary-color-text p-0 m-0">Method</h3>
           <h3 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-[#5f4f19] to-[#aa8c2c] bg-clip-text text-transparent mb-2 p-0 m-0">Lessons</h3>
         </div>
@@ -144,7 +145,7 @@ const techniqueOffset = circumference - (techniqueProgress / 100) * circumferenc
             <div className="relative flex items-center justify-center sm:justify-between sm:space-x-4 overflow-hidden w-full sm:flex-1 z-10 rounded-3xl">
               <div className="bg-[#FEFEFE] group-hover:bg-[#f2e6c1] transition duration-300 flex flex-col items-center sm:items-start justify-center text-center sm:text-left z-10 h-full ml-0 md:ml-16">
                 <h3 className="text-2xl sm:text-[36px] font-bold primary-color-text p-0 m-0">Technique</h3>
-                <h3 className="text-xl font-bold bg-gradient-to-r from-[#5f4f19] to-[#aa8c2c] bg-clip-text text-2xl sm:text-[36px] text-transparent mb-2 p-0 m-0">Lessons</h3>
+                <h3 className="font-bold bg-gradient-to-r from-[#5f4f19] to-[#aa8c2c] bg-clip-text text-2xl sm:text-[36px] text-transparent mb-2 p-0 m-0">Lessons</h3>
               </div>
             </div>
             <div className="flex flex-col items-center sm:ml-auto space-y-4 p-2 sm:p-6 flex-shrink-0 self-center">

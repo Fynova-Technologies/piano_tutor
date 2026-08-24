@@ -142,29 +142,27 @@ useEffect(() => {
 
   // ── Toggle completion (optimistic update) ─────────────────────────────────
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const completeTechniqueLesson = useCallback(
-  async (fkid: string, lessonId: string) => {
-    if (!userId) return;
-    const updated = { ...(progressMap[fkid] ?? {}), [lessonId]: true };
-    setProgressMap((prev) => ({ ...prev, [fkid]: updated }));
-    await markLessonComplete(userId, fkid, lessonId, true);
+  const onPerfectScore = useCallback(
+  async (lessonId: string, fkid: string) => {
+  if (!userId || !fkid) return;
+  const updated = { ...(progressMap[fkid] ?? {}), [lessonId]: true };
+  setProgressMap((prev) => ({ ...prev, [fkid]: updated }));
+  await markLessonComplete(userId, fkid, lessonId, true);
 
-    const unit = unitLessonsData2.find((u) => u.fkid === fkid);
-    const allDone = unit?.unitlessons.every((l) => updated[l.id]) ?? false;
-
-    if (allDone) {
-      await markTechniqueUnitCompleted(userId, fkid);
-      const idx = unitLessonsData2.findIndex((u) => u.fkid === fkid);
-      const nextUnit = unitLessonsData2[idx + 1];
-      if (nextUnit) await unlockTechniqueUnit(userId, nextUnit.fkid);
-
-      setUnitProgress((prev) => ({
-        ...prev,
-        [fkid]: { unlocked: true, completed: true },
-        ...(nextUnit ? { [nextUnit.fkid]: { unlocked: true, completed: false } } : {}),
-      }));
-    }
-  },
+  const unit = unitLessonsData2.find((u) => u.fkid === fkid);
+  const allDone = unit?.unitlessons.every((l) => updated[l.id]) ?? false;
+  if (allDone) {
+    await markTechniqueUnitCompleted(userId, fkid);
+    const idx = unitLessonsData2.findIndex((u) => u.fkid === fkid);
+    const nextUnit = unitLessonsData2[idx + 1];
+    if (nextUnit) await unlockTechniqueUnit(userId, nextUnit.fkid);
+    setUnitProgress((prev) => ({
+      ...prev,
+      [fkid]: { unlocked: true, completed: true },
+      ...(nextUnit ? { [nextUnit.fkid]: { unlocked: true, completed: false } } : {}),
+    }));
+  }
+},
   [userId, progressMap, unitLessonsData2]
 );
 
@@ -238,12 +236,13 @@ useEffect(() => {
                     onClick={() => {
                       setActiveLesson(lesson.id);
                       const params = new URLSearchParams({
-                        id: classId,
+                        fkid: classId,
                         title: lesson.lessontitle,
                         file: lesson.file ?? "",
                         unitId: lesson.id ?? "",
                         source: lesson.source ?? "",
                         lessonid: lesson.id ?? "",
+                        category: "technique_lesson",
                       });
                       router.push(`${lesson.link}?${params.toString()}`);
                     }}
