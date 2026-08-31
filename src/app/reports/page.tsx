@@ -64,13 +64,72 @@ function buildMonthlyActivity(sessions: { startedAt: number; performance: { scor
   }));
 }
 
+type LevelProgressRow = {
+  level: string;
+  high_score: number;
+  high_points: number;
+  last_score: number;
+  last_points: number;
+  unlocked: boolean;
+  updated_at: string;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function Reports() {
   const router = useRouter();
-  const [attempts] = useState(15);
-  const [highestScore] = useState(240);
-  const [lastScore] = useState(100);
+  const [levelProgress, setLevelProgress] = useState<LevelProgressRow[]>([]);
+ // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [progressLoaded, setProgressLoaded] = useState(false);  
+
+  useEffect(() => {
+      let active = true;
+  
+      async function loadProgress() {
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError) {
+          console.error("Failed to get user for SASR level gating:", userError);
+          if (active) setProgressLoaded(true);
+          return;
+        }
+  
+        const userId = userData.user?.id;
+        if (!userId) {
+          if (active) setProgressLoaded(true);
+          return;
+        }
+  
+        const { data, error } = await supabase
+          .from("user_sasr_level_progress")
+          .select("level, high_score, high_points, last_score, last_points, unlocked, updated_at")
+          .eq("user_id", userId);
+  
+        if (error) {
+          console.error("Failed to load SASR level progress:", error);
+        } else if (active) {
+          setLevelProgress(data ?? []);
+          console.log("level progress", data);
+        }
+  
+        if (active) setProgressLoaded(true);
+      }
+  
+      loadProgress();
+      return () => {
+        active = false;
+      };
+    }, [supabase]);
+
+   const mostRecentRow = levelProgress.reduce<LevelProgressRow | null>((latest, row) => {
+    if (!latest) return row;
+    return new Date(row.updated_at) > new Date(latest.updated_at) ? row : latest;
+  }, null);
+  const lastScore = mostRecentRow?.last_points ?? 0;
+
+  const highScore = levelProgress.length > 0
+    ? Math.max(...levelProgress.map((row) => row.high_points))
+    : 0;
+  
 
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -138,10 +197,14 @@ export default function Reports() {
       ? buildWeeklyActivity(sessions)
       : buildMonthlyActivity(sessions);
 
-  // ── Derived SASR flag ───────────────────────────────────────────────────
-  const hasSasrData = sessions.some(
+  // ── Derived SASR sessions + flag + attempts count ──────────────────────────
+  // "attempts" now reflects the actual number of SASR sessions on record,
+  // instead of the previous hardcoded placeholder of 15.
+  const sasrSessions = sessions.filter(
     (s) => s.lesson?.source?.toUpperCase() === "SASR"
   );
+  const hasSasrData = sasrSessions.length > 0;
+  const attempts = sasrSessions.length;
 
   // ── Streak calendar (still from localStorage — unchanged) ─────────────────
   useEffect(() => {
@@ -351,7 +414,7 @@ export default function Reports() {
             <div className="bg-[#E3E3E3] rounded-lg p-3">
               <div className="flex justify-between items-center">
                 <div className="flex justify-center space-x-2"><Image src="/Frame.svg" height={18} width={18} alt="award"/><span className="text-[#151517] text-[14px] font-normal text-center"> Highest Score</span></div>
-                <span className=" text-[#151517] text-[16px] font-medium">{highestScore}</span>
+                <span className=" text-[#151517] text-[16px] font-medium">{highScore}</span>
               </div>
               <div className="flex justify-between items-center  mt-2">
                 <div className="flex justify-center space-x-2"><Image src="/assets/Star.svg" className="fill-red-500" height={18} width={18} alt="award"/><span className="text-[#151517] text-[14px] font-normal text-center"> Last Score</span></div>

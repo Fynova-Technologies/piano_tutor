@@ -73,11 +73,14 @@ export default function LoginPage() {
         const { error } = await getSupabaseBrowserClient().auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
-        const { error } = await getSupabaseBrowserClient().auth.signUp({
-          email, password,
-          options: { data: { display_name: username } }
-        });
-        if (error) throw error;
+            const { error } = await getSupabaseBrowserClient().auth.signUp({
+              email, password,
+              options: {
+                data: { display_name: username },
+                emailRedirectTo: `${window.location.origin}/auth/callback`
+              }
+            });
+          if (error) throw error;
         setEmail(''); setPassword(''); setUsername('');
         setMode("login");
         setMessageSuccess("Signup successful! Please verify your email.");
@@ -90,11 +93,11 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = async () => {
-    await getSupabaseBrowserClient().auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: process.env.NEXT_PUBLIC_SUPABASE_REDIRECT_URL }
-    })
-  }
+  await getSupabaseBrowserClient().auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${window.location.origin}/auth/callback` }
+  })
+}
 
   const inputClass =
     "w-full pl-10 pr-4 py-3 bg-[#faf8f2] border border-[#d4af3750] focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF3720] rounded-xl text-[#151517] placeholder-[#aa8c2c70] transition duration-200 text-sm";

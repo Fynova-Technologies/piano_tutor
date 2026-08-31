@@ -14,6 +14,7 @@ import { saveSession} from "@/datastore/sessionstorage";
 import { sasrDataStore } from "../../datastore/sasrdatastore";
 import { usePlaybackAudioSync } from "@/hooks/audio/usePlaybackAudioSync";
 import { useInstrumentSamplerVolume } from "@/hooks/audio/useInstrumentSamplerVolume";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 
 
 interface PlayedNote {
@@ -77,13 +78,34 @@ function SasrLesson() {
   const tempoRef = useRef(120);
   const [tempo, setTempo] = useState(120);
 
+  // ===== SASR LEVEL PROGRESS (Supabase) =====
+  const supabase = getSupabaseBrowserClient();
+  const userIdRef = useRef<string | null>(null);
+
   usePlaybackAudioSync({
     isPlaying,
     isCountingIn: countdown !== null,
     tempo,
   });
   useInstrumentSamplerVolume(samplerRef);
-  
+
+  // Grab the authenticated user once on mount so we have it ready
+  // by the time a session finishes and we need to record level progress.
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getUser().then(({ data, error }: any) => {
+      if (!active) return;
+      if (error) {
+        console.error("Failed to get user for SASR scoring:", error);
+        return;
+      }
+      userIdRef.current = data.user?.id ?? null;
+    });
+    return () => {
+      active = false;
+    };
+  }, [supabase]);
+
   useEffect(() => {
     const hsStr = localStorage.getItem("highScore");
     const lsStr = localStorage.getItem("lastScore");
@@ -571,6 +593,7 @@ function startPlayback() {
 
     const lessonId = searchparams.get("lessonid") || "0";
     const lessonUID = `SASR-${lessonId}`;
+    const lessonLevel = searchparams.get("level") || "";
 
     const session = {
       id: crypto.randomUUID(),
@@ -607,7 +630,28 @@ function startPlayback() {
     completedFully: totalMistakesRef.current < MAX_MISTAKES,
     tempo,
   });
-    
+
+    // ===== SASR LEVEL PROGRESS: record high score + check unlock =====
+    const currentUserId = userIdRef.current;
+
+    if (currentUserId && lessonLevel) {
+      const { error: rpcError } = await supabase.rpc('record_sasr_level_score', {
+        p_user_id: currentUserId,
+        p_level: lessonLevel,
+        p_score: finalScore,
+      });
+
+      if (rpcError) {
+        console.error("Failed to record SASR level progress:", rpcError);
+      } else if (finalScore >= 100) {
+        console.log("🔓 100% scored — next level should now be unlocked");
+      }
+    } else if (!currentUserId) {
+      console.warn("No authenticated user — skipping SASR level progress update");
+    } else {
+      console.warn("No level param on this lesson URL — skipping SASR level progress update");
+    }
+
     // ✅ Show popup
     setShowScorePopup(true);
     
@@ -1142,6 +1186,17 @@ function clearAllTracking() {
               {highScore !== null && (
                 <div style={{ marginTop: '10px', fontSize: '14px' }}>
                   Previous High Score: {highScore}%
+                </div>
+              )}
+
+              {(score ?? 0) >= 100 && (
+                <div style={{
+                  marginTop: '15px',
+                  fontSize: '18px',
+                  color: '#4caf50',
+                  fontWeight: 'bold'
+                }}>
+                  🔓 Next level unlocked!
                 </div>
               )}
             </div>
