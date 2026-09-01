@@ -34,42 +34,64 @@ export async function POST(req: Request) {
 
   try {
     if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const userId = session.metadata?.userId;
+  const session = event.data.object as Stripe.Checkout.Session;
+  const userId = session.metadata?.userId;
 
-      console.log("👤 userId:", userId);
-      console.log("📦 Full metadata:", session.metadata);
+  if (!userId) {
+    console.error("❌ No userId in session metadata");
+    return NextResponse.json({ error: "No userId in metadata" }, { status: 400 });
+  }
 
-      if (!userId) {
-        // ⚠️ This means userId wasn't passed during checkout creation
-        console.error("❌ No userId in session metadata");
-        return NextResponse.json({ error: "No userId in metadata" }, { status: 400 });
-      }
+  let subscriptionEndDate: string | null = null;
 
-      const { data, error: updateError } = await supabase
-  .from("user_usage")
-  .update({
-    is_subscribed: true,        // ✅ was: subscribed
-    stripe_customer_id: session.customer as string,
-    stripe_subscription_id: session.subscription as string,
-    plan_name: session.metadata?.planName ?? "pro",
-  })
-  .eq("user_id", userId)
-  .select(); // ✅ Returns what was updated so we can confirm
+  if (session.subscription) {
+    const subscription = await stripe.subscriptions.retrieve(
+      session.subscription as string
+    );
+    // ✅ post-Basil: current_period_end lives on the subscription ITEM, not the subscription itself
+    const periodEndUnix = subscription.items.data[0]?.current_period_end;
+    if (periodEndUnix) {
+      subscriptionEndDate = new Date(periodEndUnix * 1000).toISOString();
+    }
+  }
 
-      if (updateError) {
-        console.error("❌ Supabase error:", updateError.message);
-        return NextResponse.json({ error: updateError.message }, { status: 500 });
-      }
-
-      console.log("✅ Rows updated:", data);
-
-      await supabase.from("billing_history").insert({
+  const { data, error: updateError } = await supabase
+    .from("user_usage")
+    .upsert(
+      {
         user_id: userId,
+        is_subscribed: true,
+        stripe_customer_id: session.customer as string,
+        stripe_subscription_id: session.subscription as string,
         plan_name: session.metadata?.planName ?? "pro",
-        amount: (session.amount_total ?? 0) / 100,
-        status: "paid",
-      });
+        subscription_end_date: subscriptionEndDate, // ✅ now populated
+      },
+      { onConflict: "user_id" }
+    )
+    .select();
+
+  if (updateError) {
+    console.error("❌ Supabase error:", updateError.message);
+    return NextResponse.json({ error: updateError.message }, { status: 500 });
+  }
+  console.log("✅ Rows upserted:", data);
+
+  // ... billing_history insert stays the same
+
+console.log("📝 Attempting billing_history insert for user:", userId);
+
+const { error: billingError } = await supabase.from("billing_history").insert({
+  user_id: userId,
+  plan_name: session.metadata?.planName ?? "pro",
+  amount: (session.amount_total ?? 0) / 100,
+  status: "paid",
+});
+
+if (billingError) {
+  console.error("❌ billing_history insert failed:", billingError.message);
+} else {
+  console.log("✅ billing_history insert succeeded");
+}
 
     } else if (event.type === "customer.subscription.deleted") {
       const subscription = event.data.object as Stripe.Subscription;

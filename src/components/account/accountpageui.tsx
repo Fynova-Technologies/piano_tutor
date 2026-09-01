@@ -11,6 +11,9 @@ type Invoice = {
   status: string;
 };
 
+
+
+
 export default function AccountPageUI({
   user,
   profile,
@@ -25,14 +28,47 @@ export default function AccountPageUI({
   invoices?: Invoice[];
 }) {
   const [activeTab, setActiveTab] = useState("account");
+  const [isEditingPersonal, setIsEditingPersonal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  const fullName =
-    profile?.full_name ||
-    user?.user_metadata?.full_name ||
-    "Anonymous";
+  const fullName = profile?.full_name || user?.user_metadata?.full_name || "Anonymous";
+  const [initialFirst, ...rest] = fullName.split(" ");
+  const initialLast = rest.join(" ");
 
-  const [firstName, ...rest] = fullName.split(" ");
-  const lastName = rest.join(" ");
+  const [firstName, setFirstName] = useState(profile?.first_name || initialFirst || "");
+  const [lastName, setLastName] = useState(profile?.last_name || initialLast || "");
+
+  async function handleSavePersonal() {
+    setSaving(true);
+    setFormError(null);
+    try {
+      const res = await fetch("/api/profile/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ first_name: firstName, last_name: lastName }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setFormError(data.error || "Failed to save changes.");
+        return;
+      }
+      setIsEditingPersonal(false);
+      // optional: router.refresh() if using next/navigation to re-pull server data
+    } catch {
+      setFormError("Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+
+  const TIER: Record<string, number> = { free: 0, sonata: 1, concerto: 2 };
+
+// inside the component, near fullName/firstName logic:
+const currentPlanKey = (subscription?.planName ?? "free").toLowerCase();
+const currentTierValue = TIER[currentPlanKey] ?? 0;
+const isTopTier = currentTierValue >= TIER.concerto; // adjust if you add a higher tier later
 
   type SidebarItemProps = {
     label: string;
@@ -63,30 +99,36 @@ export default function AccountPageUI({
     );
   }
 
-  function SectionCard({ title, children, activeTab }: { title: string; children: React.ReactNode; activeTab: string }) {
-    return (
-      <div className="bg-[#FEFEFE] rounded-xl p-5 relative border border-[#ECECEC]">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl text-[#0A0A0B] font-medium">{title}</h2>
+  function SectionCard({
+  title,
+  children,
+  activeTab,
+  onEditClick,
+}: {
+  title: string;
+  children: React.ReactNode;
+  activeTab: string;
+  onEditClick?: () => void;
+}) {
+  return (
+    <div className="bg-[#FEFEFE] rounded-xl p-5 relative border border-[#ECECEC]">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl text-[#0A0A0B] font-medium">{title}</h2>
 
-          <button className={`${
-                activeTab === "music" || activeTab === "billing" ?"hidden": "bg-[#581845] text-white px-4 py-3 rounded-2xl text-[16px] flex justify-center items-center hover:opacity-90 transition" 
-              }`}>
-            <Image
-              src="/icon-wrapper-h.svg"
-              height={15}
-              width={15}
-              alt="Edit"
-              className={`inline-block mr-3`}
-            />
+        {onEditClick && activeTab !== "music" && activeTab !== "billing" && (
+          <button
+            onClick={onEditClick}
+            className="bg-[#581845] text-white px-4 py-3 rounded-2xl text-[16px] flex justify-center items-center hover:opacity-90 transition"
+          >
+            <Image src="/icon-wrapper-h.svg" height={15} width={15} alt="Edit" className="inline-block mr-3" />
             Edit
           </button>
-        </div>
-
-        {children}
+        )}
       </div>
-    );
-  }
+      {children}
+    </div>
+  );
+}
 
   function Info({ label, value }: { label: string; value: string }) {
     return (
@@ -154,25 +196,56 @@ export default function AccountPageUI({
                 
 
                 {/* Personal Info */}
-                <SectionCard title="Personal Information" activeTab={activeTab}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    <Info
-                      label="First Name"
-                      value={firstName || "Anonymous"}
-                    />
+                <SectionCard
+  title="Personal Information"
+  activeTab={activeTab}
+  onEditClick={() => setIsEditingPersonal((v) => !v)}
+>
+  {formError && (
+    <p className="text-sm text-red-500 mb-3">{formError}</p>
+  )}
 
-                    <Info
-                      label="Last Name"
-                      value={lastName || "Anonymous"}
-                    />
-
-                    <Info
-                      label="Phone"
-                      value={profile?.phone || "********"}
-                    />
-                  </div>
-                </SectionCard>
-
+  {isEditingPersonal ? (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+      <div>
+        <p className="text-[16px] font-medium text-[#1C1C1E] mb-1">First Name</p>
+        <input
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          className="w-full border border-[#ECECEC] rounded-lg px-3 py-2 text-[16px] text-[#1C1C1E]"
+        />
+      </div>
+      <div>
+        <p className="text-[16px] font-medium text-[#1C1C1E] mb-1">Last Name</p>
+        <input
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          className="w-full border border-[#ECECEC] rounded-lg px-3 py-2 text-[16px] text-[#1C1C1E]"
+        />
+      </div>
+      <div className="md:col-span-2 flex gap-3 mt-2">
+        <button
+          onClick={handleSavePersonal}
+          disabled={saving}
+          className="bg-[#D4AF37] text-[#151517] px-5 py-2.5 rounded-xl font-medium hover:opacity-90 transition disabled:opacity-60"
+        >
+          {saving ? "Saving..." : "Save"}
+        </button>
+        <button
+          onClick={() => setIsEditingPersonal(false)}
+          className="px-5 py-2.5 rounded-xl font-medium text-[#6E6E73] hover:bg-gray-100 transition"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  ) : (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+      <Info label="First Name" value={firstName || "Anonymous"} />
+      <Info label="Last Name" value={lastName || "Anonymous"} />
+    </div>
+  )}
+</SectionCard>
                 {/* Account Info */}
                 <SectionCard title="Account Info" activeTab={activeTab}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
@@ -183,7 +256,7 @@ export default function AccountPageUI({
 
                     <Info
                       label="Account Code"
-                      value={user.id.slice(0, 6)}
+                        value={profile?.account_code || user.id.slice(0, 6)} // fallback only if profile missing
                     />
 
                     <Info
@@ -212,28 +285,29 @@ export default function AccountPageUI({
                 {/* Current Plan */}
                 <SectionCard title="Current Subscription" activeTab={activeTab}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                      <h3 className="text-xl font-semibold text-[#151517]">
-                        {subscription?.plan || "Free Trial"}
-                      </h3>
+  <div>
+    <h3 className="text-xl font-semibold text-[#151517]">
+      {subscription?.plan || "Free Trial"}
+    </h3>
 
-                      <p className="text-[#6E6E73] mt-2">
-                        Status:{" "}
-                        <span className="text-[#3B6D11] font-medium">
-                          {subscription?.status || "Active"}
-                        </span>
-                      </p>
+    <p className="text-[#6E6E73] mt-2">
+      Status:{" "}
+      <span className="text-[#3B6D11] font-medium">
+        {subscription?.status || "Active"}
+      </span>
+    </p>
 
-                      <p className="text-[#6E6E73] mt-1">
-                        Renew Date:{" "}
-                        {subscription?.renew_date || "N/A"}
-                      </p>
-                    </div>
+    <p className="text-[#6E6E73] mt-1">
+      Renew Date: {subscription?.renew_date || "N/A"}
+    </p>
+  </div>
 
-                    <button className="bg-[#D4AF37] text-[#151517] px-5 py-3 rounded-xl font-medium hover:opacity-90 transition w-full md:w-auto">
-                      Upgrade Plan
-                    </button>
-                  </div>
+  {!isTopTier && (
+    <button className="bg-[#D4AF37] text-[#151517] px-5 py-3 rounded-xl font-medium hover:opacity-90 transition w-full md:w-auto">
+      Upgrade Plan
+    </button>
+  )}
+</div>
                 </SectionCard>
 
                 {/* Billing History */}

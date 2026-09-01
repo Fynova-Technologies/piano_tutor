@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // utils/getCurrentSystemBounds.ts
 
 export function getCurrentSystemBounds(osmd: any) {
