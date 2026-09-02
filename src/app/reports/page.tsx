@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { getSessions, PracticeSession } from "@/datastore/sessionstorage";
 import ActivityChart from "@/features/components/activitychart";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
+import Footer from "@/features/home/footer";
 
 const supabase = getSupabaseBrowserClient();
 
@@ -430,6 +431,7 @@ export default function Reports() {
       </div>
     </div>
     </div>
+    <Footer />
     </>
   );
 }

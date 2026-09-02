@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { useMediaQuery } from "@/components/MediaQuery/useMediaQueryHook";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 import { getUserTechniqueUnitProgress, markTechniqueUnitCompleted, unlockTechniqueUnit } from "@/utils/userprogress/progressService";
+import Footer from "@/features/home/footer";
 
 const supabase = getSupabaseBrowserClient();
 
@@ -311,6 +312,7 @@ useEffect(() => {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
+    <>
     <div className="min-h-screen bg-[#F8F6F1] py-16 px-6 md:px-12 lg:px-24">
       <div className={isMobile ? "" : "flex"}>
 
@@ -396,6 +398,9 @@ useEffect(() => {
         </div>
 
       </div>
+      
     </div>
+    <Footer />
+    </>
   );
 }

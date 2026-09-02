@@ -84,6 +84,14 @@ export default function Navbar() {
 
         {/* Right Side */}
         <div className="flex items-center gap-3">
+          {/* Contact US */}
+          <Link
+            href="/contact-us"
+            className="hidden md:inline-block text-sm font-medium px-4 py-2 rounded-full transition-colors bg-[#D4AF37] text-[#0a0a0a] hover:bg-[#c9a84c]"
+          >
+            Contact Us
+          </Link>
+
           {/* Notification */}
           <button className="relative text-gray-400 hover:text-[#D4AF37] bg-transparent border-none transition-colors">
             <Image

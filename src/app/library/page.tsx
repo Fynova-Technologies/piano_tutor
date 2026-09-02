@@ -6,6 +6,7 @@ import SongRow from "./songrow";
 import Image from "next/image";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 import { useSubscription } from "@/hooks/subscribed/issubscribed";
+import Footer from "@/features/home/footer";
 
 type SongInformation = {
   id: string;
@@ -183,6 +184,7 @@ className="mt-2 w-fit flex items-center gap-2 bg-gradient-to-l from-[#FFD700] vi
 </div>
 </div>
 </div>
+<Footer />
     </>
   );
 }

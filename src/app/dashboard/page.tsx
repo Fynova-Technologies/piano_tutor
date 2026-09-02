@@ -3,6 +3,7 @@ import ContinueLearning from "@/components/Dashboard/countinueLearning";
 import Favorite from "@/components/Dashboard/favorites";
 import MusicCategories from "@/components/Dashboard/musicCategories";
 import AiAnalysisDashboardCard from "@/components/Dashboard/aiAnalysisDashboardCard";
+import Footer from "@/features/home/footer";
 
 export default function ComingSoon() {
   
@@ -20,7 +21,8 @@ export default function ComingSoon() {
             <ContinueLearning />
             <Favorite/>
       
-          </div>
+      </div>
+      <Footer/>
     </div>
     </>
 

@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import { useMediaQuery } from "@/components/MediaQuery/useMediaQueryHook";
 import { useLessons } from "@/utils/userprogress/lessonprogress";
 import { useRecentLessons } from "@/utils/userprogress/userrecentpost"; // ← new
+import Footer from "@/features/home/footer";
+
 
 // ─── Types ────────────────────────────────────────────────────────────────
 type UniteLesson2 = {
@@ -345,6 +347,7 @@ export default function PianoLesson() {
         </div>
       </div>
     </div>
+    <Footer />
     </>
   );
 }

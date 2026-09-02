@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import SasrPopup from "@/features/components/sasrpopup";
 import { PracticeSession } from "@/datastore/sessionstorage";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
+import Footer from "@/features/home/footer";
 
 const supabase = getSupabaseBrowserClient();
 
@@ -294,6 +295,7 @@ export default function Page() {
 )}
       </div>  
     </div>
+    <Footer />  
     </>
   );
 }

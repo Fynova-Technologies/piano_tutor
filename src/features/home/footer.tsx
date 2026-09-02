@@ -1,9 +1,9 @@
 "use client";
 
 const links = {
-  Product: ["How it Works", "Features", "Pricing", "Masterclasses", "Mobile App"],
-  Learn: ["Beginner Path", "Classical", "Jazz & Blues", "Music Theory", "Blog"],
-  Company: ["About", "Instructors", "Careers", "Privacy", "Terms"],
+  Product: [{linkName: "How it Works", link:"/how-it-works"}, {linkName: "Features", link:"/features"}, {linkName: "Pricing", link:"/pricing"}, {linkName: "Masterclasses", link:"/masterclasses"}, {linkName: "Mobile App", link:"/mobile-app"}],
+  Learn: [{linkName: "Beginner Path", link:"/beginner-path"}, {linkName: "Classical",link:"/classical"}, {linkName: "Jazz & Blues", link:"/jazz-blues"}, {linkName: "Music Theory", link:"/music-theory"}, {linkName: "Blog", link:"/blog"}],
+  Company: [{linkName: "About", link:"/about"}, {linkName: "Instructors", link:"/instructors"}, {linkName: "Careers", link:"/careers"}, {linkName: "Privacy", link:"/privacy-policy"}, {linkName: "Terms", link:"/terms-conditions"}, {linkName: "Contact", link:"/contact-us"}],
 };
 
 const socialIcons = {
@@ -62,12 +62,12 @@ export default function Footer() {
               </p>
               <ul className="flex flex-col gap-2.5">
                 {items.map((item) => (
-                  <li key={item}>
+                  <li key={item.linkName}>
                     <a
-                      href="#"
+                      href={item.link}
                       className="text-[#666] text-xs hover:text-[#C9A84C] transition-colors duration-150"
                     >
-                      {item}
+                      {item.linkName}
                     </a>
                   </li>
                 ))}
