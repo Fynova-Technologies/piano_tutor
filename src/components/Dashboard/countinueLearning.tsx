@@ -95,7 +95,7 @@ export default function ContinueLearning() {
                 lessonid: lesson.lesson_id,
                 fkid: lesson.fkid,
               });
-              router.push(`/lesson?${params.toString()}`);
+              router.push(`/lessons?${params.toString()}`);
             };
 
             return (

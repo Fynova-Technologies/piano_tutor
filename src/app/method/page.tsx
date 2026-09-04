@@ -39,6 +39,7 @@ interface UnitLessonProps {
     source?: string;
     course_title: string;
     image_url?: string;
+    category: "method_lesson" | "technique_lesson" | null;
   }) => void;
 }
 
@@ -112,6 +113,7 @@ const UnitLesson: React.FC<UnitLessonProps> = ({
                     source: lesson.source,
                     course_title: methodName,
                     image_url: methodImageUrl,
+                    category: "method_lesson",
                   });
 
                   // ── 2. Navigate ───────────────────────────────────────

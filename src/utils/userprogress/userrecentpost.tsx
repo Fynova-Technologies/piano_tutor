@@ -1,7 +1,8 @@
 // utils/userprogress/userrecentpost.ts
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
-import { createBrowserClient } from "@supabase/ssr";
+// import { createBrowserClient } from "@supabase/ssr";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 
 export type RecentLesson = {
   id: string;
@@ -15,15 +16,13 @@ export type RecentLesson = {
   image_url: string | null;
   progress: number;
   played_at: string;
+  category?: "method_lesson" | "technique_lesson" | null;
 };
 
 export function useRecentLessons() {
   // ── Stable client — created once per hook mount, never recreated ─────────
   const supabaseRef = useRef(
-    createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    getSupabaseBrowserClient()
   );
   const supabase = supabaseRef.current;
 

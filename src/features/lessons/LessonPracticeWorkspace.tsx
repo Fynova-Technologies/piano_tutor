@@ -14,6 +14,9 @@ import { prepareMusicXmlForOsmd } from "@/lib/musicxml/musicxmlPipeline";
 import { extractMusicXmlFromMxlBuffer } from "@/lib/musicxml/buildMxl";
 import { metronomeService } from "@/lib/audio/metronomeService";
 import { countdownSoundService } from "@/lib/audio/countdownSoundService";
+import { useRecentLessons } from "@/utils/userprogress/userrecentpost"; // ← new
+import { file } from "jszip";
+
 
 
 
@@ -106,6 +109,7 @@ const [uploadLoading, setUploadLoading] = useState(false);
   const markCompleteRef = useRef(markComplete);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const onPerfectScoreRef = useRef(onPerfectScore);
+  const { saveRecentLesson } = useRecentLessons();
 
  
 useEffect(() => {
@@ -796,6 +800,18 @@ async function handleEndOfPiece() {
   };
 
   saveSession(session);
+
+  const recent_lessons = {
+    lesson_id: lessonId,
+    lesson_title: courseTitle,
+    file: fileName,
+    unit_id: lessonUID,
+    source: source,
+    courseTitle: courseTitle,
+    lastScore: finalScore,
+    highScore: highScore ?? finalScore,
+    lastPlayedAt: new Date().toISOString(),
+  }
 }
 
   useEffect(() => {

@@ -1,9 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabase = getSupabaseBrowserClient();
 
 export interface SASRSessionData {
   id: string;
@@ -155,10 +153,10 @@ class SASRDataStore {
     if (error || !data || data.length === 0) return null;
 
     const sessions = data.map(this._fromRow);
-    const scores = sessions.map((s) => s.score);
+    const scores = sessions.map((s:any) => s.score);
     return {
       songTitle,
-      avgScore: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
+      avgScore: Math.round(scores.reduce((a: any, b: any) => a + b, 0) / scores.length),
       highScore: Math.max(...scores),
       lastScore: scores[scores.length - 1],
       totalAttempts: sessions.length,
@@ -175,13 +173,13 @@ class SASRDataStore {
       return { totalSessions: 0, avgScore: 0, highScore: 0, lastScore: null, totalSongsPlayed: 0 };
     }
 
-    const scores = data.map((r) => r.score);
+    const scores = data.map((r: any) => r.score);
     return {
       totalSessions: data.length,
-      avgScore: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
+      avgScore: Math.round(scores.reduce((a: any, b: any) => a + b, 0) / scores.length),
       highScore: Math.max(...scores),
       lastScore: scores[scores.length - 1],
-      totalSongsPlayed: new Set(data.map((r) => r.title)).size,
+      totalSongsPlayed: new Set(data.map((r: any) => r.title)).size,
     };
   }
 
