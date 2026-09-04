@@ -1,7 +1,6 @@
 // utils/userprogress/userrecentpost.ts
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
-// import { createBrowserClient } from "@supabase/ssr";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 
 export type RecentLesson = {
@@ -17,19 +16,16 @@ export type RecentLesson = {
   progress: number;
   played_at: string;
   category?: "method_lesson" | "technique_lesson" | null;
+  iscompleted: boolean; // ← added
 };
 
 export function useRecentLessons() {
-  // ── Stable client — created once per hook mount, never recreated ─────────
-  const supabaseRef = useRef(
-    getSupabaseBrowserClient()
-  );
+  const supabaseRef = useRef(getSupabaseBrowserClient());
   const supabase = supabaseRef.current;
 
   const [recentLessons, setRecentLessons] = useState<RecentLesson[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // ── Fetch ────────────────────────────────────────────────────────────────
   const fetchRecentLessons = useCallback(async () => {
     setLoading(true);
     try {
@@ -66,7 +62,6 @@ export function useRecentLessons() {
     }
   }, [supabase]);
 
-  // ── Save — upsert on (user_id, lesson_id) ───────────────────────────────
   const saveRecentLesson = useCallback(
     async (params: {
       lesson_id: string;
@@ -78,6 +73,8 @@ export function useRecentLessons() {
       course_title: string;
       image_url?: string;
       progress?: number;
+      category?: "method_lesson" | "technique_lesson" | null;
+      isCompleted?: boolean;
     }) => {
       try {
         const {
@@ -102,6 +99,8 @@ export function useRecentLessons() {
           image_url: params.image_url ?? null,
           progress: params.progress ?? 0,
           played_at: new Date().toISOString(),
+          category: params.category ?? null,
+          iscompleted: params.isCompleted ?? false, // ← now actually persisted
         };
 
         const { error } = await supabase
@@ -111,7 +110,6 @@ export function useRecentLessons() {
         if (error) {
           console.error("[useRecentLessons] upsert error:", error.message);
         } else {
-          // Optimistically update local state so dashboard reflects immediately
           setRecentLessons((prev) => [
             row as unknown as RecentLesson,
             ...prev.filter((r) => r.lesson_id !== params.lesson_id),

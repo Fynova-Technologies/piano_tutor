@@ -18,6 +18,8 @@ function OfficialLessonInner() {
     ? "technique_lesson"
     : "method_lesson";
 
+    // lessons?id=1&title=Finding+Middle+C&file=1A%2FWholenotes.mxl&unitId=1&source=&lessonid=1&fkid=1&category=method_lesson
+
   const { markComplete } = useLessons();
   const { completeTechnique } = useTechniqueCompletion();
 

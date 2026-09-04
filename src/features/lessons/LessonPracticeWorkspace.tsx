@@ -41,7 +41,7 @@ export type LessonPracticeWorkspaceProps = {
   lessonUid: string;
   sessionCategory: "method_lesson" | "recovery_drill" | "technique_lesson";
   onPerfectScore?: (lessonId: string, fkid?: string) => void | Promise<void>;
-  fkid?: string;
+  fkid: string;
 };
 
 export function LessonPracticeWorkspace({
@@ -109,7 +109,7 @@ const [uploadLoading, setUploadLoading] = useState(false);
   const markCompleteRef = useRef(markComplete);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const onPerfectScoreRef = useRef(onPerfectScore);
-  const { saveRecentLesson } = useRecentLessons();
+  const { saveRecentLesson } = useRecentLessons() ;  
 
  
 useEffect(() => {
@@ -800,18 +800,21 @@ async function handleEndOfPiece() {
   };
 
   saveSession(session);
+  // lessons?id=1&title=Finding+Middle+C&file=1A%2FWholenotes.mxl&unitId=1&source=&lessonid=1&fkid=1&category=method_lesson
 
-  const recent_lessons = {
+  saveRecentLesson({
     lesson_id: lessonId,
     lesson_title: courseTitle,
     file: fileName,
-    unit_id: lessonUID,
+    unit_id: lessonId,
+    fkid: fkid,
     source: source,
-    courseTitle: courseTitle,
-    lastScore: finalScore,
-    highScore: highScore ?? finalScore,
-    lastPlayedAt: new Date().toISOString(),
-  }
+    course_title: courseTitle,
+    image_url: "<image_url>",
+    category: "method_lesson",
+    progress: finalScore,
+    isCompleted: false,
+  })
 }
 
   useEffect(() => {

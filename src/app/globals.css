@@ -4,9 +4,9 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --font-inter: 'Inter';
+  /* --font-inter: 'Inter';
   --font-poppins: 'Poppins';
-  --font-playfair: 'Playfair Display';
+  --font-playfair: 'Playfair Display'; */
   --primary-background: #151517;
   --primary-dark: #0A0A0B;
 
@@ -48,6 +48,10 @@ body {
 
 .font-playfair {
   font-family: var(--font-playfair);
+}
+
+.font-dm-mono {
+  font-family: var(--font-dm-mono);
 }
 
 .primary-color-text{

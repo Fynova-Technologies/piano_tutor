@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Poppins, Playfair_Display } from "next/font/google";
+import { Inter, Poppins, Playfair_Display, DM_Mono } from "next/font/google";
 import "./globals.css";
 // import Navbar from "@/components/navbar";
 import { AuthProvider } from "@/utils/Authsegment";
@@ -28,6 +28,13 @@ export const playfair = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-playfair",
 });
+
+export const dmMono = DM_Mono({
+  subsets: ["latin"],
+  variable: "--font-dm-mono",
+  weight: "400",
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://YOURDOMAIN.com"),
 
@@ -140,7 +147,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${poppins.variable} ${playfair.variable}`}>
+      <body className={`${inter.variable} ${dmMono.variable} ${poppins.variable} ${playfair.variable}`}>
         {/* AuthProvider now wraps NavbarSwitcher too — previously it only
             wrapped <main>, so anything inside NavbarSwitcher (like
             UserPopup) called useAuth() with no provider above it and
