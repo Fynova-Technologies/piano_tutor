@@ -291,7 +291,7 @@ useEffect(() => {
                         //   toggleLesson(unit.fkid, lesson.id, completed);
                         // }}
                         className={`${isMobile
-                          ? `rounded-2xl py-1 border-none mt-2 ${completed ? "bg-[#84FF10]" : "bg-[#0a0a0a]"}`
+                          ? `rounded-2xl py-1 border-none mt-2 text-center ${completed ? "bg-[#84FF10]" : "bg-[#0a0a0a]"}`
                           : `rounded-2xl py-2 px-6 border-none h-[36px] ${completed ? "bg-[#84FF10]" : "bg-[#0a0a0a]"}`
                         }`}
                       >
