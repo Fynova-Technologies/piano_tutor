@@ -400,6 +400,7 @@ export default function RecoveryLessonStudio() {
               </div>
               <LessonPracticeWorkspace
                 cdnFileName={null}
+                fkid=""
                 externalXml={musicXml}
                 xmlRenderKey={xmlRenderKey}
                 courseTitle={activeTitle}

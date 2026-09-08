@@ -196,7 +196,7 @@ export function ensureScorePartwiseRoot(doc: string): string {
 }
 
 function stripPrologNoise(doc: string): string {
-  let t = stripBom(doc);
+  const t = stripBom(doc);
   const declMatch = t.match(/^<\?xml[^?]*\?>\s*/i);
   const decl = declMatch?.[0] ?? "";
   let rest = declMatch ? t.slice(decl.length) : t;
@@ -221,7 +221,7 @@ function countScorePartwiseTags(doc: string): { open: number; close: number } {
  * Collapse duplicate / nested score-partwise wrappers into a single balanced root.
  */
 export function collapseScorePartwiseRoot(doc: string): string {
-  let t = stripPrologNoise(stripBom(decodeXmlEntities(doc))).trim();
+  const t = stripPrologNoise(stripBom(decodeXmlEntities(doc))).trim();
 
   const firstOpen = t.search(/<score-partwise(?:\s|>)/i);
   if (firstOpen < 0) return t;
@@ -253,11 +253,11 @@ export function collapseScorePartwiseRoot(doc: string): string {
       (m) => `${m}\n${buildMinimalPartList()}`,
     );
   }
-  if (!/<part\s+[^>]*\bid\s*=/i.test(doc)) {
+  if (!/<part\s+[^>]*\bid\s*=/i.test(doc2)) {
     doc2 = doc2.replace(/<\/score-partwise>/i, `${buildMinimalPart()}\n</score-partwise>`);
   }
 
-  return doc;
+  return doc2;
 }
 
 function normalizePrologAndRoot(out: string): string {

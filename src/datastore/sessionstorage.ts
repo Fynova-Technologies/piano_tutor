@@ -1,6 +1,35 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const STORAGE_KEY = "practice_sessions";
+const OWNER_KEY = "practice_sessions_owner";
 
+/**
+ * Cross-account leak fix: STORAGE_KEY used to be a flat global key, so any
+ * previous user's session history on this browser was visible to whoever signed
+ * in next. We now track which user id "owns" the current localStorage contents
+ * and wipe it on mismatch (new sign-in, different account, or sign-out).
+ *
+ * Call `setSessionStorageUserId(user?.id ?? null)` from your auth state listener
+ * (wherever you already track sign-in/sign-out — e.g. the AuthProvider /
+ * NavbarSwitcher auth effect) as soon as the user's identity is known or changes.
+ * Until that's called at least once after page load, reads/writes behave exactly
+ * as before (no owner check yet) so this is safe to land incrementally.
+ */
+function currentOwnerTag(userId: string | null): string {
+  return userId ?? "__guest__";
+}
+
+export function setSessionStorageUserId(userId: string | null) {
+  if (typeof window === "undefined") return;
+
+  const nextTag = currentOwnerTag(userId);
+  const storedTag = localStorage.getItem(OWNER_KEY);
+
+  if (storedTag !== null && storedTag !== nextTag) {
+    // Different identity than whoever last wrote here — don't leak their sessions.
+    localStorage.removeItem(STORAGE_KEY);
+  }
+  localStorage.setItem(OWNER_KEY, nextTag);
+}
 
 export type PracticeSessionCategory =
   | "method_lesson"
@@ -30,8 +59,8 @@ export interface PracticeSession {
   durationSec: number;
 
   lesson: {
-    uid: string;   // "Method-1A-3"
-    id: string;    // "3"
+    uid: string; // "Method-1A-3"
+    id: string; // "3"
     title: string;
     source: string; // "Method-1A"
   };
@@ -58,7 +87,6 @@ export interface PracticeSession {
   mistakeEvents?: PracticeMistakeEvent[];
 }
 
-
 /* Get all sessions */
 export function getSessions(): PracticeSession[] {
   if (typeof window === "undefined") return [];
@@ -75,9 +103,7 @@ export function getSessions(): PracticeSession[] {
 }
 
 /* Clean before save */
-function sanitizeSession(
-  session: PracticeSession
-): PracticeSession {
+function sanitizeSession(session: PracticeSession): PracticeSession {
   const perf: PracticeSession["performance"] = {
     attempts: session.performance.attempts,
     score: session.performance.score,
@@ -119,31 +145,28 @@ function sanitizeSession(
 }
 
 /* Save */
-export function saveSession(
-  session: PracticeSession
-) {
+export function saveSession(session: PracticeSession) {
   const sessions = getSessions();
 
   const clean = sanitizeSession(session);
 
   sessions.push(clean);
 
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(sessions)
-  );
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
 
   if (typeof window !== "undefined") {
     void import("@/lib/practiceSessions/syncToSupabase").then(({ queuePracticeSessionSync }) => {
       queuePracticeSessionSync(clean);
     });
+    void import("@/lib/practiceSessions/syncToRecordsApi").then(({ queuePracticeRecordSync }) => {
+      queuePracticeRecordSync(clean);
+    });
   }
 }
-
-
-
 
 /* Clear (for testing) */
 export function clearSessions() {
   localStorage.removeItem(STORAGE_KEY);
 }
+
+

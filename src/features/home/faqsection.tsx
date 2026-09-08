@@ -29,7 +29,7 @@ export default function FAQSection() {
   const [open, setOpen] = useState<number | null>(null);
 
   return (
-    <section className="bg-[#F5F2ED] px-6 pb-24">
+    <section className="bg-[#0A0A0A] px-6 pb-24">
       <div className="max-w-5xl mx-auto">
         <div
           className="rounded-2xl border border-dashed border-[#C9A84C]/40 p-8 md:p-12 grid grid-cols-1 md:grid-cols-[1fr_1.4fr] gap-12 items-start"
@@ -42,7 +42,7 @@ export default function FAQSection() {
                 Questions
               </span>
             </div>
-            <h2 className="font-serif text-4xl md:text-5xl font-black text-[#1A1A1A] leading-tight">
+            <h2 className="font-serif text-4xl md:text-5xl font-black text-[#F2ECE0] leading-tight">
               Things
               <br />
               <em className="text-[#C9A84C]">People</em>{" "}

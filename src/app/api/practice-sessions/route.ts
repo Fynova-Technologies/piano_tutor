@@ -1,13 +1,37 @@
+/**
+ * GET  /api/practice-sessions
+ * POST /api/practice-sessions
+ *
+ * Reads/writes `public.practice_session_records` — the richer per-session table
+ * (mistake_events, weak_areas, rhythm_inaccuracy, etc.) that:
+ *   - `lib/practiceSessions/merge.ts` (`getMergedPracticeSessions`) reads from (GET)
+ *   - `app/api/recovery-lessons/route.ts` reads mistake summaries from
+ *   - `app/api/practice/generate-recovery/route.ts` reads per-lesson mistakes from
+ *
+ * NOTE: this is separate from `practice_sessions` (written client-side by
+ * `syncToSupabase.ts`). That table only carries score/accuracy — no mistake_events
+ * shape rich enough for recovery generation. Do not merge the two without checking
+ * every consumer above.
+ *
+ * DB requirement: a unique constraint on (user_id, client_session_id) is needed for
+ * the upsert below to be idempotent on replays:
+ *
+ *   alter table public.practice_session_records
+ *     add constraint practice_session_records_user_client_uidx
+ *     unique (user_id, client_session_id);
+ *
+ * RLS: this route uses the server (cookie-aware) Supabase client and always scopes
+ * reads/writes to auth.uid(), so standard "user can only touch their own rows" RLS
+ * policies on practice_session_records are assumed.
+ */
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { sessionToRecordPayload } from "@/lib/practiceSessions/mapSession";
+import type { PracticeSession } from "@/datastore/sessionstorage";
 import type { PracticeSessionRecordRow } from "@/lib/practiceSessions/types";
 
 export const runtime = "nodejs";
 
-/**
- * GET — load practice history for the signed-in user (AI Review + analytics).
- * Anonymous users: 401 (client falls back to localStorage).
- */
 export async function GET() {
   try {
     const supabase = await createServerSupabase();
@@ -16,7 +40,11 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ ok: false, code: "UNAUTHORIZED" }, { status: 401 });
+      // Not signed in: merge.ts falls back to local-only sessions on a non-200.
+      return NextResponse.json(
+        { ok: false, code: "UNAUTHORIZED", message: "Sign in required" },
+        { status: 401 }
+      );
     }
 
     const { data, error } = await supabase
@@ -24,12 +52,12 @@ export async function GET() {
       .select("*")
       .eq("user_id", user.id)
       .order("ended_at", { ascending: false })
-      .limit(800);
+      .limit(200);
 
     if (error) {
-      console.error("practice_session_records select", error);
+      console.error("practice-sessions GET", error);
       return NextResponse.json(
-        { ok: false, message: error.message },
+        { ok: false, code: "DB_ERROR", message: error.message },
         { status: 500 }
       );
     }
@@ -47,10 +75,6 @@ export async function GET() {
   }
 }
 
-/**
- * POST — insert or upsert one session (called from client after saveSession).
- * Payload fields mirror `sessionToRecordPayload` in mapSession.ts.
- */
 export async function POST(req: Request) {
   try {
     const supabase = await createServerSupabase();
@@ -59,52 +83,42 @@ export async function POST(req: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ ok: false, code: "UNAUTHORIZED" }, { status: 401 });
+      // Fire-and-forget caller (saveSession) should just drop this silently.
+      return NextResponse.json(
+        { ok: false, code: "UNAUTHORIZED", message: "Sign in required" },
+        { status: 401 }
+      );
     }
 
-    const body = await req.json();
-    const row = {
-      user_id: user.id,
-      client_session_id: String(body.client_session_id ?? ""),
-      session_category: String(body.session_category ?? "unspecified"),
-      lesson_uid: String(body.lesson_uid ?? ""),
-      lesson_id: String(body.lesson_id ?? ""),
-      lesson_title: String(body.lesson_title ?? ""),
-      lesson_source: String(body.lesson_source ?? ""),
-      lesson_file: body.lesson_file != null ? String(body.lesson_file) : null,
-      started_at: body.started_at,
-      ended_at: body.ended_at,
-      duration_sec: Number(body.duration_sec ?? 0),
-      attempts: Number(body.attempts ?? 1),
-      score: Number(body.score ?? 0),
-      accuracy_pct: body.accuracy_pct != null ? Number(body.accuracy_pct) : null,
-      correct_notes: body.correct_notes != null ? Number(body.correct_notes) : null,
-      incorrect_notes: body.incorrect_notes != null ? Number(body.incorrect_notes) : null,
-      total_scoreable: body.total_scoreable != null ? Number(body.total_scoreable) : null,
-      tempo_bpm: body.tempo_bpm != null ? Number(body.tempo_bpm) : null,
-      rhythm_inaccuracy: body.rhythm_inaccuracy ?? [],
-      mistakes: body.mistakes ?? [],
-      weak_areas: body.weak_areas ?? [],
-      completion_status: String(body.completion_status ?? "completed"),
-      ai_feedback_snapshot: body.ai_feedback_snapshot ?? null,
-      progress_metrics: body.progress_metrics ?? {},
-      mistake_events: body.mistake_events ?? [],
-    };
-
-    if (!row.client_session_id) {
-      return NextResponse.json({ ok: false, message: "client_session_id required" }, { status: 400 });
+    const body = (await req.json()) as { session?: PracticeSession };
+    const session = body.session;
+    if (!session || !session.id || !session.lesson) {
+      return NextResponse.json(
+        { ok: false, code: "BAD_REQUEST", message: "Invalid session payload" },
+        { status: 400 }
+      );
     }
 
-    const { error } = await supabase.from("practice_session_records").upsert(row, {
-      onConflict: "user_id,client_session_id",
-    });
+    const payload = sessionToRecordPayload(session);
+
+    const { data, error } = await supabase
+      .from("practice_session_records")
+      .upsert(
+        { ...payload, user_id: user.id },
+        { onConflict: "user_id,client_session_id" }
+      )
+      .select("id")
+      .maybeSingle();
 
     if (error) {
-      console.error("practice_session_records upsert", error);
-      return NextResponse.json({ ok: false, message: error.message }, { status: 500 });
+      console.error("practice-sessions POST", error);
+      return NextResponse.json(
+        { ok: false, code: "DB_ERROR", message: error.message },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, id: data?.id ?? null });
   } catch (e) {
     console.error(e);
     return NextResponse.json(

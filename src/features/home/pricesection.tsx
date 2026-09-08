@@ -265,7 +265,7 @@ export default function PricingSection() {
   }
 
   return (
-    <section className="bg-[#F5F2ED] px-6 py-20 md:py-28">
+    <section className="bg-[#0A0A0A] px-6 py-20 md:py-28">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-10">
           <div className="flex items-center justify-center gap-3 mb-5">
@@ -275,7 +275,7 @@ export default function PricingSection() {
             </span>
             <div className="w-8 h-px bg-[#C9A84C]" />
           </div>
-          <h2 className="font-serif text-5xl md:text-6xl font-black text-[#1A1A1A] leading-tight mb-4">
+          <h2 className="font-serif text-5xl md:text-6xl font-black text-[#F2ECE0]  leading-tight mb-4">
             Simple, <br className="hidden md:block" />
             <em className="text-[#C9A84C]">Honest</em> Plans
           </h2>
@@ -285,7 +285,7 @@ export default function PricingSection() {
         </div>
 
         <div className="flex items-center justify-center gap-4 mb-12">
-          <span className={`text-xs tracking-[0.2em] uppercase font-medium ${!annual ? "text-[#1A1A1A]" : "text-[#8A8078]"}`}>
+          <span className={`text-xs tracking-[0.2em] uppercase font-medium ${!annual ? "text-[#F2ECE0]" : "text-[#F2ECE0]"}`}>
             Monthly
           </span>
           <button

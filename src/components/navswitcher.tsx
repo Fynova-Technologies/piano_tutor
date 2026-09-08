@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Navbar from "@/components/navbar";
 import UnauthUserNavbar from "@/components/navbar2";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
+    import { setSessionStorageUserId } from "@/datastore/sessionstorage";
+
 
 // // Create client ONCE outside component (module-level singleton)
 // const supabase = createClient(
@@ -27,13 +29,20 @@ export default function NavbarSwitcher() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     getSupabaseBrowserClient().auth.getSession().then(({ data: { session } }: any) => {
       setIsAuthenticated(!!session);
+      // inside your onAuthStateChange / session-resolved handler:
+setSessionStorageUserId(session?.user?.id ?? null);
     });
+
+
+
 
     const {
       data: { subscription },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } = getSupabaseBrowserClient().auth.onAuthStateChange((_event: any, session: any) => {
       setIsAuthenticated(!!session);
+      // inside your onAuthStateChange / session-resolved handler:
+  setSessionStorageUserId(session?.user?.id ?? null);
     });
 
     return () => subscription.unsubscribe();

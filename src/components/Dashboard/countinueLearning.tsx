@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useRecentLessons } from "@/utils/userprogress/userrecentpost";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const FALLBACK_IMAGE = "/assets/C1.png";
 
 export default function ContinueLearning() {
@@ -106,7 +107,7 @@ export default function ContinueLearning() {
               >
                 <div className="relative rounded-2xl overflow-hidden shadow-lg group w-full max-h-[290px]">
                   <Image
-                    src={lesson.image_url ?? FALLBACK_IMAGE}
+                    src={"/assets/e714d056aefcec618d35aa8e15bece97e6384878.png"}
                     alt={lesson.lesson_title}
                     width={400}
                     height={400}

@@ -75,12 +75,21 @@ export function queuePracticeSessionSync(session: PracticeSession) {
 
 /** Optional: fetch a user's full session history from Supabase */
 export async function fetchSessionsFromSupabase(): Promise<PracticeSession[]> {
+  // current — relies entirely on RLS
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  
   const { data, error } = await supabase
     .from("practice_sessions")
     .select("*")
+    .eq("user_id", user.id)
     .order("started_at", { ascending: false });
 
+  
+
   if (error || !data) return [];
+
+  
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return data.map((r: { id: any; started_at: string | number | Date; ended_at: string | number | Date; duration_sec: any; lesson_uid: any; lesson_id: any; lesson_title: any; lesson_source: any; attempts: any; score: any; accuracy: any; correct_notes: any; incorrect_notes: any; total_scoreable: any; session_category: any; lesson_file: any; tempo_bpm: any; completion_status: any; weak_areas: any; mistake_events: any; ai_feedback_snapshot: any; progress_metrics: any; }) => ({

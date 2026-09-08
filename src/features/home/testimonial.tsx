@@ -82,7 +82,7 @@ export default function TestimonialsSection() {
   }, []);
 
   return (
-    <section className="bg-[#F5F2ED] px-6 py-20 md:py-28">
+    <section className="bg-[#0A0A0A] px-6 py-20 md:py-28">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
@@ -93,11 +93,11 @@ export default function TestimonialsSection() {
             </span>
             <div className="w-8 h-px bg-[#C9A84C]" />
           </div>
-          <h2 className="font-serif text-5xl md:text-6xl font-black text-[#1A1A1A] leading-tight">
+          <h2 className="font-serif text-5xl md:text-6xl font-black text-[#F2ECE0] leading-tight">
             Students Who
             <br />
             <em className="text-[#C9A84C]">Found</em>{" "}
-            <span className="italic">Their Sound</span>
+            <span className="italic text-[#C9A84C]">Their Sound</span>
           </h2>
         </div>
 
