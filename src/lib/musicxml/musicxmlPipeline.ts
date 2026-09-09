@@ -282,8 +282,7 @@ export function repairAiMusicXml(xml: string): string {
 
   const idPool = [...out.matchAll(/<part\s+[^>]*\bid\s*=\s*"([^"]+)"/gi)].map((m) => m[1]);
   const queue = idPool.length > 0 ? [...idPool] : ["P1"];
-  out = out.replace(/<score-part(?![^>]*\bid\s*=)/gi, () => `<score-part id="${queue.shift() ?? "P1"}"`);
-
+out = out.replace(/<score-part(?!wise)(?![^>]*\bid\s*=)/gi, () => `<score-part id="${queue.shift() ?? "P1"}"`);
   out = out.replace(/<clef>\s*treble\s*<\/clef>/gi, `<clef><sign>G</sign><line>2</line></clef>`);
   out = out.replace(/<clef>\s*bass\s*<\/clef>/gi, `<clef><sign>F</sign><line>4</line></clef>`);
   out = out.replace(/<clef>\s*alto\s*<\/clef>/gi, `<clef><sign>C</sign><line>3</line></clef>`);

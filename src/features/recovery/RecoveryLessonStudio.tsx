@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Trash2, Download } from "lucide-react";
+import { Trash2, Download, X } from "lucide-react";
 import { LessonPracticeWorkspace } from "@/features/lessons/LessonPracticeWorkspace";
 import {
   analysisAccentGradient,
@@ -34,6 +34,11 @@ type RecoveryRow = {
  * Calls POST /api/practice/generate-recovery; MusicXML is validated server-side before response.
  * --- OSMD rendering integration ---
  * `LessonPracticeWorkspace` loads validated `musicXml` with an incremented `xmlRenderKey` for reliable remount.
+ * --- Fullscreen playback ---
+ * `LessonPracticeWorkspace` stays mounted the whole time (never remounted for the fullscreen
+ * toggle itself — only the *wrapping* element's classes change) so play state / score / cursor
+ * position survive entering and leaving fullscreen. `onPlaybackStart` fires once, the moment the
+ * user presses play inside the workspace, which is what triggers the switch to fullscreen.
  */
 export default function RecoveryLessonStudio() {
   const [sourceOptions, setSourceOptions] = useState<SourceOption[]>([]);
@@ -57,8 +62,36 @@ export default function RecoveryLessonStudio() {
   const [loadLoading, setLoadLoading] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   const lessonUidForSession =
     activeRecoveryId != null ? `recovery-gen-${activeRecoveryId}` : `recovery-draft-${selectedUid || "none"}`;
+
+  // Force OSMD to re-measure/re-render its container whenever we flip in or
+  // out of fullscreen — the existing window "resize" listener inside
+  // LessonPracticeWorkspace only fires on real window resizes, not on a CSS
+  // class change, so we nudge it manually.
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+    return () => cancelAnimationFrame(id);
+  }, [isFullscreen]);
+
+  // Lock page scroll while fullscreen, and allow Escape to exit.
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [isFullscreen]);
 
   const refreshContext = useCallback(async () => {
     setContextLoading(true);
@@ -95,6 +128,7 @@ export default function RecoveryLessonStudio() {
     setActiveSource("");
     setActiveDisplayFile("recovery.mxl");
     setLastMxlBase64(null);
+    setIsFullscreen(false);
   }
 
   async function generateDrill() {
@@ -134,6 +168,7 @@ export default function RecoveryLessonStudio() {
 
       setMusicXml(data.musicXml);
       setXmlRenderKey((k) => k + 1);
+      setIsFullscreen(false); // start each new drill in the compact view; play triggers fullscreen
       if (data.mxlBase64) setLastMxlBase64(data.mxlBase64);
 
       if (data.recoveryLessonId) {
@@ -183,6 +218,7 @@ export default function RecoveryLessonStudio() {
       const L = data.lesson;
       setMusicXml(L.musicXml);
       setXmlRenderKey((k) => k + 1);
+      setIsFullscreen(false); // opening a saved drill also starts compact
       setActiveRecoveryId(L.id);
       setActiveTitle(L.title);
       setActiveSource("Recovery");
@@ -249,6 +285,13 @@ export default function RecoveryLessonStudio() {
       setGenError("Could not build MXL download");
     }
   }
+
+  // Single wrapper element, always in the same JSX slot — only its className
+  // changes between "embedded card" and "fullscreen overlay" so React never
+  // unmounts LessonPracticeWorkspace (and OSMD/score/play state) when toggling.
+  const playerWrapperClass = isFullscreen
+    ? "fixed inset-0 z-50 flex flex-col bg-white"
+    : `overflow-hidden ${premiumAnalysisCard}`;
 
   return (
     <div className="pb-16 pt-8 md:pt-10">
@@ -374,42 +417,61 @@ export default function RecoveryLessonStudio() {
               Generate a drill or open one from history to load the score workspace.
             </div>
           ) : (
-            <div className={`overflow-hidden ${premiumAnalysisCard}`}>
-              <div className="flex flex-wrap items-center justify-end gap-2 border-b border-black/[0.06] bg-[#faf9f7] px-4 py-2">
-                {lastMxlBase64 ? (
+            <div className={playerWrapperClass}>
+              <div
+                className={`flex flex-wrap items-center gap-2 border-b border-black/[0.06] bg-[#faf9f7] px-4 py-2 ${
+                  isFullscreen ? "justify-between" : "justify-end"
+                }`}
+              >
+                {isFullscreen ? (
                   <button
                     type="button"
-                    onClick={() => void downloadCurrentMxl()}
+                    onClick={() => setIsFullscreen(false)}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-black hover:border-[#6e4d7d]/35"
                   >
-                    <Download className="h-3.5 w-3.5" aria-hidden />
-                    Download .mxl
+                    <X className="h-3.5 w-3.5" aria-hidden />
+                    Back to studio
                   </button>
                 ) : null}
-                {activeRecoveryId ? (
-                  <button
-                    type="button"
-                    disabled={deleteLoading === activeRecoveryId}
-                    onClick={(e) => void deleteHistoryItem(activeRecoveryId, e)}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                    Delete drill
-                  </button>
-                ) : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  {lastMxlBase64 ? (
+                    <button
+                      type="button"
+                      onClick={() => void downloadCurrentMxl()}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-black hover:border-[#6e4d7d]/35"
+                    >
+                      <Download className="h-3.5 w-3.5" aria-hidden />
+                      Download .mxl
+                    </button>
+                  ) : null}
+                  {activeRecoveryId ? (
+                    <button
+                      type="button"
+                      disabled={deleteLoading === activeRecoveryId}
+                      onClick={(e) => void deleteHistoryItem(activeRecoveryId, e)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                      Delete drill
+                    </button>
+                  ) : null}
+                </div>
               </div>
-              <LessonPracticeWorkspace
-                cdnFileName={null}
-                fkid=""
-                externalXml={musicXml}
-                xmlRenderKey={xmlRenderKey}
-                courseTitle={activeTitle}
-                lessonSource={activeSource}
-                lessonId={activeRecoveryId ?? "draft"}
-                displayFileName={activeDisplayFile}
-                lessonUid={lessonUidForSession}
-                sessionCategory="recovery_drill"
-              />
+              <div className={isFullscreen ? "min-h-0 flex-1 overflow-y-auto" : ""}>
+                <LessonPracticeWorkspace
+                  cdnFileName={null}
+                  fkid=""
+                  externalXml={musicXml}
+                  xmlRenderKey={xmlRenderKey}
+                  courseTitle={activeTitle}
+                  lessonSource={activeSource}
+                  lessonId={activeRecoveryId ?? "draft"}
+                  displayFileName={activeDisplayFile}
+                  lessonUid={lessonUidForSession}
+                  sessionCategory="recovery_drill"
+                  onPlaybackStart={() => setIsFullscreen(true)}
+                />
+              </div>
             </div>
           )}
         </section>

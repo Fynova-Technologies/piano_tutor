@@ -42,6 +42,7 @@ export type LessonPracticeWorkspaceProps = {
   sessionCategory: "method_lesson" | "recovery_drill" | "technique_lesson";
   onPerfectScore?: (lessonId: string, fkid?: string) => void | Promise<void>;
   fkid: string;
+    onPlaybackStart?: () => void;
 };
 
 export function LessonPracticeWorkspace({
@@ -55,6 +56,7 @@ export function LessonPracticeWorkspace({
   lessonUid,
   sessionCategory,
   onPerfectScore,
+    onPlaybackStart,
   fkid,
 }: LessonPracticeWorkspaceProps) {
 const [uploadedMusicXML, setUploadedMusicXML] = useState<string | null>(null);  
@@ -251,6 +253,9 @@ useEffect(() => {
 
     (async () => {
       try {
+        // right before: await osmd.load(xml);
+console.log("XML being loaded (first 800 chars):", xml?.slice(0, 800));
+console.log("XML length:", xml?.length, "| type:", typeof xml);
         await osmd.load(xml);
 
         const rules = osmd.EngravingRules;
@@ -549,6 +554,7 @@ window.addEventListener("keydown", onKey);
   const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   function startPlayback() {
+      onPlaybackStart?.();
     setShowScorePopup(false); 
     if (!beatCursorRef.current) {
       console.error("Cannot start - beat cursor not initialized");
