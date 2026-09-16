@@ -265,27 +265,25 @@ export default function PricingSection() {
   }
 
   return (
-    <section className="bg-[#0A0A0A] px-6 py-20 md:py-28">
+    <section className="bg-[#0A0A0A] border-y border-[#F2ECE014] px-6 py-20 md:py-28">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-10">
           <div className="flex items-center justify-center gap-3 mb-5">
-            <div className="w-8 h-px bg-[#C9A84C]" />
-            <span className="text-[#C9A84C] text-[10px] tracking-[0.3em] uppercase font-medium">
+            <span className="text-[#C9A84C] text-[10px] font-light tracking-[0.3em] uppercase">
               Pricing
             </span>
-            <div className="w-8 h-px bg-[#C9A84C]" />
           </div>
-          <h2 className="font-serif text-5xl md:text-6xl font-black text-[#F2ECE0]  leading-tight mb-4">
+          <h2 className=" text-5xl md:text-6xl font-bold text-[#F2ECE0] leading-tight mb-4">
             Simple, <br className="hidden md:block" />
-            <em className="text-[#C9A84C]">Honest</em> Plans
+            <em className="text-[#C49A3C]">Honest</em> Plans
           </h2>
-          <p className="text-[#8A8078] text-sm">
+          <p className="text-[#B9B9B9] text-[17px]">
             No hidden fees. No instrument required to start. Cancel any time.
           </p>
         </div>
 
         <div className="flex items-center justify-center gap-4 mb-12">
-          <span className={`text-xs tracking-[0.2em] uppercase font-medium ${!annual ? "text-[#F2ECE0]" : "text-[#F2ECE0]"}`}>
+          <span className={`text-xs tracking-[0.2em] uppercase font-medium ${!annual ? "text-[#F2ECE0]" : "text-[#8A7A65]"}`}>
             Monthly
           </span>
           <button
@@ -296,7 +294,7 @@ export default function PricingSection() {
               className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform duration-300 ${annual ? "translate-x-5" : "translate-x-0"}`}
             />
           </button>
-          <span className={`text-xs tracking-[0.2em] uppercase font-medium ${annual ? "text-[#1A1A1A]" : "text-[#8A8078]"}`}>
+          <span className={`text-xs tracking-[0.2em] uppercase font-medium ${annual ? "text-[#F2ECE0]" : "text-[#8A8078]"}`}>
             Annual
           </span>
           <span className="bg-[#C9A84C]/20 text-[#C9A84C] text-[9px] tracking-[0.15em] uppercase font-bold px-2.5 py-1 rounded-full">
@@ -310,49 +308,66 @@ export default function PricingSection() {
           </div>
         )}
 
-        <div className="bg-[#1C1C1C] rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#2A2A2A]">
-          {active.map((plan) => (
-            <div key={plan.name} className="p-8 flex flex-col gap-6 relative">
-              {plan.tag && (
-                <div className="absolute top-6 left-8">
-                  <span className="bg-[#C9A84C]/20 text-[#C9A84C] text-[9px] tracking-[0.15em] uppercase font-bold px-2.5 py-1 rounded-full border border-[#C9A84C]/30">
-                    {plan.tag}
-                  </span>
-                </div>
-              )}
+<div className="bg-[#0F0D0B] border border-[#F2ECE014]  rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#2A2A2A]">
+  {active.map((plan) => {
+    const planTierValue = TIER[plan.name.toLowerCase()] ?? 0;
+    const isCurrentPlan =
+      authChecked && loggedIn && !!userPlan && planTierValue === userTierValue;
 
-              <div className={plan.tag ? "mt-7" : ""}>
-                <h3 className="text-white font-serif font-black text-2xl mb-2">{plan.name}</h3>
-                <p className="text-[#5A5A5A] text-xs leading-relaxed">{plan.description}</p>
-              </div>
+    // Current plan wins over "Most Popular" styling when both apply
+    const cardBg = isCurrentPlan
+      ? "#1E1A0D"   // current plan — distinct gold-tinted dark
+      : plan.tag
+      ? "#161310"   // "Most Popular" tag
+      : "transparent";
 
-              <div className="flex items-end gap-1">
-                <span className="text-[#C9A84C] text-sm font-bold self-start mt-2">$</span>
-                <span className="text-white font-serif font-black text-6xl leading-none">{plan.price}</span>
-                <span className="text-[#5A5A5A] text-xs mb-2 ml-1">{plan.period}</span>
-              </div>
+    return (
+      <div
+        key={plan.name}
+        className="p-8 flex flex-col gap-6 relative"
+        style={{ backgroundColor: cardBg }}
+      >
+        {plan.tag && (
+          <div className="absolute top-6 left-8">
+            <span className="bg-[#C9A84C] text-white text-[9px] tracking-[0.15em] uppercase font-bold px-2.5 py-1 rounded-full border border-[#C9A84C]/30">
+              {plan.tag}
+            </span>
+          </div>
+        )}
 
-              <div className="h-px bg-[#2A2A2A]" />
-
-              <ul className="flex flex-col gap-3 flex-1">
-                {plan.features.map((f) => (
-                  <li key={f.text} className="flex items-center gap-3">
-                    {f.included ? (
-                      <span className="text-[#C9A84C] text-base leading-none shrink-0">✦</span>
-                    ) : (
-                      <span className="w-3.5 h-px bg-[#3A3A3A] shrink-0 ml-0.5" />
-                    )}
-                    <span className={`text-xs ${f.included ? "text-[#CCCCCC]" : "text-[#3A3A3A]"}`}>
-                      {f.text}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="mt-2">{renderCta(plan)}</div>
-            </div>
-          ))}
+        <div className={plan.tag ? "mt-7" : ""}>
+          <h3 className="text-white text-start font-serif font-black text-2xl mb-2">{plan.name}</h3>
+          <p className="text-[#B9B9B9] text-start  text-xs leading-relaxed">{plan.description}</p>
         </div>
+
+        <div className="flex items-end gap-1">
+          <span className="text-[#C49A3C] text-sm font-normal self-start mt-2">$</span>
+          <span className="text-[#F2ECE0] font-bold text-6xl leading-none">{plan.price}</span>
+          <span className="text-[#5A5A5A] text-xs mb-2 ml-1">{plan.period}</span>
+        </div>
+
+        <div className="h-px bg-[#F2ECE014]" />
+
+        <ul className="flex p-0 flex-col gap-3 flex-1">
+          {plan.features.map((f) => (
+            <li key={f.text} className="flex items-center gap-3">
+              {f.included ? (
+                <span className="text-[#C9A84C] text-base leading-none shrink-0">✦</span>
+              ) : (
+                <span className="w-3.5 h-px bg-[#3A3A3A] shrink-0 ml-0.5" />
+              )}
+              <span className={`text-xs ${f.included ? "text-[#B9B9B9]" : "text-[#3A3A3A]"}`}>
+                {f.text}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-2">{renderCta(plan)}</div>
+      </div>
+    );
+  })}
+</div>
       </div>
     </section>
   );

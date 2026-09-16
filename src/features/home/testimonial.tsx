@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
+import Image from "next/image";
 
 type Testimonial = {
   initials: string;
@@ -87,13 +88,12 @@ export default function TestimonialsSection() {
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-5">
-            <div className="w-8 h-px bg-[#C9A84C]" />
-            <span className="text-[#C9A84C] text-[10px] tracking-[0.3em] uppercase font-medium">
+            
+            <span className="text-[#C9A84C] text-[10px] font-light tracking-[0.3em] uppercase">
               Stories
             </span>
-            <div className="w-8 h-px bg-[#C9A84C]" />
           </div>
-          <h2 className="font-serif text-5xl md:text-6xl font-black text-[#F2ECE0] leading-tight">
+          <h2 className=" text-5xl md:text-6xl font-bold text-[#F2ECE0] leading-tight">
             Students Who
             <br />
             <em className="text-[#C9A84C]">Found</em>{" "}
@@ -105,27 +105,29 @@ export default function TestimonialsSection() {
         {loading ? (
           <p className="text-center text-[#8A8078] text-sm">Loading stories...</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-20">
             {testimonials.map((t) => (
               <div
                 key={t.name + t.role}
-                className="bg-[#1C1C1C] rounded-2xl p-7 flex flex-col justify-between gap-6"
+                className="bg-[#161310] rounded-2xl p-8 flex flex-col justify-between gap-6"
               >
                 <div className="flex flex-col gap-4">
                   {/* Quote mark */}
-                  <span className="text-[#C9A84C] text-lg font-serif leading-none">
-                    &quot;
-                  </span>
+                  <Image   src="/quote.svg"
+                    alt="Quote mark"
+                    width={18}
+                    height={18}
+                  />
 
                   {/* Stars */}
-                  <div className="flex gap-0.5">
+                  <div className="flex my-4 gap-0.5 ">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <svg
                         key={i}
                         width="14"
                         height="14"
                         viewBox="0 0 24 24"
-                        fill={i < t.rating ? "#C9A84C" : "#3A3A3A"}
+                        fill={i < t.rating ? "#F2ECE0" : "#161310"}
                       >
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                       </svg>
@@ -133,21 +135,21 @@ export default function TestimonialsSection() {
                   </div>
 
                   {/* Quote text */}
-                  <p className="text-[#AAAAAA] text-xs leading-relaxed italic">
+                  <p className="text-[#F4F4F4] text-[16px] font-light text-start leading-relaxed italic">
                     {t.quote}
                   </p>
                 </div>
 
                 {/* Author */}
-                <div className="flex items-center gap-3 pt-2 border-t border-[#2A2A2A]">
-                  <div className="w-8 h-8 rounded-full bg-[#C9A84C]/20 border border-[#C9A84C]/30 flex items-center justify-center shrink-0">
+                <div className="flex gap-3 pt-5 border-t border-[#F2ECE014]">
+                  <div className="w-8 h-8 rounded-full bg-[#1E1A14] border border-[#C49A3C33] flex items-center justify-center shrink-0">
                     <span className="text-[#C9A84C] text-[9px] font-bold tracking-wide">
                       {t.initials}
                     </span>
                   </div>
                   <div>
-                    <p className="text-white text-xs font-semibold">{t.name}</p>
-                    <p className="text-[#4A4A4A] text-[10px] leading-snug">
+                    <p className="text-[#F2ECE0] text-sm font-normal">{t.name}</p>
+                    <p className="text-[#8A7A65] text-[12px] leading-snug">
                       {t.role}
                     </p>
                   </div>

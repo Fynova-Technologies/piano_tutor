@@ -18,14 +18,14 @@ const features: Feature[] = [
     title: (
       <>
         A new feature that makes learning{" "}
-        <span className="italic text-amber-400">songs easier</span> than
+        <span className="italic text-[#C49A3C]">songs easier</span> than
         ever before!
       </>
     ),
     description:
       "Practice Mode waits for you to play, allowing you to work through the notes and rhythms at your own pace. No metronome pressure — just you and the music, building confidence one note at a time.",
     cta: { label: "More About Practice Mode", href: "/features/practice-mode" },
-    image: { src: "/images/features/practice-mode.jpg", alt: "A student practicing piano at home" },
+    image: { src: "/practiceimage.png", alt: "A student practicing piano at home" },
     imageSide: "right",
   },
   {
@@ -33,13 +33,13 @@ const features: Feature[] = [
     title: (
       <>
         The Standard Assessment of{" "}
-        <span className="italic text-amber-400">Sight Reading</span>
+        <span className="italic text-[#C49A3C]">Sight Reading</span>
       </>
     ),
     description:
       "The SASR (Standard Assessment of Sight Reading) is a piano sight reading test that also teaches you to sight read better. Each time you take the SASR test you'll get a sight reading score and a chart showing your sight reading progress. Find out what your sight reading score is today!",
     cta: { label: "More About The SASR", href: "/features/sasr" },
-    image: { src: "/images/features/sasr-dashboard.png", alt: "SASR score dashboard showing progress over time" },
+    image: { src: "/SASR.png", alt: "SASR score dashboard showing progress over time" },
     imageSide: "left",
   },
   {
@@ -47,12 +47,12 @@ const features: Feature[] = [
     title: (
       <>
         Learn proper piano technique with{" "}
-        <span className="italic text-amber-400">powerful learning tools!</span>
+        <span className="italic text-[#C49A3C]">powerful learning tools!</span>
       </>
     ),
     description: "",
     cta: { label: "More About Piano Learning Tools", href: "/features/learning-tools" },
-    image: { src: "/images/features/technique-library.png", alt: "Piano technique library with rhythm exercises" },
+    image: { src: "/Techniques.png", alt: "Piano technique library with rhythm exercises" },
     imageSide: "right",
     bullets: [
       "Over **70,000 songs** and exercises",
@@ -69,7 +69,7 @@ function Bullet({ text }: { text: string }) {
   const parts = text.split("**");
   return (
     <li className="flex items-start gap-3 py-2 border-b border-white/10 text-sm text-neutral-300">
-      <span className="mt-1 text-amber-400">♦</span>
+      <Image src="/featurestar.svg" alt="Feature Star" width={13} height={13} />
       <span>
         {parts.map((part, i) =>
           i % 2 === 1 ? (
@@ -90,19 +90,19 @@ function FeatureBlock({ feature }: { feature: Feature }) {
 
   const Copy = (
     <div className={imageFirst ? "md:pl-4" : "md:pr-4"}>
-      <span className="inline-block rounded-full border border-amber-400/40 px-3 py-1 text-[11px] tracking-wide text-amber-400">
+      <span className="border bg-[#C49A3C14] border-[#C49A3C40] text-[#C49A3C] text-[11px] font-semibold tracking-wide uppercase px-4 py-1.5 rounded-full mb-6">
         {feature.eyebrow}
       </span>
-      <h2 className="mt-5 text-3xl md:text-4xl font-bold leading-tight text-white">
+      <h2 className="mt-5 text-3xl md:text-5xl font-extrabold leading-tight text-white">
         {feature.title}
       </h2>
       {feature.description && (
-        <p className="mt-4 max-w-md text-sm leading-relaxed text-neutral-400">
+        <p className="mt-4 max-w-md text-sm leading-relaxed text-[#888888]">
           {feature.description}
         </p>
       )}
       {feature.bullets && (
-        <ul className="mt-5 max-w-md">
+        <ul className="mt-5 max-w-md p-0">
           {feature.bullets.map((b) => (
             <Bullet key={b} text={b} />
           ))}
@@ -110,7 +110,7 @@ function FeatureBlock({ feature }: { feature: Feature }) {
       )}
       <Link
         href={feature.cta.href}
-        className="mt-6 inline-block rounded-full border border-amber-400 px-5 py-2 text-sm font-medium text-amber-400 transition-colors hover:bg-amber-400 hover:text-black"
+        className="mt-6 inline-block no-underline rounded-full border border-[#C49A3C40] px-6 py-2 text-sm font-medium text-[#C49A3C] transition-colors hover:bg-[#C49A3C] hover:text-black"
       >
         {feature.cta.label}
       </Link>
@@ -118,7 +118,7 @@ function FeatureBlock({ feature }: { feature: Feature }) {
   );
 
   const Media = (
-    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-white/10">
+    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-[#111111] border border-[#FFFFFF29]">
       <Image
         src={feature.image.src}
         alt={feature.image.alt}
@@ -148,7 +148,7 @@ function FeatureBlock({ feature }: { feature: Feature }) {
 
 export default function FeaturesShowcase() {
   return (
-    <section className="bg-black py-20 md:py-28">
+    <section className="bg-black py-20 md:py-28 text-start">
       <div className="mx-auto flex max-w-6xl flex-col gap-24 px-6 md:gap-32">
         {features.map((feature) => (
           <FeatureBlock key={feature.eyebrow} feature={feature} />
