@@ -4,7 +4,7 @@ import Link from 'next/link'
 
 export default function Hero() {
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center text-center overflow-hidden px-4">
+    <section className="relative min-h-[100dvh] flex flex-col items-center justify-center text-center overflow-hidden px-4">
       {/* ── Piano keyboard background ── */}
       <PianoBackground />
 
@@ -33,10 +33,10 @@ export default function Hero() {
 
         {/* Main headline */}
         <h1 className="leading-none mb-6 sm:mb-7">
-          <span className="block text-white font-black font-playfair text-[clamp(3rem,12vw,7rem)] md:text-8xl tracking-tight">
+          <span className="block text-[#F2ECE0] font-black font-playfair text-[clamp(3rem,12vw,7rem)] md:text-8xl tracking-tight">
             MASTER
           </span>
-          <span className="block text-[#E8E8E8] font-black italic font-playfair text-[clamp(3rem,12vw,7rem)] md:text-8xl tracking-tight">
+          <span className="block text-[#E0D5BF] font-black italic font-playfair text-[clamp(3rem,12vw,7rem)] md:text-8xl tracking-tight">
             PIANO.
           </span>
           <span className="block text-[#C49A3C] font-black font-playfair text-[clamp(3rem,12vw,7rem)] md:text-8xl tracking-tight">
@@ -55,13 +55,13 @@ export default function Hero() {
         <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
           <Link
             href="/dashboard"
-            className="w-full sm:w-auto bg-[#C49A3C] text-white text-[13px] sm:text-[14px] tracking-[2.89px] uppercase font-medium rounded-full px-8 sm:px-[38.4px] py-[14.4px] hover:bg-[#B8963E] transition-all duration-200 shadow-[0_4px_24px_rgba(196,154,60,0.35)] hover:shadow-[0_6px_32px_rgba(196,154,60,0.5)] hover:-translate-y-px"
+            className="w-full sm:w-auto no-underline bg-[#C49A3C] text-white text-[13px] sm:text-[14px] tracking-[2.89px] uppercase font-medium rounded-full px-8 sm:px-[38.4px] py-[14.4px] hover:bg-[#B8963E] transition-all duration-200 shadow-[0_4px_24px_rgba(196,154,60,0.35)] hover:shadow-[0_6px_32px_rgba(196,154,60,0.5)] hover:-translate-y-px"
           >
             Get Started
           </Link>
           <Link
             href="/demo"
-            className="w-full sm:w-auto border border-white/45 text-white text-[13px] sm:text-[14px] tracking-[2.89px] uppercase font-medium rounded-full px-8 py-3.5 hover:bg-white/8 hover:border-white/70 transition-colors duration-200 flex items-center justify-center gap-2"
+            className="w-full sm:w-auto border no-underline border-white/45 text-white text-[13px] sm:text-[14px] tracking-[2.89px] uppercase font-medium rounded-full px-8 py-3.5 hover:bg-white/8 hover:border-white/70 transition-colors duration-200 flex items-center justify-center gap-2"
           >
             <span className="text-[9px]">▶</span>
             Watch Demo

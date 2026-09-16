@@ -20,7 +20,6 @@ export default function Home() {
 
   return (
     <div className=" font-[family-name:var(--font-geist-sans)]">
-      <div className="overflow-y-auto">
             <div className="flex  justify-center bg-[#F8F6F1]">
               <div className=" w-full text-center">
                 <Hero />
@@ -43,7 +42,6 @@ export default function Home() {
 
               </div>
             </div>
-          </div>
     </div>
   );
 }

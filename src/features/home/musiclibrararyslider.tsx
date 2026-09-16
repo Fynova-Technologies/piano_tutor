@@ -65,12 +65,12 @@ export default function MusicLibrarySlider() {
     <div className="bg-[#0A0A0A] w-full py-16 px-4">
       <div className="max-w-[1200px] mx-auto flex flex-col items-center">
         {/* Badge */}
-        <span className="border border-[#C49A3C] text-[#C49A3C] text-xs font-semibold tracking-wide uppercase px-4 py-1.5 rounded-full mb-6">
+        <span className="border bg-[#C49A3C14] border-[#C49A3C40] text-[#C49A3C] text-[11px] font-semibold tracking-wide uppercase px-4 py-1.5 rounded-full mb-6">
           Music Library
         </span>
 
         {/* Heading */}
-        <h2 className="text-3xl sm:text-4xl font-bold text-center text-white leading-tight max-w-3xl">
+        <h2 className="text-3xl sm:text-5xl font-extrabold text-center text-white leading-tight max-w-5xl">
           Choose from thousands of songs to learn plus over{" "}
           <span className="italic text-[#C49A3C]">3,000 piano exercises</span> for all
           levels!
@@ -78,65 +78,68 @@ export default function MusicLibrarySlider() {
 
         {/* Slider */}
         <div className="relative w-full mt-10">
-          {/* Prev button */}
-          <button
-            onClick={() => scrollByAmount("left")}
-            aria-label="Scroll left"
-            className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 items-center justify-center w-10 h-10 rounded-full border border-[#C49A3C]/40 text-[#C49A3C] bg-[#0A0A0A] hover:bg-[#C49A3C]/10 transition-colors"
-          >
-            ←
-          </button>
+  {/* Controls row */}
+  <div className="hidden sm:flex items-center justify-between mb-4">
+    <button
+      onClick={() => scrollByAmount("left")}
+      aria-label="Scroll left"
+      className="flex items-center justify-center w-10 h-10 rounded-full border border-[#FFFFFF12] text-[#C49A3C] bg-[#111111] hover:bg-[#C49A3C]/10 transition-colors"
+    >
+      <Image src="/rightarrow.svg" alt="Left Arrow" width={12} height={12} />
+    </button>
 
-          {loading ? (
-            <div className="flex gap-4 overflow-hidden">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex-shrink-0 w-[180px] sm:w-[200px] h-[240px] rounded-xl bg-white/5 animate-pulse"
-                />
-              ))}
-            </div>
-          ) : (
-            <div
-              ref={scrollerRef}
-              className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide"
-            >
-              {allSongs.map((song) => (
-                <button
-                  key={song.id}
-                  onClick={goToLibrary}
-                  className="group flex-shrink-0 w-[180px] sm:w-[200px] snap-start text-left rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-[#C49A3C]/60 transition-colors"
-                >
-                  <div className="relative w-full h-[160px] sm:h-[180px]">
-                    <Image
-                      src={song.imageUrl}
-                      alt={song.title}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="bg-white px-3 py-2.5">
-                    <p className="text-sm font-semibold text-[#151517] truncate">
-                      {song.title}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {song.artist?.name}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+    <button
+      onClick={() => scrollByAmount("right")}
+      aria-label="Scroll right"
+      className="flex items-center justify-center w-10 h-10 rounded-full border border-[#FFFFFF12] text-[#C49A3C] bg-[#111111] hover:bg-[#C49A3C]/10 transition-colors"
+    >
+            <Image src="/Text.svg" alt="Left Arrow" width={12} height={12} />
 
-          {/* Next button */}
-          <button
-            onClick={() => scrollByAmount("right")}
-            aria-label="Scroll right"
-            className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 items-center justify-center w-10 h-10 rounded-full border border-[#C49A3C]/40 text-[#C49A3C] bg-[#0A0A0A] hover:bg-[#C49A3C]/10 transition-colors"
-          >
-            →
-          </button>
-        </div>
+    </button>
+  </div>
+
+  {/* Slider */}
+  {loading ? (
+    <div className="flex gap-4 overflow-hidden">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex-shrink-0 w-[180px] sm:w-[200px] h-[240px] rounded-xl bg-white/5 animate-pulse"
+        />
+      ))}
+    </div>
+  ) : (
+    <div
+      ref={scrollerRef}
+      className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide"
+    >
+      {allSongs.map((song) => (
+        <button
+          key={song.id}
+          onClick={goToLibrary}
+          className="group flex-shrink-0 w-[180px] sm:w-[200px] snap-start text-left rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-[#C49A3C]/60 transition-colors"
+        >
+          <div className="relative w-full h-[160px] sm:h-[180px]">
+            <Image
+              src={song.imageUrl}
+              alt={song.title}
+              fill
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+          <div className="bg-white px-3 py-2.5">
+            <p className="text-sm font-semibold text-[#151517] truncate">
+              {song.title}
+            </p>
+            <p className="text-xs text-gray-500 truncate">
+              {song.artist?.name}
+            </p>
+          </div>
+        </button>
+      ))}
+    </div>
+  )}
+</div>
 
         {/* Callout */}
         <p className="text-center text-sm text-gray-400 mt-8">
@@ -147,9 +150,9 @@ export default function MusicLibrarySlider() {
         {/* CTA */}
         <button
           onClick={goToLibrary}
-          className="mt-6 border border-[#C49A3C] text-[#C49A3C] font-semibold text-sm px-6 py-2.5 rounded-full hover:bg-[#C49A3C] hover:text-[#0A0A0A] transition-colors"
+          className="mt-6 border border-[#C49A3C40] text-[#C49A3C] font-semibold text-sm px-6 py-2.5 rounded-full hover:bg-[#C49A3C] hover:text-[#0A0A0A] transition-colors"
         >
-          More Testimonials
+          More Songs
         </button>
       </div>
     </div>

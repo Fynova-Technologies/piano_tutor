@@ -15,7 +15,6 @@ import { extractMusicXmlFromMxlBuffer } from "@/lib/musicxml/buildMxl";
 import { metronomeService } from "@/lib/audio/metronomeService";
 import { countdownSoundService } from "@/lib/audio/countdownSoundService";
 import { useRecentLessons } from "@/utils/userprogress/userrecentpost"; // ← new
-import { file } from "jszip";
 
 
 
@@ -99,7 +98,7 @@ const [uploadLoading, setUploadLoading] = useState(false);
   const [tempo, setTempo] = useState(100); // BPM
   const rafRef = useRef<number | null>(null);
   const beatStartTimeRef = useRef<number>(0);
-  const beatAdvancedRef = useRef<boolean>(false);
+  // const beatAdvancedRef = useRef<boolean>(false);
   const [showScorePopup, setShowScorePopup] = useState(false);
   const [playCount, setPlayCount] = useState(0);
   const mistakeEventsRef = useRef<
@@ -271,6 +270,7 @@ console.log("XML length:", xml?.length, "| type:", typeof xml);
         rules.StaffHeight = 12;
         rules.RenderTitle = false;
         rules.RenderSubtitle = false;
+        osmd.Zoom = 0.9; // ← new: shrinks render scale so more fits vertically
 
         await osmd.render();
 
@@ -349,10 +349,16 @@ const onResize = () => {
 
 window.addEventListener("resize", onResize);
 
-return () => {
-  if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
-  window.removeEventListener("resize", onResize);
-      try {
+const resizeObserver = new ResizeObserver(onResize);
+if (containerRef.current) {
+  resizeObserver.observe(containerRef.current);
+}
+
+  return () => {
+    if (resizeTimeoutRef.current) clearTimeout(resizeTimeoutRef.current);
+    window.removeEventListener("resize", onResize);
+  resizeObserver.disconnect();
+  try {
         if (beatCursorRef.current) {
           beatCursorRef.current.destroy();
           beatCursorRef.current = null;
@@ -584,7 +590,7 @@ window.addEventListener("keydown", onKey);
     const totalBeats = beatCursorRef.current.getTotalBeats();
     let scoreableCount = 0;
 
-    beatAdvancedRef.current = false;
+    // beatAdvancedRef.current = false;
     beatStartTimeRef.current = 0;
 
     for (let i = 0; i < totalBeats; i++) {
@@ -647,56 +653,50 @@ function startAutomaticPlayback() {
   }
 
   beatStartTimeRef.current = performance.now();
-  beatAdvancedRef.current = false;
+  // beatAdvancedRef.current = false;
 
   console.log(`🎵 Starting RAF playback at ${tempoRef.current} BPM`);
 
   function tick(now: number) {
-    if (!playModeRef.current || !beatCursorRef.current) return;
+  if (!playModeRef.current || !beatCursorRef.current) return;
 
-    const beatDuration = (60 / tempoRef.current) * 1000;
-    const elapsed = now - beatStartTimeRef.current;
-    const progress = Math.min(elapsed / beatDuration, 1); // clamp to avoid overshoot
+  const quarterMs = (60 / tempoRef.current) * 1000;
+  const beatQuarters = beatCursorRef.current.getBeatDurationInQuarters(
+    beatCursorRef.current.getCurrentIndex()
+  );
+  const beatDuration = quarterMs * beatQuarters;
 
-    beatCursorRef.current.setInterpolatedPosition(progress);
+  const elapsed = now - beatStartTimeRef.current;
 
-    // Pre-advance at 85% instead of 70% — gives less "early" feel at slow tempos
-    const MOVE_FRACTION = 0.85;
+  // ❌ removed: beatCursorRef.current.setInterpolatedPosition(progress);
+  // the box just stays wherever updateCursorPosition last put it
 
-    if (elapsed >= beatDuration * MOVE_FRACTION && !beatAdvancedRef.current) {
-      beatAdvancedRef.current = true;
+  if (elapsed >= beatDuration) {
+  beatStartTimeRef.current = beatStartTimeRef.current + beatDuration;
 
-      const nextIndex = beatCursorRef.current.getCurrentIndex() + 1;
-      const nextBeat = beatCursorRef.current.getBeatAt(nextIndex);
+  // Smooth glide, but never longer than ~55% of the beat so it never overruns into the next one
+  const animMs = Math.min(220, beatDuration * 0.55);
 
-      if (nextBeat) {
-        const nextMIDI = nextBeat.expectedNotes.map((ht: number) => ht + 12);
-        setCurrentStepNotes(nextMIDI);
-        currentStepNotesRef.current = nextMIDI;
-        currentCursorStepRef.current = nextIndex;
-        beatCursorRef.current.setDefaultColor(nextIndex);
-      }
-    }
+  const moved = beatCursorRef.current.next(animMs); // ← pass it here
+  if (moved) {
+    const newIndex = beatCursorRef.current.getCurrentIndex();
+    setCurrentBeatIndex(newIndex);
+    setPlayIndex(newIndex);
+    currentCursorStepRef.current = newIndex;
 
-    if (elapsed >= beatDuration) {
-      // ← KEY FIX: advance by exact beatDuration, not reset to `now`
-      // This prevents drift accumulating at slow tempos
-      beatStartTimeRef.current = beatStartTimeRef.current + beatDuration;
-      beatAdvancedRef.current = false;
+    const expectedMIDI = beatCursorRef.current.getCurrentExpectedMIDI();
+    setCurrentStepNotes(expectedMIDI);
+    currentStepNotesRef.current = expectedMIDI;
 
-      const moved = beatCursorRef.current.next();
-      if (moved) {
-        const newIndex = beatCursorRef.current.getCurrentIndex();
-        setCurrentBeatIndex(newIndex);
-        setPlayIndex(newIndex);
-      } else {
-        handleEndOfPiece();
-        return;
-      }
-    }
-
-    rafRef.current = requestAnimationFrame(tick);
+    beatCursorRef.current.setDefaultColor(newIndex);
+  } else {
+    handleEndOfPiece();
+    return;
   }
+}
+
+  rafRef.current = requestAnimationFrame(tick);
+}
 
   rafRef.current = requestAnimationFrame(tick);
 }
@@ -833,10 +833,10 @@ async function handleEndOfPiece() {
 
   // ========== NOTE TRACKING ==========
 function trackAndHighlightNote(midi: number) {
-   const actualCurrentBeatIndex = currentCursorStepRef.current;
   if (!beatCursorRef.current || !playModeRef.current) return;
 
-  const currentBeat = beatCursorRef.current.getBeatAt(actualCurrentBeatIndex);
+  const actualCurrentBeatIndex = beatCursorRef.current.getCurrentIndex(); // ← was currentCursorStepRef.current
+  const currentBeat = beatCursorRef.current.getCurrentBeat(); // ← was getBeatAt(actualCurrentBeatIndex)
   if (!currentBeat) return;
 
   const expectedMIDI = beatCursorRef.current.getCurrentExpectedMIDI();

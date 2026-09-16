@@ -192,35 +192,34 @@ export default function SasrPlayControls (props: CursorControlsProps) {
           
 
       <section
-        className="w-full box-border"
-        style={{ background: "#EBEBEC", paddingBottom: 24 }}
-      >
-        <div
-          className="mx-auto box-border overflow-x-auto"
-          style={{
-            marginTop: 16,
-            marginBottom: 16,
-            marginLeft: "max(16px, env(safe-area-inset-left, 0px))",
-            marginRight: "max(16px, env(safe-area-inset-right, 0px))",
-            maxWidth: 1200,
-            background: "#FFFFFF",
-            border: "1px solid rgba(10, 10, 11, 0.12)",
-            minHeight: "60vh",
-          }}
-        >
-          <div
-            ref={containerRef}
-            id="osmd-container"
-            className="box-border"
-            style={{
-              width: "100%",
-              minHeight: "60vh",
-              padding: "16px 8px",
-              background: "#FFFFFF",
-            }}
-          />
-        </div>
-      </section>
+  className="w-full box-border"
+  style={{ background: "#EBEBEC", paddingBottom: 24 }}
+>
+  <div className="w-full max-w-[1800px] mx-auto box-border px-2 sm:px-4 pt-4">
+    <div
+      className="mx-auto box-border w-full max-w-[1600px] overflow-x-auto"
+      style={{
+        marginTop: 16,
+        marginBottom: 16,
+        background: "#FFFFFF",
+        border: "1px solid rgba(10, 10, 11, 0.12)",
+        minHeight: "60vh",
+      }}
+    >
+      <div
+        ref={containerRef}
+        id="osmd-container"
+        className="box-border"
+        style={{
+          width: "100%",
+          minHeight: "60vh",
+          padding: "16px 8px",
+          background: "#FFFFFF",
+        }}
+      />
+    </div>
+  </div>
+</section>
     
     {/* ✅ DESKTOP CONTROL BAR — completely untouched, just gated behind hidden sm:flex
         so the absolute-positioned layout (ml-72, left-4, right-4, transform) only

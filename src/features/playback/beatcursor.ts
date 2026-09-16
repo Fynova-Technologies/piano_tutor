@@ -18,6 +18,8 @@ interface Beat {
   expectedNotes: number[];
   isNoteStart?: boolean;
   noteDuration?: number;
+    measureLeft?: number;
+  measureRight?: number;
 }
 
 function collectMeasurePositions(
@@ -42,6 +44,26 @@ function collectMeasurePositions(
   console.log(`Unit conversion: ${unitInPixels.toFixed(2)} px/unit`);
 
   const systemGeometry = new Map<any, { top: number; height: number }>();
+  // top-level, alongside getUnitInPixels
+
+
+  function getSystemStaveBounds(measureList: any[]): { top: number; bottom: number } | null {
+  let top = Infinity;
+  let bottom = -Infinity;
+
+  for (const measure of measureList || []) {
+    const stave = measure?.stave;
+    if (stave?.getYForLine && stave?.getBottomY) {
+      const staveTop = stave.getYForLine(0);
+      const staveBottom = stave.getBottomY();
+      if (staveTop < top) top = staveTop;
+      if (staveBottom > bottom) bottom = staveBottom;
+    }
+  }
+
+  return top === Infinity ? null : { top, bottom };
+}
+
   function getSystemGeometry(musicSystem: any) {
     if (!musicSystem) return { top: 0, height: 100 };
     if (systemGeometry.has(musicSystem)) return systemGeometry.get(musicSystem)!;
@@ -74,7 +96,37 @@ function collectMeasurePositions(
 
     if (!position?.x || !size?.width) continue;
 
-    const musicSystem = measure.ParentMusicSystem;
+     const musicSystem = measure.ParentMusicSystem;
+const bounds = getSystemStaveBounds(measureList);
+const xBounds = getRealMeasureXBounds(measureList); // ← new
+
+let topY: number, sysHeight: number;
+if (bounds) {
+  topY = bounds.top - 10;
+  sysHeight = bounds.bottom - bounds.top + 20;
+} else {
+  const geo = getSystemGeometry(musicSystem);
+  topY = geo.top;
+  sysHeight = geo.height;
+}
+
+let xPixels: number, widthPixels: number;
+if (xBounds) {
+  xPixels = xBounds.left;
+  widthPixels = xBounds.right - xBounds.left;
+} else {
+  xPixels = position.x * unitInPixels;      // fallback only
+  widthPixels = size.width * unitInPixels;  // fallback only
+}
+
+map.set(measureIdx, {
+  x: xPixels,
+  width: widthPixels,
+  y: topY,
+  height: sysHeight,
+});
+
+
     let systemHeight = 100;
     let systemTopY = 0;
 
@@ -93,17 +145,15 @@ function collectMeasurePositions(
       systemHeight = lastY + lastHeight - firstY + 20;
     }
 
-    const xPixels = position.x * unitInPixels;
-    const widthPixels = size.width * unitInPixels;
 
-    const { top, height } = getSystemGeometry(measure.ParentMusicSystem);
+    // const { top, height } = getSystemGeometry(measure.ParentMusicSystem);
 
-    map.set(measureIdx, {
-      x: xPixels,
-      width: widthPixels,
-      y: top,
-      height: height,
-    });
+    // map.set(measureIdx, {
+    //   x: xPixels,
+    //   width: widthPixels,
+    //   y: top,
+    //   height: height,
+    // });
 
     if (measureIdx < 10) {
       console.log(
@@ -114,6 +164,21 @@ function collectMeasurePositions(
 
   console.log(`✅ Collected ${map.size} measure positions`);
   return map;
+}
+
+
+
+// top-level helper, near the other functions
+function getUnitInPixels(osmd: any): number {
+  let unitInPixels = 10;
+  const graphicSheet = osmd.GraphicSheet;
+  if (osmd.drawer?.backend) {
+    const innerElement = osmd.drawer.backend.getInnerElement?.();
+    if (innerElement?.offsetWidth && graphicSheet?.ParentMusicSheet?.pageWidth) {
+      unitInPixels = innerElement.offsetWidth / graphicSheet.ParentMusicSheet.pageWidth;
+    }
+  }
+  return unitInPixels;
 }
 
 function getCursorX(
@@ -235,27 +300,23 @@ function buildBeatTimeline(osmd: any): Beat[] {
   const allTimestamps = new Map<string, { absTime: number; measureIndex: number; isNoteOnset: boolean }>();
 
   for (let m = 0; m < measures.length; m++) {
-    const measure = measures[m];
-    const ts = measure.ActiveTimeSignature || {
-      Numerator: 4,
-      Denominator: 4,
-    };
-    const beatsPerMeasure = ts.Numerator;
-    const beatDuration = 1 / ts.Denominator;
+  const measure = measures[m];
+  const ts = measure.ActiveTimeSignature || { Numerator: 4, Denominator: 4 };
+  const beatsPerMeasure = ts.Numerator;
+  const beatDuration = 1 / ts.Denominator;
 
-    // Add every metrical beat in this measure
-    for (let b = 0; b < beatsPerMeasure; b++) {
-      const absTime = measureStarts[m] + b * beatDuration;
-      const key = absTime.toFixed(6);
-      if (!allTimestamps.has(key)) {
-        allTimestamps.set(key, {
-          absTime,
-          measureIndex: m,
-          isNoteOnset: noteOnsetTimes.has(key),
-        });
-      }
+  for (let b = 0; b < beatsPerMeasure; b++) {
+    const absTime = measureStarts[m] + b * beatDuration;
+    const key = absTime.toFixed(6);
+    if (!allTimestamps.has(key)) {
+      allTimestamps.set(key, {
+        absTime,
+        measureIndex: m,
+        isNoteOnset: noteOnsetTimes.has(key),
+      });
     }
   }
+}
 
   // Add note onsets that fall between beats (subdivisions like 8th/16th notes)
   if (osmd.cursor) {
@@ -296,6 +357,8 @@ function buildBeatTimeline(osmd: any): Beat[] {
 
   let beatIndex = 0;
 
+  
+
   for (const entry of sortedEntries) {
     const { absTime, measureIndex, isNoteOnset } = entry;
     const measure = measures[measureIndex];
@@ -313,17 +376,20 @@ function buildBeatTimeline(osmd: any): Beat[] {
 
     const localTime = relTime / measureDuration;
     const x = getCursorX(beatAnchors, measureIndex, localTime);
-    const measurePos = measurePositions.get(measureIndex);
+   const measurePos = measurePositions.get(measureIndex);
 
-    const beat: Beat = {
-      index: beatIndex++,
-      measureIndex,
-      beatInMeasure,
-      timestamp: new Fraction(Math.round(absTime * 1920), 1920),
-      expectedNotes: [],
-      isNoteStart: isNoteOnset,
-      noteDuration: 0,
-    };
+const beat: Beat = {
+  index: beatIndex++,
+  measureIndex,
+  beatInMeasure,
+  timestamp: new Fraction(Math.round(absTime * 1920), 1920),
+  expectedNotes: [],
+  isNoteStart: isNoteOnset,
+  noteDuration: 0,
+  measureLeft: measurePos?.x,
+  measureRight: measurePos ? measurePos.x + measurePos.width : undefined,
+};
+
 
     if (x != null && measurePos && x > measurePos.x + 5) {
       beat.staffEntryX = x;
@@ -410,64 +476,68 @@ function collectGraphicalEntries(osmd: any, measureStarts: number[]) {
       );
 
       // Collect all notes (skip rests)
-      let noteCount = 0;
-      let hasNoteAtStart = false;
+      const noteCount = 0;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const hasNoteAtStart = false;
 
       for (const staffEntry of measure.staffEntries || []) {
-        const localTime =
-          staffEntry.sourceStaffEntry?.Timestamp?.RealValue;
-        if (localTime == null) continue;
+  const localTime = staffEntry.sourceStaffEntry?.Timestamp?.RealValue;
+  if (localTime == null) continue;
 
-        const pos = staffEntry.PositionAndShape?.AbsolutePosition;
-        if (!pos) continue;
+  const pos = staffEntry.PositionAndShape?.AbsolutePosition;
+  if (!pos) continue;
 
-        // Check if this entry has actual notes (not rests)
-        let hasActualNote = false;
-        for (const gve of staffEntry.graphicalVoiceEntries || []) {
-          for (const note of gve.notes || []) {
-            const isRest =
-              note.sourceNote?.isRest?.() ||
-              note.sourceNote?.IsRest ||
-              false;
-            if (!isRest) {
-              hasActualNote = true;
-              break;
-            }
-          }
-          if (hasActualNote) break;
+  let hasActualNote = false;
+  let x = pos.x * unit; // fallback only
+
+  for (const gve of staffEntry.graphicalVoiceEntries || []) {
+    for (const note of gve.notes || []) {
+      const isRest = note.sourceNote?.isRest?.() || note.sourceNote?.IsRest || false;
+      if (isRest) continue;
+
+      hasActualNote = true;
+
+      // ✅ Use the actual rendered notehead's bbox — same technique as drawFeedbackDot
+      const vfNote = Array.isArray(note?.vfnote) ? note.vfnote[0] : note?.vfnote;
+      const noteEl: SVGGraphicsElement | null = vfNote?.attrs?.el ?? null;
+      if (noteEl) {
+        const notehead =
+          (noteEl.querySelector(".vf-notehead") as SVGGraphicsElement) ??
+          (noteEl.querySelector("path") as SVGGraphicsElement) ??
+          (noteEl.querySelector("use") as SVGGraphicsElement);
+        try {
+          const bbox = (notehead ?? noteEl).getBBox();
+          x = bbox.x + bbox.width / 2;
+        } catch {
+          // element not measurable yet — keep fallback x
         }
-
-        if (!hasActualNote) {
-          console.log(
-            `  ⏭️ Skipping rest at t=${localTime.toFixed(3)}, x=${(pos.x * unit).toFixed(1)}px`
-          );
-          continue;
-        }
-
-        const absTime = measureStarts[m] + localTime;
-        const normalizedTime = localTime / measureDuration;
-        const x = pos.x * unit;
-
-        entries.push({
-          time: normalizedTime,
-          absTime,
-          x,
-          y: top,
-          height,
-          measureIndex: m,
-        });
-
-        noteCount++;
-
-        if (Math.abs(localTime) < 0.0001) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          hasNoteAtStart = true;
-        }
-
-        console.log(
-          `  ✅ Note ${noteCount} at t=${normalizedTime.toFixed(3)} (local=${localTime.toFixed(3)}), x=${(pos.x * unit).toFixed(1)}px, rawTimestamp=${staffEntry.sourceStaffEntry?.Timestamp?.toString()}`
-        );
       }
+      break;
+    }
+    if (hasActualNote) break;
+  }
+
+  if (!hasActualNote) {
+    console.log(`  ⏭️ Skipping rest at t=${localTime.toFixed(3)}, x=${(pos.x * unit).toFixed(1)}px`);
+    continue;
+  }
+
+  const absTime = measureStarts[m] + localTime;
+  const normalizedTime = localTime / measureDuration;
+
+  entries.push({
+    time: normalizedTime,
+    absTime,
+    x,
+    y: top,
+    height,
+    measureIndex: m,
+  });
+
+  console.log(
+    `  ✅ Note at t=${normalizedTime.toFixed(3)} (local=${localTime.toFixed(3)}), x=${x.toFixed(1)}px (bbox-based)`
+  );
+}
 
       console.log(`  Total notes collected: ${noteCount}`);
 
@@ -500,6 +570,16 @@ function collectGraphicalEntries(osmd: any, measureStarts: number[]) {
 
   console.log(`✅ After deduplication: ${filtered.length} entries`);
   return filtered;
+}
+
+function getRealMeasureXBounds(measureList: any[]): { left: number; right: number } | null {
+  for (const measure of measureList || []) {
+    const stave = measure?.stave;
+    if (stave?.x != null && stave?.width != null) {
+      return { left: stave.x, right: stave.x + stave.width };
+    }
+  }
+  return null;
 }
 
 function buildBeatAnchors(osmd: any, graphicalEntries: any[]) {
@@ -554,46 +634,40 @@ function buildBeatAnchors(osmd: any, graphicalEntries: any[]) {
     const notes = list.filter((e) => Math.abs(e.time - 1) >= 0.0001);
 
     if (notes.length === 0) {
-      // Empty measure (all rests) - create proper anchors
-      const measurePos =
-        graphicSheet?.MeasureList?.[m]?.[0]?.PositionAndShape;
-      if (
-        measurePos?.AbsolutePosition?.x != null &&
-        measurePos?.Size?.width != null
-      ) {
-        const startX = measurePos.AbsolutePosition.x * unitInPixels;
-        const width = measurePos.Size.width * unitInPixels;
-        const endX = measureEnd ? measureEnd.x : startX + width;
+  const measureRow = graphicSheet?.MeasureList?.[m];
+  const xBounds = getRealMeasureXBounds(measureRow);
 
-        arr.push({ t: 0, x: startX + 20 });
-        arr.push({ t: 1, x: endX - 10 });
-        anchors.set(m, arr);
+  let startX: number, endXFallback: number;
+  if (xBounds) {
+    startX = xBounds.left;
+    endXFallback = xBounds.right;
+  } else {
+    const measurePos = measureRow?.[0]?.PositionAndShape;
+    if (!measurePos?.AbsolutePosition?.x || !measurePos?.Size?.width) continue;
+    startX = measurePos.AbsolutePosition.x * unitInPixels;
+    endXFallback = startX + measurePos.Size.width * unitInPixels;
+  }
 
-        console.log(
-          `⚠️ Measure ${m}: Rest-only measure, anchors: t=0 x=${(startX + 10).toFixed(1)}, t=1 x=${(endX - 10).toFixed(1)}`
-        );
-      }
-      continue;
-    }
+  const endX = measureEnd ? measureEnd.x : endXFallback;
+
+  arr.push({ t: 0, x: startX + unitInPixels * 2 });
+  arr.push({ t: 1, x: endX - unitInPixels * 1 });
+  anchors.set(m, arr);
+  continue;
+}
 
     const firstNote = notes[0];
     const lastNote = notes[notes.length - 1];
 
     // Add measure start anchor (t=0) if needed
     if (firstNote.time > 0.0001) {
-      const measurePos =
-        graphicSheet?.MeasureList?.[m]?.[0]?.PositionAndShape;
-      if (measurePos?.AbsolutePosition?.x != null) {
-        const barX = measurePos.AbsolutePosition.x * unitInPixels;
-        arr.push({
-          t: 0,
-          x: barX + 10,
-        });
-        console.log(
-          `📍 Measure ${m}: Leading rest → bar anchor at t=0, x=${(barX + 10).toFixed(1)}`
-        );
-      }
-    }
+  const measureRow = graphicSheet?.MeasureList?.[m];
+  const xBounds = getRealMeasureXBounds(measureRow);
+  const barX = xBounds
+    ? xBounds.left
+    : (measureRow?.[0]?.PositionAndShape?.AbsolutePosition?.x ?? 0) * unitInPixels;
+  arr.push({ t: 0, x: barX + unitInPixels * 1 });
+}
 
     // Add all note anchors
     for (const note of notes) {
@@ -618,21 +692,14 @@ function buildBeatAnchors(osmd: any, graphicalEntries: any[]) {
           `📍 Measure ${m}: Extrapolated end at t=1, x=${endX.toFixed(1)}`
         );
       } else if (notes.length === 1) {
-        const measurePos =
-          graphicSheet?.MeasureList?.[m]?.[0]?.PositionAndShape;
-        if (
-          measurePos?.AbsolutePosition?.x != null &&
-          measurePos?.Size?.width != null
-        ) {
-          const measureEndX =
-            (measurePos.AbsolutePosition.x + measurePos.Size.width) *
-            unitInPixels;
-          arr.push({ t: 1, x: measureEndX - 10 });
-          console.log(
-            `📍 Measure ${m}: Single note measure, end at t=1, x=${(measureEndX - 10).toFixed(1)}`
-          );
-        }
-      }
+  const measureRow = graphicSheet?.MeasureList?.[m];
+  const xBounds = getRealMeasureXBounds(measureRow);
+  const measureEndX = xBounds
+    ? xBounds.right
+    : ((measureRow?.[0]?.PositionAndShape?.AbsolutePosition?.x ?? 0) +
+       (measureRow?.[0]?.PositionAndShape?.Size?.width ?? 0)) * unitInPixels;
+  arr.push({ t: 1, x: measureEndX - unitInPixels * 1 });
+}
     }
 
     if (arr.length >= 2) {
@@ -807,13 +874,65 @@ export class BeatCursor {
   private isVisible: boolean = true;
   private isPlaying: boolean = false;
   private transposeOffset: number = 0;
+  private unitInPixels: number = 10;
+  private cursorAnimFrame: number | null = null;
+  private lastSystemY: number | null = null;
+
+private scrollToSystemIfChanged(currentY: number) {
+  if (this.lastSystemY === null || Math.abs(currentY - this.lastSystemY) > 5) {
+    this.lastSystemY = currentY;
+
+    if (!this.cursorElement) return;
+    try {
+      this.cursorElement.scrollIntoView({
+        behavior: "smooth",
+        block: "center",   // keeps the new line comfortably in view, away from your fixed footer
+        inline: "nearest", // don't fight with the horizontal scrollIntoView below
+      });
+    } catch {
+      // older browsers without smooth-scroll options support — silently skip
+    }
+  }
+}
+
+private animateCursorTo(targetX: number, targetY: number, targetWidth: number, targetHeight: number, duration = 90) {
+  if (!this.cursorElement) return;
+  if (this.cursorAnimFrame) cancelAnimationFrame(this.cursorAnimFrame);
+
+  const el = this.cursorElement;
+  const startX = parseFloat(el.getAttribute("x") || `${targetX}`);
+  const startY = parseFloat(el.getAttribute("y") || `${targetY}`);
+  const startWidth = parseFloat(el.getAttribute("width") || `${targetWidth}`);
+  const startHeight = parseFloat(el.getAttribute("height") || `${targetHeight}`);
+  const startTime = performance.now();
+
+  const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+  const step = (now: number) => {
+    const t = Math.min((now - startTime) / duration, 1);
+    const e = easeOutCubic(t);
+
+    el.setAttribute("x", (startX + (targetX - startX) * e).toString());
+    el.setAttribute("y", (startY + (targetY - startY) * e).toString());
+    el.setAttribute("width", (startWidth + (targetWidth - startWidth) * e).toString());
+    el.setAttribute("height", (startHeight + (targetHeight - startHeight) * e).toString());
+
+    if (t < 1) {
+      this.cursorAnimFrame = requestAnimationFrame(step);
+    } else {
+      this.cursorAnimFrame = null;
+    }
+  };
+
+  this.cursorAnimFrame = requestAnimationFrame(step);
+}
 
 
 
   constructor(osmd: any) {
     this.osmd = osmd;
     this.transposeOffset = 12; // ✅ ADD THIS LINE - OSMD halfTone = midi - 12, always
-
+    this.unitInPixels = getUnitInPixels(osmd); // ← add this
     if (!osmd.cursor) {
       console.error("❌ OSMD cursor not initialized");
       this.beats = [];
@@ -890,7 +1009,7 @@ export class BeatCursor {
     this.updateCursorPosition();
   }
 
-  private updateCursorPosition() {
+private updateCursorPosition(animate: boolean = false, animMs?: number) {  
   if (!this.cursorElement) return;
   if (!this.isVisible) {
     this.cursorElement.setAttribute("display", "none");
@@ -902,15 +1021,35 @@ export class BeatCursor {
 
   this.cursorElement.setAttribute("display", "block");
 
-  // Position only — no color logic here at all
-  const x = beat.staffEntryX - 12;
+  const margin = this.unitInPixels * 0.5;
+  let width = this.unitInPixels * 2.5;
+
+  if (beat.measureLeft != null && beat.measureRight != null) {
+    const available = beat.measureRight - beat.measureLeft - margin * 2;
+    if (available > 0 && available < width) {
+      width = available;
+    }
+  }
+
+  let x = beat.staffEntryX - width / 2;
+  if (beat.measureLeft != null) x = Math.max(x, beat.measureLeft + margin);
+  if (beat.measureRight != null) x = Math.min(x, beat.measureRight - width - margin);
+
   const y = (beat.staffEntryY ?? 0) - 10;
   const height = (beat.systemHeight ?? 100) + 20;
 
-  this.cursorElement.setAttribute("x", x.toString());
-  this.cursorElement.setAttribute("y", y.toString());
-  this.cursorElement.setAttribute("width", "25");
-  this.cursorElement.setAttribute("height", height.toString());
+  if (animate) {
+    this.animateCursorTo(x, y, width, height, animMs ?? 90);
+  } else {
+    if (this.cursorAnimFrame) {
+      cancelAnimationFrame(this.cursorAnimFrame);
+      this.cursorAnimFrame = null;
+    }
+    this.cursorElement.setAttribute("x", x.toString());
+    this.cursorElement.setAttribute("y", y.toString());
+    this.cursorElement.setAttribute("width", width.toString());
+    this.cursorElement.setAttribute("height", height.toString());
+  }
 
   const parent = this.cursorElement.parentNode;
   if (parent) {
@@ -918,7 +1057,8 @@ export class BeatCursor {
     parent.appendChild(this.cursorElement);
   }
 
-  this.scrollIntoView(beat.staffEntryX);
+  this.scrollIntoView(beat.staffEntryX);         // existing: horizontal, same-line
+  this.scrollToSystemIfChanged(beat.staffEntryY ?? 0);
 }
 
   private scrollIntoView(x: number) {
@@ -937,20 +1077,14 @@ export class BeatCursor {
     }
   }
 
-  next(): boolean {
-    if (this.currentBeatIndex >= this.beats.length - 1) {
-      console.log(
-        `⚠️ Already at last beat (${this.currentBeatIndex}/${this.beats.length - 1})`
-      );
-      return false;
-    }
-    this.currentBeatIndex++;
-    console.log(
-      `➡️ Moved to beat ${this.currentBeatIndex}/${this.beats.length - 1}`
-    );
-    this.updateCursorPosition();
-    return true;
+  next(animMs?: number): boolean {
+  if (this.currentBeatIndex >= this.beats.length - 1) {
+    return false;
   }
+  this.currentBeatIndex++;
+  this.updateCursorPosition(true, animMs);
+  return true;
+}
 
   previous(): boolean {
     if (this.currentBeatIndex <= 0) {
@@ -972,6 +1106,7 @@ export class BeatCursor {
 
   refreshPositions() {
     console.log(`🔄 Refreshing positions for all beats...`);
+    this.unitInPixels = getUnitInPixels(this.osmd); // ← add this
     const newBeats = buildBeatTimeline(this.osmd);
 
     // Preserve note data
@@ -1000,6 +1135,16 @@ export class BeatCursor {
   getCurrentIndex(): number {
     return this.currentBeatIndex;
   }
+
+  getBeatDurationInQuarters(beatIndex: number): number {
+  const beat = this.beats[beatIndex];
+  const next = this.beats[beatIndex + 1];
+  if (!beat || !next) return 1; // fallback: one quarter note
+
+  // timestamp.RealValue: 1.0 = whole note, so ×4 converts to quarter-note units
+  const diff = (next.timestamp.RealValue - beat.timestamp.RealValue) * 4;
+  return Math.max(diff, 0.0625); // guard against 0/negative
+}
 
   setPosition(beatIndex: number) {
     if (beatIndex >= 0 && beatIndex < this.beats.length) {
@@ -1122,19 +1267,35 @@ setInterpolatedPosition(progress: number) {
 
   const currentBeat = this.beats[this.currentBeatIndex];
   const nextBeat = this.beats[this.currentBeatIndex + 1];
-
   if (!currentBeat?.staffEntryX) return;
 
-  const currentX = currentBeat.staffEntryX - 12;
+  const margin = this.unitInPixels * 0.5;
+
+  const widthFor = (beat: Beat) => {
+    let w = this.unitInPixels * 2.5;
+    if (beat.measureLeft != null && beat.measureRight != null) {
+      const available = beat.measureRight - beat.measureLeft - margin * 2;
+      if (available > 0 && available < w) w = available;
+    }
+    return w;
+  };
+
+  const clampX = (rawX: number, beat: Beat, width: number) => {
+    let x = rawX;
+    if (beat.measureLeft != null) x = Math.max(x, beat.measureLeft + margin);
+    if (beat.measureRight != null) x = Math.min(x, beat.measureRight - width - margin);
+    return x;
+  };
+
+  const currentWidth = widthFor(currentBeat);
+  const currentX = clampX(currentBeat.staffEntryX - currentWidth / 2, currentBeat, currentWidth);
+
   const nextX = (nextBeat?.staffEntryX && nextBeat.staffEntryY === currentBeat.staffEntryY)
-    ? nextBeat.staffEntryX - 12
+    ? clampX(nextBeat.staffEntryX - widthFor(nextBeat) / 2, nextBeat, widthFor(nextBeat))
     : currentX;
 
-  // Move fast across 70% of the beat duration, then hold for the last 30%
-  const MOVE_FRACTION = 0.7;
-  const clampedProgress = Math.min(progress / MOVE_FRACTION, 1.0);
-
-  const interpolatedX = currentX + (nextX - currentX) * clampedProgress;
+  // ✅ progress already goes 0→1 across the full beat — no early arrival
+  const interpolatedX = currentX + (nextX - currentX) * progress;
   this.cursorElement.setAttribute("x", interpolatedX.toString());
 }
 

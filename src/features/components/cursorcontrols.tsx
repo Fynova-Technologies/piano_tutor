@@ -224,12 +224,12 @@ export default function CursorControls (props: CursorControlsProps) {
           <section
             className="w-full box-border pb-[220px] sm:pb-[100px] md:pb-[88px]"
             style={{
-              background: "#EBEBEC",
+              background: "#F8F6F1",
             }}
           >
-            <div className="w-full max-w-[1440px] mx-auto box-border px-2 sm:px-4 py-4">
+            <div className="w-full max-w-[1800px] mx-auto box-border px-2 sm:px-4 py-4 pt-10">
               <div
-                className="mx-auto box-border w-full max-w-[1200px] overflow-x-auto"
+                className="mx-auto box-border w-full max-w-[1600px] overflow-x-auto"
                 style={{
                   background: "#FFFFFF",
                   border: "1px solid rgba(10, 10, 11, 0.12)",
@@ -238,7 +238,7 @@ export default function CursorControls (props: CursorControlsProps) {
                 <div
                   ref={containerRef}
                   id="osmd-container"
-                  className="box-border"
+                  className="box-border "
                   style={{
                     width: "100%",
                     padding: "16px",
