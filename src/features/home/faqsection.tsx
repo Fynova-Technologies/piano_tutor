@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import router from "next/navigation";
 
 const faqs = [
   {
@@ -27,6 +28,7 @@ const faqs = [
 
 export default function FAQSection() {
   const [open, setOpen] = useState<number | null>(null);
+  const Router = router;
 
   return (
     <section className="bg-[#0A0A0A] px-6 pb-24 pt-20">
@@ -52,7 +54,7 @@ export default function FAQSection() {
               Still unsure? Reach us at hello@learnkeys.app — we reply within 24
               hours.
             </p>
-            <button className="self-start bg-[#C49A3C] hover:bg-[#B8963E] text-[#0F0D0B] text-[12px] tracking-[3px] uppercase font-normal rounded-full px-6 py-3 transition-colors duration-200">
+            <button onClick={() => Router.redirect("/contact-us")} className="self-start bg-[#C49A3C] hover:bg-[#B8963E] text-[#0F0D0B] text-[12px] tracking-[3px] uppercase font-normal rounded-full px-6 py-3 transition-colors duration-200">
               Contact Support
             </button>
           </div>
@@ -78,9 +80,9 @@ export default function FAQSection() {
                       height="10"
                       viewBox="0 0 10 10"
                       fill="none"
-                      className={open === i ? "stroke-[#C49A3C33]" : "stroke-[#1A1A1A]"}
+                      className={open === i ? "stroke-[#C49A3C]" : "stroke-[#C49A3C]"}
                     >
-                      <path d="M5 1v8M1 5h8" strokeWidth="1.5" strokeLinecap="round" />
+                      <path d="M5 1v8M1 5h8" strokeWidth="0.5" strokeLinecap="round" />
                     </svg>
                   </span>
                 </button>

@@ -106,7 +106,7 @@ export default function Favorite() {
 
             {/* Dashed border container */}
             <div
-              className="w-full rounded-2xl border-2 border-dashed flex items-center justify-center border-[#D6CFC0]"
+              className="w-full rounded-2xl border-2 border-dashed order-2 flex items-center justify-center border-[#D6CFC0]"
               style={{ minHeight: "160px" }}
             >
               <div className="flex flex-col sm:flex-row items-center justify-start gap-4 sm:gap-6 px-6 py-6 sm:px-10 sm:py-8">

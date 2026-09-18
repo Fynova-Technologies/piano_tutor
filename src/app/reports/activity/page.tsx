@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useState, useMemo, useEffect } from "react";
 import { ArrowUpDown, MoreVertical } from "lucide-react";
 import { PracticeSession } from "@/datastore/sessionstorage";
-// import ActivityChart from "@/features/components/activitychart"; // ← new
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 const supabase = getSupabaseBrowserClient();
 
@@ -147,6 +146,48 @@ export default function ActivitiesReportPage() {
   const currentItems = filteredLessons.slice(startIndex, startIndex + itemsPerPage);
   const totalPages   = Math.ceil(filteredLessons.length / itemsPerPage);
 
+  // ✅ Print the current report (browser print dialog)
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // ✅ Download the currently filtered table as a CSV file
+  const handleDownloadCSV = () => {
+    if (filteredLessons.length === 0) return;
+
+    const headers = ["Title", "Source", "Category", "Date", "Attempts", "Time Spent", "Score"];
+
+    const escapeCell = (value: string | number) => {
+      const str = String(value ?? "");
+      // Wrap in quotes and escape embedded quotes if the value contains a comma, quote, or newline
+      return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+    };
+
+    const rows = filteredLessons.map((l: any) => [
+      l.title,
+      l.source,
+      l.category.replace(/_/g, " "),
+      new Date(l.date).toLocaleDateString(),
+      l.attempt,
+      formatTime(l.timespent),
+      `${l.score}%`,
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map(escapeCell).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `activity-report-${range}-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-4 sm:p-8 lg:p-16 bg-[#F8F6F1] min-h-screen">
       {/* Breadcrumb */}
@@ -158,10 +199,6 @@ export default function ActivitiesReportPage() {
         <span className="text-lg sm:text-2xl text-[#151517] font-medium">My Activity</span>
       </div>
 
-      {/* ── ─────────────── */}
-      {/* <div className="mt-4">
-        <ActivityChart sessionCount={rangedSessions.length} loading={loading} />
-      </div> */}
       {/* ── Main table card ────────────────────────────────────────── */}
       <div className="bg-[#FEFEFE] w-full rounded-2xl p-4 sm:p-6 mt-4">
         {/* Header totals */}
@@ -171,8 +208,22 @@ export default function ActivitiesReportPage() {
             <span>Total Time : {Math.round(totalTime / 60)} Mins</span>
           </div>
           <div className="text-[#151517] space-x-8 px-4 sm:px-0">
-            <Image src="/downloadbutton.svg" alt="download" width={21} height={21} className="inline-block" />
-            <Image src="/printreport.svg"    alt="print"    width={21} height={21} className="inline-block" />
+            <Image
+              src="/downloadbutton.svg"
+              alt="download"
+              width={21}
+              height={21}
+              className="inline-block cursor-pointer"
+              onClick={handleDownloadCSV}
+            />
+            <Image
+              src="/printreport.svg"
+              alt="print"
+              width={21}
+              height={21}
+              className="inline-block cursor-pointer"
+              onClick={handlePrint}
+            />
           </div>
         </div>
 
@@ -205,90 +256,90 @@ export default function ActivitiesReportPage() {
         </div>
 
         {/* Table */}
-<div className="mt-6 ml-0 sm:ml-4">
-  <div className="rounded-xl border bg-white">
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse min-w-[640px]">
-        <thead className="text-sm text-gray-500 border-b border-[#DEDEDE]">
-          <tr>
-            <th className="px-6 py-4 text-left font-medium">Title</th>
-            <th className="px-6 py-4 text-left font-medium">Source</th>
-            <th className="px-6 py-4 text-left font-medium">Category</th>
-            <th className="px-6 py-4 text-left font-medium">
-              <div className="flex items-center gap-1">Date <ArrowUpDown className="h-4 w-4 cursor-pointer" /></div>
-            </th>
-            <th className="px-6 py-4 text-left font-medium">Attempts</th>
-            <th className="px-6 py-4 text-left font-medium">
-              <div className="flex items-center gap-1">Time Spent <ArrowUpDown className="h-4 w-4 cursor-pointer" /></div>
-            </th>
-            <th className="px-6 py-4 text-left font-medium">
-              <div className="flex items-center gap-1">Score <ArrowUpDown className="h-4 w-4 cursor-pointer" /></div>
-            </th>
-            <th className="px-6 py-4" />
-          </tr>
-        </thead>
+        <div className="mt-6 ml-0 sm:ml-4">
+          <div className="rounded-xl border bg-white">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse min-w-[640px]">
+                <thead className="text-sm text-gray-500 border-b border-[#DEDEDE]">
+                  <tr>
+                    <th className="px-6 py-4 text-left font-medium">Title</th>
+                    <th className="px-6 py-4 text-left font-medium">Source</th>
+                    <th className="px-6 py-4 text-left font-medium">Category</th>
+                    <th className="px-6 py-4 text-left font-medium">
+                      <div className="flex items-center gap-1">Date <ArrowUpDown className="h-4 w-4 cursor-pointer" /></div>
+                    </th>
+                    <th className="px-6 py-4 text-left font-medium">Attempts</th>
+                    <th className="px-6 py-4 text-left font-medium">
+                      <div className="flex items-center gap-1">Time Spent <ArrowUpDown className="h-4 w-4 cursor-pointer" /></div>
+                    </th>
+                    <th className="px-6 py-4 text-left font-medium">
+                      <div className="flex items-center gap-1">Score <ArrowUpDown className="h-4 w-4 cursor-pointer" /></div>
+                    </th>
+                    <th className="px-6 py-4" />
+                  </tr>
+                </thead>
 
-        <tbody>
-          {loading ? (
-            <tr>
-              <td colSpan={8} className="px-6 py-8 text-center text-gray-400">
-                Loading sessions…
-              </td>
-            </tr>
-          ) : currentItems.length === 0 ? (
-            <tr>
-              <td colSpan={8} className="px-6 py-8 text-center text-gray-400">
-                No results found
-              </td>
-            </tr>
-          ) : (
-            currentItems.map((lesson) => (
-              <tr
-                key={lesson.id}
-                className="border-b border-gray-200 text-sm last:border-none odd:bg-white even:bg-[#F7F7F7] hover:bg-gray-100 transition"
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-8 text-center text-gray-400">
+                        Loading sessions…
+                      </td>
+                    </tr>
+                  ) : currentItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-8 text-center text-gray-400">
+                        No results found
+                      </td>
+                    </tr>
+                  ) : (
+                    currentItems.map((lesson) => (
+                      <tr
+                        key={lesson.id}
+                        className="border-b border-gray-200 text-sm last:border-none odd:bg-white even:bg-[#F7F7F7] hover:bg-gray-100 transition"
+                      >
+                        <td className="px-6 py-4 font-medium text-gray-900">{lesson.title}</td>
+                        <td className="px-6 py-4 text-gray-700">{lesson.source}</td>
+                        <td className="px-6 py-4 text-gray-500 capitalize text-xs">
+                          {lesson.category.replace(/_/g, " ")}
+                        </td>
+                        <td className="px-6 py-4 text-gray-700">
+                          {new Date(lesson.date).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 text-gray-700">{lesson.attempt}</td>
+                        <td className="px-6 py-4 text-gray-700">{formatTime(lesson.timespent)}</td>
+                        <td className="px-6 py-4 font-medium text-gray-900">{lesson.score}%</td>
+                        <td className="px-6 py-4 text-right">
+                          <button className="rounded-full p-1 hover:bg-gray-200">
+                            <MoreVertical className="h-4 w-4 text-gray-600" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex justify-end gap-6 px-6 py-4 mr-4 sm:mr-16">
+              <button
+                onClick={() => setCurrentPage((p) => p - 1)}
+                disabled={currentPage === 1}
+                className="disabled:opacity-50 text-[14px] text-[#09090B] font-medium"
               >
-                <td className="px-6 py-4 font-medium text-gray-900">{lesson.title}</td>
-                <td className="px-6 py-4 text-gray-700">{lesson.source}</td>
-                <td className="px-6 py-4 text-gray-500 capitalize text-xs">
-                  {lesson.category.replace(/_/g, " ")}
-                </td>
-                <td className="px-6 py-4 text-gray-700">
-                  {new Date(lesson.date).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 text-gray-700">{lesson.attempt}</td>
-                <td className="px-6 py-4 text-gray-700">{formatTime(lesson.timespent)}</td>
-                <td className="px-6 py-4 font-medium text-gray-900">{lesson.score}%</td>
-                <td className="px-6 py-4 text-right">
-                  <button className="rounded-full p-1 hover:bg-gray-200">
-                    <MoreVertical className="h-4 w-4 text-gray-600" />
-                  </button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-
-    {/* Pagination */}
-    <div className="flex justify-end gap-6 px-6 py-4 mr-4 sm:mr-16">
-      <button
-        onClick={() => setCurrentPage((p) => p - 1)}
-        disabled={currentPage === 1}
-        className="disabled:opacity-50 text-[14px] text-[#09090B] font-medium"
-      >
-        Previous
-      </button>
-      <button
-        onClick={() => setCurrentPage((p) => p + 1)}
-        disabled={currentPage >= totalPages}
-        className="disabled:opacity-50 text-[14px] text-[#09090B] font-medium"
-      >
-        Next
-      </button>
-    </div>
-  </div>
-</div>
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentPage((p) => p + 1)}
+                disabled={currentPage >= totalPages}
+                className="disabled:opacity-50 text-[14px] text-[#09090B] font-medium"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

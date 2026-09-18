@@ -142,15 +142,15 @@ export default function GetPopupContainer({
     <div className="flex flex-col lg:flex-row relative gap-6">
 
       {/* Album art */}
-      <div className="w-full lg:w-[40%]">
-        <Image
-          src={dialogueSong.imageUrl || "/songs/s1.jpg"}
-          alt="Album cover"
-          height={600}
-          width={200}
-          className="w-full h-48 sm:h-64 lg:h-full object-cover rounded-2xl border"
-        />
-      </div>
+      <div className="relative w-full h-48 sm:h-64 lg:h-full lg:w-[40%] lg:min-h-[320px] rounded-2xl overflow-hidden border">
+  <Image
+    src={dialogueSong.imageUrl || "/songs/s1.jpg"}
+    alt="Album cover"
+    fill
+    sizes="(min-width: 1024px) 40vw, 100vw"
+    className="object-cover"
+  />
+</div>
 
       {/* Levels */}
       <div className="w-full lg:w-[60%]">

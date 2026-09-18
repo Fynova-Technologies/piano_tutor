@@ -294,7 +294,7 @@ export default function Reports() {
     <select
       value={sasrRange}
       onChange={(e) => setSasrRange(e.target.value as "week" | "month")}
-      className="bg-[#E4E4E4] rounded-lg px-4 py-2 pr-8 text-sm text-[#151517] cursor-pointer appearance-none"
+      className="bg-[#E4E4E4] rounded-lg px-4 py-2 pr-8 text-sm text-[#151517] cursor-pointer appearance-none border-none outline-none focus:outline-none focus:ring-0"
     >
       <option value="week">Week</option>
       <option value="month">Month</option>
@@ -302,7 +302,7 @@ export default function Reports() {
     <Image
       src="/Icon3.svg"
       alt="dropdown"
-      width={12}
+      width={14}
       height={12}
       className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
     />

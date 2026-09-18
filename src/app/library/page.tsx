@@ -177,10 +177,10 @@ className="mt-2 w-fit flex items-center gap-2 bg-gradient-to-l from-[#FFD700] vi
             )}
 </div>
 {/* Other categories */}
-<SongRow title="🆕 New Releases" songs={newSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
-<SongRow title="🎹 Classical" songs={classicalSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
-<SongRow title="🎸 Rock" songs={rockSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
-<SongRow title="🟢 Beginner Picks" songs={beginnerSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+<SongRow title="New Releases" songs={newSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+<SongRow title="Classical" songs={classicalSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+<SongRow title="Rock" songs={rockSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+<SongRow title="Beginner Picks" songs={beginnerSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
 </div>
 </div>
 </div>

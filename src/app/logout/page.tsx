@@ -15,7 +15,7 @@ export default function LogoutButton({ onAfterSignOut }: { onAfterSignOut?: () =
   return (
     <button
       onClick={handleLogout}
-      className="bg-gray-200 text-black px-4 py-2 rounded-lg hover:bg-gray-300"
+      className=" text-[#151517] text-[16px] font-normal px-4 py-2 rounded-lg"
     >
       Logout
     </button>

@@ -100,7 +100,7 @@ export default function UserPopup({ userPopupOpen, setUserPopupOpen, userLoggedI
       ref={popupRef}
       className="absolute right-0 top-full mt-2 w-[300px] max-w-[calc(100vw-1rem)] bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden"
     >
-      <div className="flex items-center justify-between gap-3 border-b px-5 py-4">
+      <div className="flex items-center justify-between gap-3 border-b border-[#6E6E73] px-5 py-4">
         <div className="flex items-center gap-3 min-w-0">
           <Image src="/assets/user.png" alt="User" width={48} height={48} className="rounded-full shrink-0" />
           <div className="flex flex-col gap-1 min-w-0">
@@ -144,13 +144,14 @@ export default function UserPopup({ userPopupOpen, setUserPopupOpen, userLoggedI
           Support
         </Link>
         {userLoggedIn ? (
-          <div className="border-t border-gray-100">
+          <div className="border-t border-[#6E6E73] px-5 py-4 hover:bg-gray-100 cursor-pointer " onClick={close}>
+            <Image src="/assets/logouticon.svg" height={15} width={15} alt="" />
             <LogoutButton
               onAfterSignOut={close}
             />
           </div>
         ) : (
-          <div className="border-t border-gray-100">
+          <div className="border-t border-[#6E6E73] ">
             <Link href="/login" className="block px-5 py-4 text-[#151517] no-underline hover:bg-gray-100" onClick={close}>
               <div className="flex items-center gap-3">
                 <Image src="/loginicon.svg" height={13} width={13} alt="" />

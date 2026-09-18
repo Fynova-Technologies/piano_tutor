@@ -24,7 +24,7 @@ const features: Feature[] = [
     ),
     description:
       "Practice Mode waits for you to play, allowing you to work through the notes and rhythms at your own pace. No metronome pressure — just you and the music, building confidence one note at a time.",
-    cta: { label: "More About Practice Mode", href: "/features/practice-mode" },
+    cta: { label: "Method Section", href: "/method" },
     image: { src: "/practiceimage.png", alt: "A student practicing piano at home" },
     imageSide: "right",
   },
@@ -38,7 +38,7 @@ const features: Feature[] = [
     ),
     description:
       "The SASR (Standard Assessment of Sight Reading) is a piano sight reading test that also teaches you to sight read better. Each time you take the SASR test you'll get a sight reading score and a chart showing your sight reading progress. Find out what your sight reading score is today!",
-    cta: { label: "More About The SASR", href: "/features/sasr" },
+    cta: { label: "More About The SASR", href: "/sasr" },
     image: { src: "/SASR.png", alt: "SASR score dashboard showing progress over time" },
     imageSide: "left",
   },
@@ -51,7 +51,7 @@ const features: Feature[] = [
       </>
     ),
     description: "",
-    cta: { label: "More About Piano Learning Tools", href: "/features/learning-tools" },
+    cta: { label: "Piano Learning Techniques", href: "/techniques" },
     image: { src: "/Techniques.png", alt: "Piano technique library with rhythm exercises" },
     imageSide: "right",
     bullets: [

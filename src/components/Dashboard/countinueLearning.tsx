@@ -6,6 +6,16 @@ import { useRecentLessons } from "@/utils/userprogress/userrecentpost";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const FALLBACK_IMAGE = "/assets/C1.png";
 
+// ✅ Add/replace with your actual image paths from the public folder, in rotation order
+const COVER_IMAGES = [
+  "/assets/C1.png",
+  "/assets/c2.jpg",
+  "/assets/c3.jpg",
+  "/assets/c4.jpg",
+  "/assets/c5.jpg",
+
+];
+
 export default function ContinueLearning() {
   const router = useRouter();
   const { recentLessons, loading } = useRecentLessons();
@@ -45,7 +55,6 @@ export default function ContinueLearning() {
 
               {/* Illustration */}
               <div className="flex-shrink-0 opacity-80 w-[90px] sm:w-[40%]">
-                {/* Chair + book SVG illustration matching the warm beige style */}
                 <Image
                   src={"/assets/e714d056aefcec618d35aa8e15bece97e6384878.png"}
                   alt="Chair + Book Illustration"
@@ -85,7 +94,10 @@ export default function ContinueLearning() {
         <h1 className="text-black text-2xl font-bold">Continue Learning</h1>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 py-4">
-          {recentLessons.map((lesson) => {
+          {recentLessons.map((lesson, index) => {
+            // ✅ Cycles through COVER_IMAGES: 0 -> img1, 1 -> img2, 2 -> img3, 3 -> img1, ...
+            const coverImage = COVER_IMAGES[index % COVER_IMAGES.length];
+
             const handleResume = () => {
               const params = new URLSearchParams({
                 id: lesson.fkid,
@@ -107,7 +119,7 @@ export default function ContinueLearning() {
               >
                 <div className="relative rounded-2xl overflow-hidden shadow-lg group w-full max-h-[290px]">
                   <Image
-                    src={"/assets/e714d056aefcec618d35aa8e15bece97e6384878.png"}
+                    src={coverImage}
                     alt={lesson.lesson_title}
                     width={400}
                     height={400}

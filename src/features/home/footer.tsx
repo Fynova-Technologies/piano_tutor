@@ -35,8 +35,8 @@ const socialIcons = {
 
 export default function Footer() {
   return (
-    <footer className="bg-[#111111] px-8 pt-14 pb-8">
-      <div className="max-w-5xl mx-auto">
+    <footer className="bg-[#0F0D0B] text-start border-t border-[#F2ECE014] px-8 pt-14 pb-8">
+      <div className="max-w-8xl mx-auto">
         {/* Top row */}
         <div className="grid grid-cols-2 md:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10 mb-14">
           {/* Brand */}
@@ -45,11 +45,11 @@ export default function Footer() {
               <div className="w-7 h-7 bg-[#C9A84C] rounded-md flex items-center justify-center">
                 <span className="text-[#1A1A1A] text-[10px] font-black tracking-tight">LK</span>
               </div>
-              <span className="text-white font-bold text-base tracking-wide">
+              <span className="text-[#F2ECE0] font-playfair font-extrabold text-[22px] tracking-wide">
                 Learnkeys
               </span>
             </div>
-            <p className="text-[#4A4A4A] text-xs leading-relaxed max-w-[180px]">
+            <p className="text-[#B9B9B9] text-[15px] font-light leading-relaxed max-w-[240px]">
               The more thoughtfully designed piano learning platform for the modern era.
             </p>
           </div>
@@ -57,15 +57,15 @@ export default function Footer() {
           {/* Link columns */}
           {Object.entries(links).map(([heading, items]) => (
             <div key={heading}>
-              <p className="text-[#4A4A4A] text-[9px] tracking-[0.25em] uppercase font-semibold mb-4">
+              <p className="text-[#C49A3C] text-[12px] tracking-[0.25em] uppercase font-normal mb-4">
                 {heading}
               </p>
-              <ul className="flex flex-col gap-2.5">
+              <ul className="flex list-none p-0 flex-col gap-2.5">
                 {items.map((item) => (
                   <li key={item.linkName}>
                     <a
                       href={item.link}
-                      className="text-[#666] text-xs hover:text-[#C9A84C] transition-colors duration-150"
+                      className="text-[#FFFFFF] no-underline text-[12px] font-light hover:text-[#C9A84C] transition-colors duration-150"
                     >
                       {item.linkName}
                     </a>
@@ -77,8 +77,8 @@ export default function Footer() {
         </div>
 
         {/* Bottom row */}
-        <div className="border-t border-[#222] pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-[#333] text-[10px]">
+        <div className="border-t border-[#F2ECE014] pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-[#B9B9B9] text-[10px]">
             © 2026 Learnkeys Inc. All rights reserved.
           </p>
 
@@ -88,7 +88,7 @@ export default function Footer() {
               <button
                 key={label}
                 aria-label={label}
-                className="w-7 h-7 rounded-full border border-[#2A2A2A] flex items-center justify-center text-[#444] hover:text-[#C9A84C] hover:border-[#C9A84C]/40 transition-colors duration-150"
+                className="w-7 h-7 p-2 rounded-[8px] border border-[#C49A3C] flex items-center justify-center text-[#C49A3C] hover:text-[#C9A84C] hover:border-[#C9A84C]/40 transition-colors duration-150"
               >
                 {icon}
               </button>

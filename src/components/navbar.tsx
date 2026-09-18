@@ -129,7 +129,7 @@ export default function Navbar() {
 
           {/* User popup */}
           {userPopupOpen && (
-            <div className="absolute right-4 top-full mt-2 w-80 bg-[#FEFEFE] rounded-2xl shadow-xl py-2 z-20">
+            <div className="absolute right-4 top-full mt-2  bg-[#FEFEFE] rounded-2xl shadow-xl py-2 z-20">
               <UserPopup
                 userPopupOpen={userPopupOpen}
                 setUserPopupOpen={setUserPopupOpen}

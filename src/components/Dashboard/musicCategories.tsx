@@ -1,39 +1,55 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ProgressCircle from "@/components/progressCircle";
-import {useLessons} from "@/utils/userprogress/lessonprogress"
+import { useLessons } from "@/utils/userprogress/lessonprogress"
 import { useTechniques } from "@/utils/userprogress/techniqueContext";
+import { useRecentLessons } from "@/utils/userprogress/userrecentpost";
 
- // Assuming you have a ProgressCircle component
 export default function MusicCategories() {
     const router = useRouter();
     const radius = 45;
-      const stroke = 10;
-      const normalizedRadius = radius - stroke / 2;
-      // const progress= 70;
-      const lessons = useLessons();
-      // const getOverallProgress = lessons?.getOverallProgress ?? (() => 0);
-      const getUnitProgress = lessons?.getUnitProgress ?? (() => 0);
-      // const progress = getOverallProgress();
-      // Replace hardcoded progress = 70
-      
+    const stroke = 10;
+    const normalizedRadius = radius - stroke / 2;
+    const lessons = useLessons();
+    const getUnitProgress = lessons?.getUnitProgress ?? (() => 0);
+    const methodProgress = getUnitProgress("1");
+    const techniques = useTechniques();
+    const getTechniquesOverallProgress = techniques?.getOverallProgress ?? (() => 0);
+    const techniqueProgress = getTechniquesOverallProgress();
 
-      // Per unit card:
-      // const unit1Progress = getUnitProgress("1");
-       // ✅ Dynamic progress values
-      const methodProgress = getUnitProgress("1");     // unit 1 for Method Lessons
-      const techniques = useTechniques();
-      const getTechniquesOverallProgress = techniques?.getOverallProgress ?? (() => 0);
+    const actualRadius = normalizedRadius * 1.5;
+    const circumference = 2 * Math.PI * actualRadius;
+    const methodOffset = circumference - (methodProgress / 100) * circumference;
+    const techniqueOffset = circumference - (techniqueProgress / 100) * circumference;
 
-      const techniqueProgress = getTechniquesOverallProgress();
-      // const overallProgress = getOverallProgress();
+    // ✅ Recent lessons, for the two "Recent Music" images
+    const { recentLessons } = useRecentLessons();
 
-      // ✅ Compute offsets per card
-      const actualRadius = normalizedRadius * 1.5;
-      const circumference = 2 * Math.PI * actualRadius; // ✅ correct
-      // const strokeDashoffset = circumference - (progress / 100) * circumference;
-      const methodOffset = circumference - (methodProgress / 100) * circumference;
-      const techniqueOffset = circumference - (techniqueProgress / 100) * circumference;
+    // Builds the /lessons URL for a given lesson, same shape as ContinueLearning's handleResume
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const buildLessonHref = (lesson: { id?: string; lesson_id: any; lesson_title: any; file: any; unit_id: any; fkid: any; source: any; course_title?: string; image_url?: string | null; progress?: number; played_at?: string; category?: "method_lesson" | "technique_lesson" | null | undefined; iscompleted?: boolean; }) => {
+        const params = new URLSearchParams({
+            id: lesson.fkid,
+            title: lesson.lesson_title,
+            file: lesson.file ?? "",
+            unitId: lesson.unit_id,
+            source: lesson.source,
+            lessonid: lesson.lesson_id,
+            fkid: lesson.fkid,
+        });
+        return `/lessons?${params.toString()}`;
+    };
+
+    // index: 0 = most recent, 1 = second most recent
+    const handleResumeAt = (index: number) => (e: React.MouseEvent) => {
+        e.stopPropagation(); // don't also trigger the parent card's /library click
+        const lesson = recentLessons?.[index];
+        if (!lesson) {
+            router.push("/library"); // nothing at that slot yet — fall back
+            return;
+        }
+        router.push(buildLessonHref(lesson));
+    };
 
     return(
          <div>
@@ -57,12 +73,16 @@ export default function MusicCategories() {
       </div>
     </div>
     <div className="hidden sm:flex flex-col items-center ml-auto space-y-4 p-6 group-hover:-translate-x-6 transition-transform duration-1000 ease-in-out">
-      <div className="flex items-center justify-center gap-2">
-        <Image src="/gifs/piano.png" alt="Piano" width={100} height={100} className="w-10 h-14 rounded-2xl object-cover" />
-        <Image src="/gifs/manpiano.jpg" alt="Man Piano" width={100} height={100} className="w-10 h-14 rounded-2xl object-cover" />
-      </div>
-      <span className="text-[#151517]">Recent Music</span>
-    </div>
+                            <div className="flex items-center justify-center gap-2">
+                                <div onClick={handleResumeAt(0)} className="cursor-pointer hover:border-2 hover:border-[#D4AF37] hover:rounded-2xl ">
+                                    <Image src="/gifs/piano.png" alt="Piano" width={100} height={100} className="w-10 h-14 rounded-2xl object-cover" />
+                                </div>
+                                <div onClick={handleResumeAt(1)} className="cursor-pointer hover:border-2 hover:border-[#D4AF37] hover:rounded-2xl">
+                                    <Image src="/gifs/manpiano.jpg" alt="Man Piano" width={100} height={100} className="w-10 h-14 rounded-2xl object-cover" />
+                                </div>
+                            </div>
+                            <span className="text-[#151517] text-[16px]">Recent Music</span>
+                        </div>
   </div>
         </div>
 
@@ -81,7 +101,7 @@ export default function MusicCategories() {
       </div>
       <div className="absolute left-[160px] md:left-[230px] group-hover:translate-x-6 transition-transform duration-1000 ease-in-out hidden sm:block">
         <div className="relative w-[130px] h-[130px]">
-          <Image src="/gifs/Vector.png" alt="Vector" width={130} height={130} />
+          <Image src="/gifs/Vector.svg" alt="Vector" width={130} height={130} />
           <div className="absolute inset-0 bg-white opacity-30 pointer-events-none"></div>
         </div>
       </div>
