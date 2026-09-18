@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 import { useState, useEffect } from "react";
-import SearchSongs from "@/components/library/searchSongs";
-import SongRow from "./songrow";
+import SearchSongs, { SongFilters } from "@/components/library/searchSongs";import SongRow from "./songrow";
 import Image from "next/image";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 import { useSubscription } from "@/hooks/subscribed/issubscribed";
@@ -33,6 +32,21 @@ export default function Library() {
   const [loading, setLoading] = useState(true);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isSubscribed, isReady } = useSubscription();
+  const [searchQuery, setSearchQuery] = useState("");
+const [filters, setFilters] = useState<SongFilters>({ genre: null, difficulty: null, variant: null });
+
+const isFiltering = searchQuery.trim() !== "" || filters.genre || filters.difficulty || filters.variant;
+
+const filteredSongs = allSongs.filter((s) => {
+  const q = searchQuery.trim().toLowerCase();
+  const matchesQuery =
+    !q || s.title.toLowerCase().includes(q) || s.artist.name.toLowerCase().includes(q);
+  const matchesGenre = !filters.genre || s.categories.genres.some((g) => g.slug === filters.genre);
+  const matchesDifficulty =
+    !filters.difficulty || s.categories.difficulty.level.toLowerCase() === filters.difficulty;
+  const matchesVariant = !filters.variant || s.variant.toLowerCase() === filters.variant;
+  return matchesQuery && matchesGenre && matchesDifficulty && matchesVariant;
+});
 
   // 1. Get user
   useEffect(() => {
@@ -141,7 +155,7 @@ export default function Library() {
     <>
     <div className="bg-[#F8F6F1] flex flex-col w-full">
       <div className="flex justify-center items-center mt-8 sm:mt-16 w-full px-4">
-<SearchSongs />
+<SearchSongs onSearch={setSearchQuery} onFilterChange={setFilters} />
 </div>
 <div className="flex justify-center px-4">
 <div className="max-w-[1200px] w-full flex flex-col gap-10 sm:gap-16 mt-6 sm:mt-10 pb-16">
@@ -177,10 +191,27 @@ className="mt-2 w-fit flex items-center gap-2 bg-gradient-to-l from-[#FFD700] vi
             )}
 </div>
 {/* Other categories */}
-<SongRow title="New Releases" songs={newSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
-<SongRow title="Classical" songs={classicalSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
-<SongRow title="Rock" songs={rockSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
-<SongRow title="Beginner Picks" songs={beginnerSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+{isFiltering ? (
+            filteredSongs.length === 0 ? (
+              <p className="text-center text-gray-500 mt-10">No songs match your search.</p>
+            ) : (
+              <SongRow
+                title="Results"
+                songs={filteredSongs}
+                liked={liked}
+                onToggleLike={handleToggleLike}
+                isSubscribed={isSubscribed}
+              />
+            )
+          ) : (
+            <>              
+              <SongRow title="New Releases" songs={newSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+              <SongRow title="Classical" songs={classicalSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+              <SongRow title="Rock" songs={rockSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+              <SongRow title="Beginner Picks" songs={beginnerSongs} liked={liked} onToggleLike={handleToggleLike} isSubscribed={isSubscribed} />
+            </>
+          )}
+
 </div>
 </div>
 </div>

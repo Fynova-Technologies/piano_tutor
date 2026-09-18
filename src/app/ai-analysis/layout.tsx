@@ -1,22 +1,22 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+// import Link from "next/link";
+// import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import {
-  analysisAccentGradient,
-  analysisNavBg,
-  analysisNavIdle,
+  // analysisAccentGradient,
+  // analysisNavBg,
+  // analysisNavIdle,
   analysisShellBg,
 } from "@/features/ai-review/PianoAnalysisChrome";
 
 export default function AiAnalysisLayout({ children }: { children: ReactNode }) {
-  const path = usePathname() ?? "";
-  const isRecovery = path.includes("/recovery");
+  // const path = usePathname() ?? "";
+  // const isRecovery = path.includes("/recovery");
 
   return (
     <div className={`min-h-screen ${analysisShellBg} antialiased`}>
-      <header className={analysisNavBg}>
+      {/* <header className={analysisNavBg}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5 md:px-8">
           <Link
             href="/dashboard"
@@ -46,7 +46,7 @@ export default function AiAnalysisLayout({ children }: { children: ReactNode }) 
           className="h-0.5 w-full bg-gradient-to-r from-[#f5d94a] via-[#f0b429] to-[#ea8f26]"
           aria-hidden
         />
-      </header>
+      </header> */}
       {children}
     </div>
   );

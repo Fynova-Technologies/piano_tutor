@@ -231,7 +231,12 @@ export default function Page() {
   </div>
   <div className="bg-[#FEFEFE] rounded-xl p-4 relative mt-4 border-4 border-[#BCBCBC] h-[300px] md:h-[90%]">
     <div className="h-full">
-      <SASRReport sessions={sessions} loading={loading} range={sasrRange} />
+      <SASRReport
+  sessions={sessions}
+  loading={loading}
+  range={sasrRange}
+  onStartTest={() => setPopupOpen(true)}
+/>
     </div>
   </div>
 </div>

@@ -4,13 +4,13 @@
 import React, { useId } from "react";
 import { motion } from "motion/react";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Sparkles, RefreshCw, FileText, Target, Clock, AlertTriangle, BookOpen, Zap, ChevronRight, Calendar, TrendingUp, Eye, ArrowRight } from "lucide-react";
+import { RefreshCw, FileText, Target, Clock, AlertTriangle, BookOpen, Zap, ChevronRight, Calendar, TrendingUp, Eye, ArrowRight } from "lucide-react";
 import { useAiReview } from "./useAiReview";
 import { AiReviewCharts } from "./AiReviewCharts";
 import { MiniSheetMusicPreview } from "./MiniSheetMusicPreview";
 import { MistakeRecoverySection } from "@/features/recovery/MistakeRecoverySection";
 import {
-  analysisAccentGradient,
+  // analysisAccentGradient,
   analysisCodeBg,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   analysisLabelPlum,
@@ -165,10 +165,10 @@ function OverallScoreRing({ score = 82 }) {
           <defs>
             <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor="#16a34a" />
-              <stop offset="100%" stopColor="#22c55e" />
+              <stop offset="100%" stopColor="#33AE7C" />
             </linearGradient>
           </defs>
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e5e1dc" strokeWidth={stroke} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#F1F1F1" strokeWidth={stroke} />
           <circle
             cx={size / 2} cy={size / 2} r={r} fill="none"
             stroke={`url(#${gradId})`} strokeWidth={stroke}
@@ -176,13 +176,13 @@ function OverallScoreRing({ score = 82 }) {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-base font-bold text-black tabular-nums leading-none">{score}%</span>
-          <span className="text-[9px] text-neutral-500 mt-0.5 font-medium">Good Job</span>
+          <span className="text-base font-bold text-[#33AE7C] tabular-nums leading-none">{score}%</span>
+          <span className="text-[9px] text-[#1B1B1B] mt-0.5 font-medium">Good Job</span>
         </div>
       </div>
       <div className="flex gap-0.5 mt-2">
         {[1, 2, 3, 4, 5].map((i) => (
-          <span key={i} style={{ fontSize: 13, color: i <= stars ? "#f0b429" : "#d4cfc8" }}>★</span>
+          <span key={i} style={{ fontSize: 13, color: i <= stars ? "#FACC15" : "#d4cfc8" }}>★</span>
         ))}
       </div>
     </div>
@@ -217,12 +217,40 @@ function StatCell({
       <div className="text-2xl font-bold text-black leading-none">
         {value}{unit && <span className="text-base font-medium text-neutral-500 ml-0.5">{unit}</span>}
       </div>
-      <div className="text-[11px] text-neutral-500 font-medium mt-1">{label}</div>
+      <div className="text-[14px] text-[#1E293B] font-medium mt-1">{label}</div>
       {delta && (
-        <div className={`text-[11px] font-semibold mt-1 ${deltaDir === "up" ? "text-green-600" : deltaDir === "down" ? "text-red-600" : "text-neutral-500"}`}>
-          {deltaDir === "up" ? "▲" : deltaDir === "down" ? "▼" : ""} {delta}
-        </div>
-      )}
+  <div
+    className={`flex items-center gap-1 text-[11px] font-semibold mt-1 ${
+      deltaDir === "up"
+        ? "text-green-600"
+        : deltaDir === "down"
+        ? "text-red-600"
+        : "text-neutral-500"
+    }`}
+  >
+    {deltaDir === "up" && (
+      <Image
+        src="/aiuparr.svg"
+        alt=""
+        width={10}
+        height={10}
+        className="w-[10px] h-[10px]"
+      />
+    )}
+
+    {deltaDir === "down" && (
+      <Image
+        src="/aidownarr.svg"
+        alt=""
+        width={10}
+        height={10}
+        className="w-[10px] h-[10px]"
+      />
+    )}
+
+    <span>{delta}</span>
+  </div>
+)}
     </div>
   );
 }
@@ -280,7 +308,7 @@ export default function AiReviewRecoveryCenter() {
   }
 
   return (
-    <section className="relative pb-16 pt-10 md:pt-12 bg-[#f5f2ee] min-h-screen">
+    <section className="relative pb-16 pt-10 md:pt-12 bg-[#F8F6F1] min-h-screen">
       <div className="relative mx-auto max-w-[min(1040px,100%-32px)] px-4 md:px-6">
 
         {/* ── Header ── */}
@@ -288,17 +316,16 @@ export default function AiReviewRecoveryCenter() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+          className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <div>
-            <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] font-bold ${analysisAccentGradient}`}>
-              <Sparkles className="h-3 w-3 text-neutral-900" strokeWidth={2.5} />
-              AI Performance
+            <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] uppercase tracking-[0.5px] text-[#EA580C] font-bold bg-[#FFEDD5]`}>
+              ✨ AI Performance
             </div>
-            <h2 className="mt-3 text-[1.9rem] font-bold tracking-tight text-black leading-tight" style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400 }}>
+            <h2 className="mt-3 text-[1.9rem] font-bold tracking-tight text-[#0F172A] leading-tight">
               Your practice snapshot
             </h2>
-            <p className="mt-1.5 text-sm text-neutral-500">
+            <p className="mt-1.5 text-sm text-[#64748B]">
               Smart insights to help you practice better, not just more.
             </p>
           </div>
@@ -307,14 +334,14 @@ export default function AiReviewRecoveryCenter() {
               type="button"
               onClick={() => void refetch()}
               disabled={pendingRefresh}
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold border border-black/[0.08] bg-white shadow-sm hover:shadow-md transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-[8px] px-4 py-2.5 text-sm font-semibold border border-[#0000000D] bg-[#FFFFFF] shadow-sm hover:shadow-md transition-all disabled:opacity-50"
             >
               <RefreshCw className={`h-3.5 w-3.5 text-neutral-600 ${pendingRefresh ? "animate-spin" : ""}`} />
               Refresh
             </button>
             <button
               type="button"
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold border border-black/[0.08] bg-white shadow-sm hover:shadow-md transition-all"
+              className="inline-flex items-center gap-2 rounded-[8px] px-4 py-2.5 text-sm font-semibold border border-[#0000000D] bg-white shadow-sm hover:shadow-md transition-all"
             >
               <FileText className="h-3.5 w-3.5 text-neutral-600" />
               Export PDF
@@ -341,6 +368,7 @@ export default function AiReviewRecoveryCenter() {
               label="Sessions Analyzed"
               delta="This week"
               deltaDir="neutral"
+              
             />
             <StatCell
               icon="/assets/target.png"

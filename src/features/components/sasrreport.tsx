@@ -28,9 +28,11 @@ interface SasrReportProps {
   sessions: PracticeSession[];
   loading?: boolean;
   range?: "week" | "month";
+  onStartTest?: () => void; // NEW
 }
 
-export default function SASRReport({ sessions, loading, range = "month" }: SasrReportProps) {
+
+export default function SASRReport({ sessions, loading, range = "month", onStartTest }: SasrReportProps) {
   const router = useRouter();
 
   function formatDate(timestamp: number) {
@@ -56,6 +58,13 @@ export default function SASRReport({ sessions, loading, range = "month" }: SasrR
     const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     return timestamp >= start.getTime() && timestamp < end.getTime();
   }
+
+  console.log(
+  "SASR sessions:",
+  sessions
+    .filter((s) => s.lesson?.source?.toUpperCase() === "SASR")
+    .map((s) => ({ endedAt: new Date(s.endedAt).toString(), score: s.performance.score }))
+);
 
   const chartData = useMemo(() => {
     const dailyMap: Record<string, { total: number; count: number }> = {};
@@ -206,8 +215,8 @@ export default function SASRReport({ sessions, loading, range = "month" }: SasrR
             </p>
           </div>
 
-          <button
-            onClick={() => router.push("/sasr")}
+            <button
+    onClick={onStartTest ?? (() => router.push("/sasr"))}
             className="mt-1 flex items-center gap-2 bg-gradient-to-l from-[#FFD700] via-[#FFA500] to-[#FFEC8B] hover:bg-[#e8b800] active:bg-[#d4a800] transition-colors duration-200 text-[#151517] text-sm px-5 py-2.5 rounded-full shadow-sm"
           >
             Start your first test

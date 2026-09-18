@@ -54,8 +54,17 @@ export function PracticeNoteInsightsSection({ refreshKey }: Props) {
 
   return (
     <section className={`${premiumAnalysisCard} mb-10 p-6`}>
-      <h3 className="text-lg font-bold text-black">Note habits</h3>
-      <p className={`mt-1 ${analysisLabelPlum}`}>Method, songs &amp; library · not recovery drills</p>
+      <div className="flex">
+        <div>
+          <h3 className="text-lg font-bold text-black">🎵</h3>
+
+        </div>
+        <div className="space-y-0">
+          <h3 className="text-lg font-bold text-black">Note habits</h3>
+          <p className={` text-[#5D5D5D] text-[12px]`}>From Method, songs &amp; library · not recovery drills</p>
+        </div>
+
+      </div>
       <p className="mt-2 text-sm text-neutral-600">
         {insights.sessionsWithMistakeTelemetry} sessions with slips · {insights.sessionsConsidered}{" "}
         runs scanned
