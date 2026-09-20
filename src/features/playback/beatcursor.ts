@@ -165,6 +165,7 @@ map.set(measureIdx, {
       console.log(
         `Measure ${measureIdx}: X=${xPixels.toFixed(1)}px, Width=${widthPixels.toFixed(1)}px, Y=${systemTopY.toFixed(1)}px`
       );
+      
     }
   }
 
@@ -270,8 +271,8 @@ function buildBeatTimeline(osmd: any): Beat[] {
     }
   }
 
-  const graphicalEntries = collectGraphicalEntries(osmd, measureStarts);
-  const beatAnchors = buildBeatAnchors(osmd, graphicalEntries);
+const graphicalEntries = collectGraphicalEntries(osmd, measureStarts);
+const { anchors: beatAnchors, restOnlyMeasures } = buildBeatAnchors(osmd, graphicalEntries); // ← changed
 
   // ✅ Step 1: Collect all note onset absolute times from cursor iterator
   const noteOnsetTimes = new Set<string>();
@@ -367,49 +368,52 @@ function buildBeatTimeline(osmd: any): Beat[] {
 
   for (const entry of sortedEntries) {
     const { absTime, measureIndex, isNoteOnset } = entry;
-    const measure = measures[measureIndex];
-    const ts = measure.ActiveTimeSignature || {
-      Numerator: 4,
-      Denominator: 4,
-    };
-    const beatDuration = 1 / ts.Denominator;
-    const relTime = absTime - measureStarts[measureIndex];
-    const beatInMeasure = relTime / beatDuration;
+  const measure = measures[measureIndex];
+  const ts = measure.ActiveTimeSignature || { Numerator: 4, Denominator: 4 };
+  const beatDuration = 1 / ts.Denominator;
+  const relTime = absTime - measureStarts[measureIndex];
+  const beatInMeasure = relTime / beatDuration;
 
-    const measureDuration =
-      measure.Duration?.RealValue ??
-      ts.Numerator * (1 / ts.Denominator);
+  const measureDuration = measure.Duration?.RealValue ?? ts.Numerator * (1 / ts.Denominator);
+  const localTime = relTime / measureDuration;
 
-    const localTime = relTime / measureDuration;
-    const x = getCursorX(beatAnchors, measureIndex, localTime);
-   const measurePos = measurePositions.get(measureIndex);
-
-const beat: Beat = {
-  index: beatIndex++,
-  measureIndex,
-  beatInMeasure,
-  timestamp: new Fraction(Math.round(absTime * 1920), 1920),
-  expectedNotes: [],
-  isNoteStart: isNoteOnset,
-  noteDuration: 0,
-  measureLeft: measurePos?.x,
-  measureRight: measurePos ? measurePos.x + measurePos.width : undefined,
-};
-
-
-    if (x != null && measurePos && x > measurePos.x + 5) {
-      beat.staffEntryX = x;
-      beat.staffEntryY = measurePos.y;
-      beat.systemHeight = measurePos.height;
-    } else if (measurePos) {
-      const clamped = Math.max(0, Math.min(1, localTime));
-      beat.staffEntryX = measurePos.x + measurePos.width * clamped;
-      beat.staffEntryY = measurePos.y;
-      beat.systemHeight = measurePos.height;
-    }
-
-    beats.push(beat);
+  // ✅ For rest-only measures, spread visual x evenly across the FULL width,
+  // instead of stopping at (beatsPerMeasure-1)/beatsPerMeasure.
+  // Timing (beat.timestamp, isNoteStart, scoring) is untouched — this only affects x lookup.
+  let visualLocalTime = localTime;
+  if (restOnlyMeasures.has(measureIndex)) {
+    const beatsPerMeasure = ts.Numerator;
+    visualLocalTime = beatsPerMeasure > 1 ? beatInMeasure / (beatsPerMeasure - 1) : 0;
   }
+
+  const x = getCursorX(beatAnchors, measureIndex, visualLocalTime); // ← was localTime
+  const measurePos = measurePositions.get(measureIndex);
+
+  const beat: Beat = {
+    index: beatIndex++,
+    measureIndex,
+    beatInMeasure,
+    timestamp: new Fraction(Math.round(absTime * 1920), 1920),
+    expectedNotes: [],
+    isNoteStart: isNoteOnset,
+    noteDuration: 0,
+    measureLeft: measurePos?.x,
+    measureRight: measurePos ? measurePos.x + measurePos.width : undefined,
+  };
+
+  if (x != null && measurePos && x > measurePos.x + 5) {
+    beat.staffEntryX = x;
+    beat.staffEntryY = measurePos.y;
+    beat.systemHeight = measurePos.height;
+  } else if (measurePos) {
+    const clamped = Math.max(0, Math.min(1, visualLocalTime)); // ← also use visualLocalTime here for consistency
+    beat.staffEntryX = measurePos.x + measurePos.width * clamped;
+    beat.staffEntryY = measurePos.y;
+    beat.systemHeight = measurePos.height;
+  }
+
+  beats.push(beat);
+}
 
   console.log(`✅ Built ${beats.length} merged beats (grid + onsets)`);
   enrichBeatsWithNotes(osmd, beats);
@@ -442,125 +446,103 @@ function collectGraphicalEntries(osmd: any, measureStarts: number[]) {
     for (const measure of staffMeasures || []) {
   if (!measure || !measure.PositionAndShape) continue;
 
-      const measureX = measure.PositionAndShape.AbsolutePosition.x * unit;
-      let measureWidth = measure.PositionAndShape.Size.width * unit;
+  const measureX = measure.PositionAndShape.AbsolutePosition.x * unit;
+  let measureWidth = measure.PositionAndShape.Size.width * unit;
 
-      const rightBarline =
-        measure.RightBarLine?.PositionAndShape?.AbsolutePosition?.x;
-      if (rightBarline != null) {
-        measureWidth = rightBarline * unit - measureX;
-      }
+  const rightBarline = measure.RightBarLine?.PositionAndShape?.AbsolutePosition?.x;
+  if (rightBarline != null) {
+    measureWidth = rightBarline * unit - measureX;
+  }
 
-      const system = measure.ParentMusicSystem;
-      const top =
-        system.StaffLines[0].PositionAndShape.AbsolutePosition.y * unit;
-      const bottomStaff =
-        system.StaffLines[system.StaffLines.length - 1];
-      const bottom =
-        (bottomStaff.PositionAndShape.AbsolutePosition.y +
-          bottomStaff.PositionAndShape.Size.height) *
-          unit;
-      const height = bottom - top + 20;
+  const system = measure.ParentMusicSystem;
+  const top = system.StaffLines[0].PositionAndShape.AbsolutePosition.y * unit;
+  const bottomStaff = system.StaffLines[system.StaffLines.length - 1];
+  const bottom = (bottomStaff.PositionAndShape.AbsolutePosition.y + bottomStaff.PositionAndShape.Size.height) * unit;
+  const height = bottom - top + 20;
 
-      const sourceMeasure =
-        sheet.ParentMusicSheet?.SourceMeasures?.[m];
-      let measureDuration = 0;
+  const sourceMeasure = sheet.ParentMusicSheet?.SourceMeasures?.[m];
+  let measureDuration = 0;
+  if (sourceMeasure?.Duration?.RealValue != null) {
+    measureDuration = sourceMeasure.Duration.RealValue;
+  } else {
+    const ts = sourceMeasure?.ActiveTimeSignature;
+    measureDuration = ts ? ts.Numerator * (1 / ts.Denominator) : 1;
+  }
 
-      if (sourceMeasure?.Duration?.RealValue != null) {
-        measureDuration = sourceMeasure.Duration.RealValue;
-      } else {
-        const ts = sourceMeasure?.ActiveTimeSignature;
-        if (ts) {
-          measureDuration = ts.Numerator * (1 / ts.Denominator);
-        } else {
-          measureDuration = 1;
+  console.log(`  staffEntries count: ${measure.staffEntries?.length || 0}`);
+
+  for (const staffEntry of measure.staffEntries || []) {
+    const localTime = staffEntry.sourceStaffEntry?.Timestamp?.RealValue;
+    if (localTime == null) continue;
+
+    const pos = staffEntry.PositionAndShape?.AbsolutePosition;
+    if (!pos) continue;
+
+    let hasActualNote = false;
+    let x = pos.x * unit;
+
+    for (const gve of staffEntry.graphicalVoiceEntries || []) {
+      for (const note of gve.notes || []) {
+        const isRest = note.sourceNote?.isRest?.() || note.sourceNote?.IsRest || false;
+        if (isRest) continue;
+
+        hasActualNote = true;
+
+        const vfNote = Array.isArray(note?.vfnote) ? note.vfnote[0] : note?.vfnote;
+        const noteEl: SVGGraphicsElement | null = vfNote?.attrs?.el ?? null;
+        if (noteEl) {
+          const notehead =
+            (noteEl.querySelector(".vf-notehead") as SVGGraphicsElement) ??
+            (noteEl.querySelector("path") as SVGGraphicsElement) ??
+            (noteEl.querySelector("use") as SVGGraphicsElement);
+          try {
+            const bbox = (notehead ?? noteEl).getBBox();
+            x = bbox.x + bbox.width / 2;
+          } catch {}
         }
+        break;
       }
-
-      console.log(
-        `  staffEntries count: ${measure.staffEntries?.length || 0}`
-      );
-
-      // Collect all notes (skip rests)
-      const noteCount = 0;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const hasNoteAtStart = false;
-
-      for (const staffEntry of measure.staffEntries || []) {
-  const localTime = staffEntry.sourceStaffEntry?.Timestamp?.RealValue;
-  if (localTime == null) continue;
-
-  const pos = staffEntry.PositionAndShape?.AbsolutePosition;
-  if (!pos) continue;
-
-  let hasActualNote = false;
-  let x = pos.x * unit; // fallback only
-
-  for (const gve of staffEntry.graphicalVoiceEntries || []) {
-    for (const note of gve.notes || []) {
-      const isRest = note.sourceNote?.isRest?.() || note.sourceNote?.IsRest || false;
-      if (isRest) continue;
-
-      hasActualNote = true;
-
-      // ✅ Use the actual rendered notehead's bbox — same technique as drawFeedbackDot
-      const vfNote = Array.isArray(note?.vfnote) ? note.vfnote[0] : note?.vfnote;
-      const noteEl: SVGGraphicsElement | null = vfNote?.attrs?.el ?? null;
-      if (noteEl) {
-        const notehead =
-          (noteEl.querySelector(".vf-notehead") as SVGGraphicsElement) ??
-          (noteEl.querySelector("path") as SVGGraphicsElement) ??
-          (noteEl.querySelector("use") as SVGGraphicsElement);
-        try {
-          const bbox = (notehead ?? noteEl).getBBox();
-          x = bbox.x + bbox.width / 2;
-        } catch {
-          // element not measurable yet — keep fallback x
-        }
-      }
-      break;
+      if (hasActualNote) break;
     }
-    if (hasActualNote) break;
+
+    if (!hasActualNote) {
+      console.log(`  ⏭️ Skipping rest at t=${localTime.toFixed(3)}, x=${(pos.x * unit).toFixed(1)}px`);
+      continue;
+    }
+
+    const absTime = measureStarts[m] + localTime;
+    const normalizedTime = localTime / measureDuration;
+
+    entries.push({
+      time: normalizedTime,
+      absTime,
+      x,
+      y: top,
+      height,
+      measureIndex: m,
+    });
+
+    console.log(`  ✅ Note at t=${normalizedTime.toFixed(3)} (local=${localTime.toFixed(3)}), x=${x.toFixed(1)}px (bbox-based)`);
   }
 
-  if (!hasActualNote) {
-    console.log(`  ⏭️ Skipping rest at t=${localTime.toFixed(3)}, x=${(pos.x * unit).toFixed(1)}px`);
-    continue;
+  // ✅ Measure end — now runs exactly ONCE per measure, regardless of notes vs rests
+  let measureEndX = measureX + measureWidth; // fallback: logical
+  const realBounds = getRealMeasureXBounds([measure]);
+  if (realBounds) {
+    measureEndX = realBounds.right;
   }
-
-  const absTime = measureStarts[m] + localTime;
-  const normalizedTime = localTime / measureDuration;
 
   entries.push({
-    time: normalizedTime,
-    absTime,
-    x,
+    time: 1,
+    absTime: measureStarts[m] + measureDuration,
+    x: measureEndX,
     y: top,
     height,
     measureIndex: m,
   });
 
-  console.log(
-    `  ✅ Note at t=${normalizedTime.toFixed(3)} (local=${localTime.toFixed(3)}), x=${x.toFixed(1)}px (bbox-based)`
-  );
+  console.log(`  📍 Added measure end at x=${measureEndX.toFixed(1)}`);
 }
-
-      console.log(`  Total notes collected: ${noteCount}`);
-
-      // Measure end
-      entries.push({
-        time: 1,
-        absTime: measureStarts[m] + measureDuration,
-        x: measureX + measureWidth,
-        y: top,
-        height,
-        measureIndex: m,
-      });
-
-      console.log(
-        `  📍 Added measure end at x=${(measureX + measureWidth).toFixed(1)}px`
-      );
-    }
   }
 
   console.log(`✅ Total entries before dedup: ${entries.length}`);
@@ -589,7 +571,8 @@ function getRealMeasureXBounds(measureList: any[]): { left: number; right: numbe
 }
 
 function buildBeatAnchors(osmd: any, graphicalEntries: any[]) {
-  const anchors = new Map<number, { t: number; x: number }[]>();
+   const anchors = new Map<number, { t: number; x: number }[]>();
+  const restOnlyMeasures = new Set<number>(); // ← new
   const byMeasure = new Map<number, any[]>();
 
   for (const e of graphicalEntries) {
@@ -637,9 +620,11 @@ function buildBeatAnchors(osmd: any, graphicalEntries: any[]) {
     const arr: { t: number; x: number }[] = [];
 
     const measureEnd = list.find((e) => Math.abs(e.time - 1) < 0.0001);
+    
     const notes = list.filter((e) => Math.abs(e.time - 1) >= 0.0001);
 
     if (notes.length === 0) {
+  restOnlyMeasures.add(m);
   const measureRow = graphicSheet?.MeasureList?.[m];
   const xBounds = getRealMeasureXBounds(measureRow);
 
@@ -656,8 +641,9 @@ function buildBeatAnchors(osmd: any, graphicalEntries: any[]) {
 
   const endX = measureEnd ? measureEnd.x : endXFallback;
 
-  arr.push({ t: 0, x: startX + unitInPixels * 2 });
-  arr.push({ t: 1, x: endX - unitInPixels * 1 });
+  const padding = unitInPixels * 4; // ← was ×2 / ×1, now equal and larger on both sides
+  arr.push({ t: 0, x: startX + padding });
+  arr.push({ t: 1, x: endX - padding });
   anchors.set(m, arr);
   continue;
 }
@@ -718,7 +704,7 @@ function buildBeatAnchors(osmd: any, graphicalEntries: any[]) {
     }
   }
 
-  return anchors;
+   return { anchors, restOnlyMeasures }; ;
 }
 
 function handOfNote(osmd: any, note: any): "left" | "right" {
@@ -1219,6 +1205,8 @@ getHandNotesForBeat(index: number) {
     }
   }
 
+  
+
   destroy() {
     if (this.cursorElement) {
       this.cursorElement.remove();
@@ -1426,7 +1414,6 @@ getExpectedNotesByStaff(): { treble: number[], bass: number[] } {
       }
     }
   }
-
   return result;
 }
 }
@@ -1442,6 +1429,10 @@ export function useBeatCursor(
 
   React.useEffect(() => {
   const osmd = osmdRef.current;
+  
+  
+  
+
 
   if (!osmd || !osmd.Sheet || !osmd.GraphicSheet) {
     console.log("⏳ OSMD not ready yet...");
@@ -1463,13 +1454,14 @@ export function useBeatCursor(
     if (beatCursor?.next()) {
       setCurrentBeatIndex(beatCursor.getCurrentIndex());
     }
-  };
+  };  
 
   const previous = () => {
     if (beatCursor?.previous()) {
       setCurrentBeatIndex(beatCursor.getCurrentIndex());
     }
   };
+
 
   const reset = () => {
     beatCursor?.reset();
@@ -1479,6 +1471,8 @@ export function useBeatCursor(
   const refreshPositions = () => {
     beatCursor?.refreshPositions();
   };
+
+
 
   return {
     beatCursor,

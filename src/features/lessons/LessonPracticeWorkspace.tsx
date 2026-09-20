@@ -291,6 +291,11 @@ console.log("XML length:", xml?.length, "| type:", typeof xml);
           try {
             const beatCursor = new BeatCursor(osmdRef.current);
             beatCursorRef.current = beatCursor;
+            
+  for (let i = 0; i < Math.min(20, beatCursor?.getTotalBeats() || 0); i++) {
+  const b = beatCursor?.getBeatAt(i);
+  console.log(`Beatnew ${i}: measure=${b?.measureIndex}, x=${b?.staffEntryX?.toFixed(1)}, left=${b?.measureLeft?.toFixed(1)}, right=${b?.measureRight?.toFixed(1)}`);
+}
 
             const totalBeats = beatCursor.getTotalBeats();
             setTotalSteps(totalBeats);
