@@ -20,6 +20,10 @@ interface Beat {
   noteDuration?: number;
     measureLeft?: number;
   measureRight?: number;
+   /** Notes (OSMD halfTones) that START on this beat, split by hand. */
+  startByHand?: { left: number[]; right: number[] };
+  /** Notes (OSMD halfTones) sounding on this beat (including held), split by hand. */
+  activeByHand?: { left: number[]; right: number[] };
 }
 
 function collectMeasurePositions(
@@ -63,6 +67,8 @@ function collectMeasurePositions(
 
   return top === Infinity ? null : { top, bottom };
 }
+
+
 
   function getSystemGeometry(musicSystem: any) {
     if (!musicSystem) return { top: 0, height: 100 };
@@ -715,6 +721,13 @@ function buildBeatAnchors(osmd: any, graphicalEntries: any[]) {
   return anchors;
 }
 
+function handOfNote(osmd: any, note: any): "left" | "right" {
+  const staff = note?.ParentStaffEntry?.ParentStaff;
+  if (!staff) return "right";
+  const idx = staff.idInMusicSheet ?? (osmd.Sheet?.Staves ?? []).indexOf(staff);
+  return idx > 0 ? "left" : "right";
+}
+
 function enrichBeatsWithNotes(osmd: any, beats: Beat[]) {
   if (!osmd.cursor) {
     console.error("❌ OSMD cursor not available");
@@ -742,11 +755,12 @@ function enrichBeatsWithNotes(osmd: any, beats: Beat[]) {
   const iterator = osmd.cursor.Iterator;
 
   interface VoiceEntryInfo {
-    absoluteTime: number;
-    notes: number[];
-    duration: number;
-    measureIndex: number;
-  }
+  absoluteTime: number;
+  notes: number[];
+  duration: number;
+  measureIndex: number;
+  byHand: { left: number[]; right: number[] };   // NEW
+}
 
   const allVoiceEntries: VoiceEntryInfo[] = [];
   let safetyCounter = 0;
@@ -759,6 +773,7 @@ function enrichBeatsWithNotes(osmd: any, beats: Beat[]) {
     const measureIndex = iterator.CurrentMeasureIndex;
 
     if (currentVoiceEntries && currentVoiceEntries.length > 0) {
+      const byHand = { left: [] as number[], right: [] as number[] };
       const firstEntry = currentVoiceEntries[0];
       const timestamp = firstEntry.Timestamp;
       const notes: number[] = [];
@@ -773,6 +788,11 @@ function enrichBeatsWithNotes(osmd: any, beats: Beat[]) {
           if (duration > maxDuration) {
             maxDuration = duration;
           }
+
+          if (typeof halfTone === "number" && !isRest) {
+  const hand = handOfNote(osmd, note);
+  if (!byHand[hand].includes(halfTone)) byHand[hand].push(halfTone);
+}
 
           if (
             typeof halfTone === "number" &&
@@ -789,12 +809,7 @@ function enrichBeatsWithNotes(osmd: any, beats: Beat[]) {
         const relativeTime = timestamp.RealValue;
         const absoluteTime = measureStarts[measureIndex] + relativeTime;
 
-        allVoiceEntries.push({
-          absoluteTime,
-          notes,
-          duration: maxDuration,
-          measureIndex,
-        });
+        allVoiceEntries.push({ absoluteTime, notes, duration: maxDuration, measureIndex, byHand });
 
         console.log(
           `📝 Note at measure ${measureIndex}, relative t=${relativeTime.toFixed(4)}, absolute t=${absoluteTime.toFixed(4)}, notes=${notes.join(",")}, duration=${maxDuration.toFixed(4)}`
@@ -815,6 +830,8 @@ function enrichBeatsWithNotes(osmd: any, beats: Beat[]) {
     const activeNotes: number[] = [];
     let isStart = false;
     let noteDuration = 0;
+    const activeByHand = { left: [] as number[], right: [] as number[] };
+const startByHand = { left: [] as number[], right: [] as number[] };
 
     for (const entry of allVoiceEntries) {
       const entryStart = entry.absoluteTime;
@@ -824,6 +841,12 @@ function enrichBeatsWithNotes(osmd: any, beats: Beat[]) {
         beatTime >= entryStart - EPSILON &&
         beatTime < entryEnd - EPSILON
       ) {
+
+        for (const hand of ["left", "right"] as const) {
+  for (const n of entry.byHand[hand]) {
+    if (!activeByHand[hand].includes(n)) activeByHand[hand].push(n);
+  }
+}
         for (const note of entry.notes) {
           if (!activeNotes.includes(note)) {
             activeNotes.push(note);
@@ -831,6 +854,11 @@ function enrichBeatsWithNotes(osmd: any, beats: Beat[]) {
         }
 
         if (Math.abs(beatTime - entryStart) < EPSILON) {
+          for (const hand of ["left", "right"] as const) {
+  for (const n of entry.byHand[hand]) {
+    if (!startByHand[hand].includes(n)) startByHand[hand].push(n);
+  }
+}
           isStart = true;
           noteDuration = entry.duration;
         }
@@ -838,6 +866,8 @@ function enrichBeatsWithNotes(osmd: any, beats: Beat[]) {
     }
 
     beat.expectedNotes = activeNotes;
+    beat.activeByHand = activeByHand;
+    beat.startByHand = startByHand;
     beat.isNoteStart = isStart;
     beat.noteDuration = noteDuration;
 
@@ -1114,6 +1144,8 @@ private updateCursorPosition(animate: boolean = false, animMs?: number) {
       newBeats[i].expectedNotes = this.beats[i].expectedNotes;
       newBeats[i].isNoteStart = this.beats[i].isNoteStart;
       newBeats[i].noteDuration = this.beats[i].noteDuration;
+      newBeats[i].startByHand = this.beats[i].startByHand;
+      newBeats[i].activeByHand = this.beats[i].activeByHand;
     }
 
     this.beats = newBeats;
@@ -1127,6 +1159,21 @@ private updateCursorPosition(animate: boolean = false, animMs?: number) {
   getBeatAt(index: number): Beat | null {
     return this.beats[index] || null;
   }
+
+  getStaffCount(): number {
+  return this.osmd.Sheet?.Staves?.length ?? 1;
+}
+
+getHandNotesForBeat(index: number) {
+  const beat = this.beats[index];
+  if (!beat) return null;
+  const toMidi = (a?: number[]) => (a ?? []).map((ht) => ht + this.transposeOffset);
+  return {
+    isNoteStart: beat.isNoteStart === true,
+    start: { left: toMidi(beat.startByHand?.left), right: toMidi(beat.startByHand?.right) },
+    active: { left: toMidi(beat.activeByHand?.left), right: toMidi(beat.activeByHand?.right) },
+  };
+}
 
   getTotalBeats(): number {
     return this.beats.length;

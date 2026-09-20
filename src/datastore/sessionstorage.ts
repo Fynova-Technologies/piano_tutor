@@ -48,6 +48,7 @@ export type PracticeMistakeEvent = {
   playedMidi: number;
   kind: "wrong_pitch" | "timing_or_extra_note";
   measureIndex?: number;
+  hand?: "left" | "right";   // NEW
 };
 
 export interface PracticeSession {

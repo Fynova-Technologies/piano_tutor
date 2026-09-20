@@ -9,6 +9,8 @@ import { useAiReview } from "./useAiReview";
 import { AiReviewCharts } from "./AiReviewCharts";
 import { MiniSheetMusicPreview } from "./MiniSheetMusicPreview";
 import { MistakeRecoverySection } from "@/features/recovery/MistakeRecoverySection";
+import { HandBalanceCard } from "./handbalancecard";
+
 import {
   // analysisAccentGradient,
   analysisCodeBg,
@@ -397,6 +399,9 @@ export default function AiReviewRecoveryCenter() {
             />
           </div>
         </motion.div>
+        <div className="mb-5">
+  <HandBalanceCard insights={snapshot.handInsights} />
+</div>
 
         {/* ── Middle Row: Note Habits + Quick Actions ── */}
         <motion.div

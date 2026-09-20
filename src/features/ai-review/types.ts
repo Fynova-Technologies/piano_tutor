@@ -1,4 +1,5 @@
 /** Shared contract between client, API route, and future OpenAI JSON output. */
+import type { HandInsights } from "@/lib/practiceSessions/handinsights";
 
 export type AnalyticsSnapshot = {
   generatedAt: string;
@@ -13,6 +14,7 @@ export type AnalyticsSnapshot = {
   totalPracticeMinutes: number;
   lastSessionAt: string | null;
   previousPeriodAvgScore: number | null;
+    handInsights?: HandInsights;
 };
 
 export type MistakeReviewPlan = {

@@ -15,6 +15,7 @@ import { extractMusicXmlFromMxlBuffer } from "@/lib/musicxml/buildMxl";
 import { metronomeService } from "@/lib/audio/metronomeService";
 import { countdownSoundService } from "@/lib/audio/countdownSoundService";
 import { useRecentLessons } from "@/utils/userprogress/userrecentpost"; // ← new
+import { createHandTracker, recordHandPress, finalizeHandStats } from "@/lib/practiceSessions/handstats";
 
 
 
@@ -104,6 +105,7 @@ const [uploadLoading, setUploadLoading] = useState(false);
   const mistakeEventsRef = useRef<
     import("@/datastore/sessionstorage").PracticeMistakeEvent[]
   >([]);
+  const handTrackerRef = useRef(createHandTracker());
   const xml = uploadedMusicXML;
   const lessons = useLessons();
   const markComplete = lessons?.markComplete;
@@ -167,6 +169,7 @@ useEffect(() => {
     currentCursorStepRef.current = 0;
     setScore(null);
     mistakeEventsRef.current = [];
+    handTrackerRef.current = createHandTracker();
     scoredStepsRef.current.clear();
     correctStepsRef.current = 0;
     incorrectNotesRef.current = 0;
@@ -779,6 +782,9 @@ async function handleEndOfPiece() {
       : 0;
 
   const lessonUID = lessonUid;
+  const handStats = beatCursorRef.current
+  ? finalizeHandStats(handTrackerRef.current, beatCursorRef.current)
+  : null;
 
   const session = {
     id: crypto.randomUUID(),
@@ -802,7 +808,9 @@ async function handleEndOfPiece() {
       incorrectNotes: incorrectNotesRef.current,
       totalScoreable: scoreableNotesRef.current,
     },
+    
     mistakeEvents: [...mistakeEventsRef.current],
+    progressMetrics: handStats ? { handStats } : undefined,
   };
 
   saveSession(session);
@@ -843,18 +851,23 @@ function trackAndHighlightNote(midi: number) {
   const isNoteStart = currentBeat.isNoteStart === true;
   const exactMatch = expectedMIDI.includes(midi);
   const isCorrect = exactMatch && isNoteStart;
+  const handInfo = beatCursorRef.current.getHandNotesForBeat(actualCurrentBeatIndex);
+const pressHand = handInfo
+  ? recordHandPress(handTrackerRef.current, actualCurrentBeatIndex, midi, handInfo)
+  : undefined;
 
   const recordMistake = (
     kind: import("@/datastore/sessionstorage").PracticeMistakeEvent["kind"]
   ) => {
     mistakeEventsRef.current.push({
-      at: Date.now(),
-      cursorStep: actualCurrentBeatIndex,
-      expectedMidi: [...expectedMIDI],
-      playedMidi: midi,
-      kind,
-      measureIndex: currentBeat.measureIndex,
-    });
+  at: Date.now(),
+  cursorStep: actualCurrentBeatIndex,
+  expectedMidi: [...expectedMIDI],
+  playedMidi: midi,
+  kind,
+  measureIndex: currentBeat.measureIndex,
+  hand: pressHand,
+});
   };
 
   if (scoredStepsRef.current.has(actualCurrentBeatIndex)) return;

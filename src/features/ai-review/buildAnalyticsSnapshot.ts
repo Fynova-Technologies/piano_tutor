@@ -1,5 +1,6 @@
 import type { PracticeSession } from "@/datastore/sessionstorage";
 import type { AnalyticsSnapshot } from "./types";
+import { aggregateHandInsights } from "@/lib/practiceSessions/handinsights";
 
 function startOfDay(ts: number) {
   const d = new Date(ts);
@@ -89,5 +90,6 @@ export function buildAnalyticsSnapshot(sessions: PracticeSession[]): AnalyticsSn
     totalPracticeMinutes,
     lastSessionAt,
     previousPeriodAvgScore: prevAvg,
+    handInsights: aggregateHandInsights(sessions),
   };
 }
