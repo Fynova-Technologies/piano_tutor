@@ -148,15 +148,16 @@ access later.                  </p>
     <div className="bg-[#F8F6F1] flex justify-center px-4 pb-8">
       <div className="max-w-[90%] w-full">
         <h1 className="text-2xl font-bold mb-6 text-[#151517]">Favorites</h1>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-          {favoriteSongs.map((song) => (
-            <div key={song.id} className="w-full">
-              <div className="shadow-lg rounded-2xl overflow-hidden bg-white">
-                <div className="relative group aspect-square">
-                  <Image
-                    src={song.imageUrl}
-                    alt={song.title}
-                    fill
+        <div className="flex flex-wrap gap-6">
+  {favoriteSongs.map((song) => (
+    <div key={song.id} className="w-[calc(50%-0.75rem)] sm:w-[200px]">
+      <div className="overflow-hidden rounded-2xl bg-white shadow-lg">
+        <div className="relative group aspect-square">
+          <Image
+            src={song.imageUrl}
+            alt={song.title}
+            fill
+            sizes="(max-width: 640px) 50vw, 200px"
                     className="object-cover transition-transform duration-300 hover:scale-105 cursor-pointer"
                     onClick={() => {
                       setOpenDialogue(true);

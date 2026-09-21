@@ -147,7 +147,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${dmMono.variable} ${poppins.variable} ${playfair.variable}`}>
+      <body className={`${inter.variable} ${dmMono.variable} ${poppins.variable} ${playfair.variable} flex flex-col min-h-dvh`}>
         {/* AuthProvider now wraps NavbarSwitcher too — previously it only
             wrapped <main>, so anything inside NavbarSwitcher (like
             UserPopup) called useAuth() with no provider above it and
@@ -155,7 +155,7 @@ export default async function RootLayout({
         <AuthProvider>
           {/* {session ? <Navbar /> : <UnauthUserNavbar />} */}
           <NavbarSwitcher />
-          <main className="w-full">
+          <main className="flex w-full flex-1 flex-col">
             <AudioProvider>
               <LessonsProvider><TechniquesProvider>{children}</TechniquesProvider></LessonsProvider>
             </AudioProvider>

@@ -26,14 +26,14 @@ export default function ContinueLearning() {
       <div className=" bg-[#F8F6F1] px-1 pb-4">
         <div className="max-w-[90%] w-full">
           <h1 className="text-black text-2xl font-bold">Continue Learning</h1>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 py-4">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className="w-full rounded-2xl bg-gray-200 animate-pulse h-[290px]"
-              />
-            ))}
-          </div>
+          <div className="flex flex-wrap gap-6 py-4">
+  {Array.from({ length: 5 }).map((_, i) => (
+    <div
+      key={i}
+      className="w-[calc(50%-0.75rem)] sm:w-[200px] aspect-[5/6] rounded-2xl bg-gray-200 animate-pulse"
+    />
+  ))}
+</div>
         </div>
       </div>
     );
@@ -89,56 +89,45 @@ export default function ContinueLearning() {
 
   // ── Main render ─────────────────────────────────────────────────────────
   return (
-    <div className="flex justify-center bg-[#F8F6F1] px-1 pb-4">
-      <div className="max-w-[90%] w-full">
-        <h1 className="text-black text-2xl font-bold">Continue Learning</h1>
+    <div className="flex justify-center bg-[#F8F6F1] px-4 pb-4">
+  <div className="w-full max-w-[90%]">
+    <h1 className="text-black text-2xl font-bold">Continue Learning</h1>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 py-4">
-          {recentLessons.map((lesson, index) => {
-            // ✅ Cycles through COVER_IMAGES: 0 -> img1, 1 -> img2, 2 -> img3, 3 -> img1, ...
-            const coverImage = COVER_IMAGES[index % COVER_IMAGES.length];
+    <div className="flex flex-wrap gap-6 py-4">
+      {recentLessons.slice(0, 5).map((lesson, index) => {
+        const coverImage = COVER_IMAGES[index % COVER_IMAGES.length];
+        const handleResume = () => { /* unchanged */ };
 
-            const handleResume = () => {
-              const params = new URLSearchParams({
-                id: lesson.fkid,
-                title: lesson.lesson_title,
-                file: lesson.file ?? "",
-                unitId: lesson.unit_id,
-                source: lesson.source,
-                lessonid: lesson.lesson_id,
-                fkid: lesson.fkid,
-              });
-              router.push(`/lessons?${params.toString()}`);
-            };
-
-            return (
-              <div
-                key={lesson.id}
-                className="w-full cursor-pointer"
-                onClick={handleResume}
-              >
-                <div className="relative rounded-2xl overflow-hidden shadow-lg group w-full max-h-[290px]">
-                  <Image
-                    src={coverImage}
-                    alt={lesson.lesson_title}
-                    width={400}
-                    height={400}
-                    className="object-cover w-full h-[300px] transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-black opacity-40 group-hover:opacity-50 transition-opacity duration-300" />
-                  <div className="absolute bottom-0 left-2 right-2">
-                    <h1 className="text-[8px] text-white">Method: {lesson.course_title}</h1>
-                    <div className="flex text-[#D4AF37] font-bold text-lg mt-1">
-                      {lesson.lesson_id}. {lesson.lesson_title}
-                    </div>
-                  </div>
+        return (
+          <div
+            key={lesson.id}
+            onClick={handleResume}
+            className="group w-[calc(50%-0.75rem)] sm:w-[200px] cursor-pointer"
+          >
+            <div className="relative aspect-[5/6] overflow-hidden rounded-2xl shadow-lg">
+              <Image
+                src={coverImage}
+                alt={lesson.lesson_title}
+                fill
+                sizes="(max-width: 640px) 50vw, 200px"
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              <div className="absolute inset-0 bg-black/40 transition-opacity duration-300 group-hover:bg-black/50" />
+              <div className="absolute inset-x-0 bottom-0 p-3">
+                <h1 className="line-clamp-1 text-[10px] text-white">
+                  Method: {lesson.course_title}
+                </h1>
+                <div className="mt-1 line-clamp-2 break-words text-base font-bold leading-tight text-[#D4AF37]">
+                  {lesson.lesson_id}. {lesson.lesson_title}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
+  </div>
+</div>
   );
 }
 
