@@ -53,6 +53,7 @@ export default function OptionPopup({ openDialogue, setOpenDialogue }: OptionPop
 
   const [optionSettings, setOptionSettings] = useState(defaultOptionSettings);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const updateValue = (field: keyof OptionSettingsData, change: number) => {
     setOptionSettings((prev) => ({
       ...prev,
@@ -65,6 +66,7 @@ export default function OptionPopup({ openDialogue, setOpenDialogue }: OptionPop
     if (category) setVolume(category, value);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const resetSettings = () => {
     setOptionSettings(defaultOptionSettings);
   };
@@ -94,9 +96,9 @@ export default function OptionPopup({ openDialogue, setOpenDialogue }: OptionPop
             Practice Selection
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
-            {pairedSettings.map(({ optKey, optValue, soundKey, icon, volume }) => (
+            {pairedSettings.map(({ optKey, soundKey, icon, volume }) => (
               <React.Fragment key={optKey}>
-                <div className="flex flex-col justify-between bg-gradient-to-r from-[#F2F2F2] to-[#EAEAEA] rounded-2xl p-3 md:p-4">
+                {/* <div className="flex flex-col justify-between bg-gradient-to-r from-[#F2F2F2] to-[#EAEAEA] rounded-2xl p-3 md:p-4">
                   <div className="flex items-center justify-between border-b pb-2 gap-2">
                     <span className="capitalize text-base md:text-xl font-medium text-black max-w-[55%] md:max-w-[60%]">
                       {optKey.replace("_", " ")}
@@ -132,7 +134,7 @@ export default function OptionPopup({ openDialogue, setOpenDialogue }: OptionPop
                       Reset Measures
                     </button>
                   )}
-                </div>
+                </div> */}
 
                 {soundKey && icon && (
                   <div className="bg-gradient-to-r from-[#FFFFFFE5] via-[#D8D8D8] to-[#D8D8D8] rounded-2xl p-3 md:p-4 flex flex-col justify-between">

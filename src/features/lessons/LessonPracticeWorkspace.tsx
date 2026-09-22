@@ -1294,7 +1294,7 @@ if (bassStaveObj && bassStaveObj.y !== trebleStaveObj?.y && osmdHT < 48) {
       />
 
       {/* Debug panel: above footer so it never covers the title bar stats */}
-      <div
+      {/* <div
         style={{
           position: "fixed",
           right: "max(12px, env(safe-area-inset-right, 0px))",
@@ -1412,7 +1412,7 @@ if (bassStaveObj && bassStaveObj.y !== trebleStaveObj?.y && osmdHT < 48) {
             <div>Initializing...</div>
           );
         })()}
-      </div>
+      </div> */}
     </>
   );
 }

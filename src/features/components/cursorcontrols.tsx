@@ -222,16 +222,12 @@ export default function CursorControls (props: CursorControlsProps) {
 </div>
 
           <section
-  className="w-full flex-1 box-border"
-  style={{ background: "#F8F6F1" }}
->
-  <div
-    className="w-full max-w-[1800px] mx-auto box-border px-10 pt-10"
-    style={{
-      // 5rem = footer height (h-20), 1.5rem = breathing room
-      paddingBottom: "calc(5rem + 1.5rem + env(safe-area-inset-bottom, 0px))",
-    }}
-  >
+            className=" w-full flex-1 box-border "
+            style={{
+              background: "#F8F6F1",
+            }}
+          >
+            <div className="w-full max-w-[1800px] mx-auto box-border px-10 py-4 pt-10">
               <div
                 className="mx-auto box-border w-full max-w-[1600px] overflow-x-auto"
                 style={{
