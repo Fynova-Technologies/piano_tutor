@@ -27,7 +27,7 @@ export default function ContinueLearning() {
         <div className="max-w-[90%] w-full">
           <h1 className="text-black text-2xl font-bold">Continue Learning</h1>
           <div className="flex flex-wrap gap-6 py-4">
-  {Array.from({ length: 5 }).map((_, i) => (
+  {Array.from({ length: 8 }).map((_, i) => (
     <div
       key={i}
       className="w-[calc(50%-0.75rem)] sm:w-[200px] aspect-[5/6] rounded-2xl bg-gray-200 animate-pulse"
@@ -93,8 +93,8 @@ export default function ContinueLearning() {
   <div className="w-full max-w-[90%]">
     <h1 className="text-black text-2xl font-bold">Continue Learning</h1>
 
-    <div className="flex flex-wrap gap-6 py-4">
-      {recentLessons.slice(0, 5).map((lesson, index) => {
+    <div className="flex flex-wrap gap-11 py-4">
+      {recentLessons.slice(0, 7).map((lesson, index) => {
         const coverImage = COVER_IMAGES[index % COVER_IMAGES.length];
         const handleResume = () => { /* unchanged */ };
 

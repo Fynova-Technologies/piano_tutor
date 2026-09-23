@@ -1,9 +1,13 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import ProgressCircle from "@/components/progressCircle";
 import { useLessons } from "@/utils/userprogress/lessonprogress"
 import { useTechniques } from "@/utils/userprogress/techniqueContext";
 import { useRecentLessons } from "@/utils/userprogress/userrecentpost";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
+
+const supabase = getSupabaseBrowserClient();
 
 export default function MusicCategories() {
     const router = useRouter();
@@ -24,6 +28,7 @@ export default function MusicCategories() {
 
     // ✅ Recent lessons, for the two "Recent Music" images
     const { recentLessons } = useRecentLessons();
+    const [sasrHighScore, setSasrHighScore] = useState(0);
 
     // Builds the /lessons URL for a given lesson, same shape as ContinueLearning's handleResume
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,39 +56,75 @@ export default function MusicCategories() {
         router.push(buildLessonHref(lesson));
     };
 
+    useEffect(() => {
+        let active = true;
+
+        async function loadHighScore() {
+            const { data: userData, error: userError } = await supabase.auth.getUser();
+            if (userError || !userData.user?.id) {
+                if (userError) console.error("Failed to get user for SASR high score:", userError);
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from("user_sasr_level_progress")
+                .select("high_points")
+                .eq("user_id", userData.user.id);
+
+            if (error) {
+                console.error("Failed to load SASR high score:", error);
+                return;
+            }
+
+            if (active && data && data.length > 0) {
+                setSasrHighScore(Math.max(...data.map((row: { high_points: number; }) => row.high_points)));
+            }
+        }
+
+        loadHighScore();
+        return () => {
+            active = false;
+        };
+    }, []);
+
     return(
          <div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Music Library Card - unchanged */}
+        {/* Music Library Card */}
         <div
           onClick={() => router.push("/library")}
           className="bg-[#FEFEFE] rounded-2xl w-full hover:bg-[#f2e6c1] hover:rounded-3xl p-6 hover:inset-10 hover:shadow-[0_5px_10px_0px_#505050] transition duration-300 cursor-pointer group hover:scale-[1.03] min-h-[140px]"
         >
-           <div className="relative flex">
-    <div className="relative flex items-center overflow-hidden w-full z-10 rounded-3xl">
-      <div className="bg-[#FEFEFE] group-hover:bg-[#f2e6c1] transition duration-300 flex flex-col items-start justify-center z-10 h-full w-[140px] md:w-[200px] ml-4 md:ml-16">
-        <h3 className="primary-color-text text-[36px] font-bold p-0 m-0">Music</h3>
-        <h3 className="text-xl text-[36px] font-bold bg-gradient-to-r from-[#5f4f19] to-[#aa8c2c] bg-clip-text text-transparent p-0 m-0">Library</h3>
-      </div>
-      <div className="absolute left-[80px] md:left-[100px] group-hover:translate-x-6 transition-transform duration-1000 ease-in-out hidden sm:block">
-        <div className="relative w-[300px] h-[200px]">
-          <Image src="/gifs/vinyl.gif" alt="Vinyl GIF" fill className="object-cover bg-transparent" />
-          <div className="absolute inset-0 bg-white opacity-30 pointer-events-none"></div>
-        </div>
-      </div>
-    </div>
-    <div className="hidden sm:flex flex-col items-center ml-auto space-y-4 p-6 group-hover:-translate-x-6 transition-transform duration-1000 ease-in-out">
-                            <div className="flex items-center justify-center gap-2">
-                                <div onClick={handleResumeAt(0)} className="cursor-pointer hover:border-2 hover:border-[#D4AF37] hover:rounded-2xl ">
-                                    <Image src="/gifs/piano.png" alt="Piano" width={100} height={100} className="w-10 h-14 rounded-2xl object-cover" />
-                                </div>
-                                <div onClick={handleResumeAt(1)} className="cursor-pointer hover:border-2 hover:border-[#D4AF37] hover:rounded-2xl">
-                                    <Image src="/gifs/manpiano.jpg" alt="Man Piano" width={100} height={100} className="w-10 h-14 rounded-2xl object-cover" />
-                                </div>
-                            </div>
-                            <span className="text-[#151517] text-[16px]">Recent Music</span>
-                        </div>
-  </div>
+          {/* ✅ same responsive wrapper as the other three cards: stacked + centered on mobile, row on sm+ */}
+          <div className="relative flex flex-col items-center sm:items-stretch sm:flex-row gap-4 sm:gap-0">
+            <div className="relative flex items-center justify-center sm:justify-start overflow-hidden w-full sm:flex-1 z-10 rounded-3xl">
+              {/* ✅ text centered on mobile (no more fixed ml-4 dragging it off-center), left-aligned on sm+ */}
+              <div className="bg-[#FEFEFE] group-hover:bg-[#f2e6c1] transition duration-300 flex flex-col items-center sm:items-start justify-center text-center sm:text-left z-10 h-full w-[140px] md:w-[200px] ml-0 md:ml-16">
+                <h3 className="primary-color-text text-[36px] font-bold p-0 m-0">Music</h3>
+                <h3 className="text-xl text-[36px] font-bold bg-gradient-to-r from-[#5f4f19] to-[#aa8c2c] bg-clip-text text-transparent p-0 m-0">Library</h3>
+              </div>
+              {/* Decorative vinyl gif — kept hidden below sm, it's a background flourish that would overlap/clutter a narrow card */}
+              <div className="absolute left-[80px] md:left-[100px] group-hover:translate-x-6 transition-transform duration-1000 ease-in-out hidden sm:block">
+                <div className="relative w-[300px] h-[200px]">
+                  <Image src="/gifs/vinyl.gif" alt="Vinyl GIF" fill className="object-cover bg-transparent" />
+                  <div className="absolute inset-0 bg-white opacity-30 pointer-events-none"></div>
+                </div>
+              </div>
+            </div>
+            {/* ✅ Recent Music thumbnails: no longer "hidden sm:flex" — these are functional (resume a lesson),
+                so they now render on every screen size, just stacked below the title on mobile */}
+            <div className="flex flex-col items-center space-y-2 sm:space-y-4 p-2 sm:p-6 flex-shrink-0 self-center sm:ml-auto">
+              <div className="flex items-center justify-center gap-2">
+                <div onClick={handleResumeAt(0)} className="cursor-pointer hover:border-2 hover:border-[#D4AF37] hover:rounded-2xl">
+                  <Image src="/gifs/piano.png" alt="Piano" width={100} height={100} className="w-10 h-14 rounded-2xl object-cover" />
+                </div>
+                <div onClick={handleResumeAt(1)} className="cursor-pointer hover:border-2 hover:border-[#D4AF37] hover:rounded-2xl">
+                  <Image src="/gifs/manpiano.jpg" alt="Man Piano" width={100} height={100} className="w-10 h-14 rounded-2xl object-cover" />
+                </div>
+              </div>
+              <span className="text-[#151517] text-sm sm:text-[16px]">Recent Music</span>
+            </div>
+          </div>
         </div>
 
         {/* Sight Reading Card */}
@@ -110,8 +151,8 @@ export default function MusicCategories() {
     <div className="flex flex-col items-center p-4 sm:p-6 rounded-2xl shadow-[0_5px_10px_0px_#505050] bg-[#FEFEFE] flex-shrink-0 self-center w-fit">
       <div className="flex flex-col items-center gap-1 sm:gap-2 w-full">
         <div className="flex gap-2 sm:gap-4 items-center">
-          <Image src="/Frame.svg" alt="Frame" width={10} height={10} className="w-7 h-6 sm:w-10 sm:h-9 rounded-2xl object-cover" />
-          <span className="text-[#151517] text-2xl sm:text-4xl font-bold">10</span>
+                    <Image src="/Frame.svg" alt="Frame" width={10} height={10} className="w-7 h-6 sm:w-10 sm:h-9 rounded-2xl object-cover" />
+          <span className="text-[#151517] text-2xl sm:text-4xl font-bold">{sasrHighScore}</span>
         </div>
         <span className="text-[#151517] text-sm sm:text-xl w-full text-center whitespace-nowrap">High Score</span>
       </div>

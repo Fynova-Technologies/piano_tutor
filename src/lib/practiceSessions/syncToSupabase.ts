@@ -7,6 +7,20 @@ const supabase = getSupabaseBrowserClient();
 const pendingQueue: PracticeSession[] = [];
 let flushScheduled = false;
 
+// ✅ Lightweight pub/sub: lets other parts of the app (e.g. useLessonPlayCount)
+// react to "a session was queued for sync" without needing a promise back from
+// queuePracticeSessionSync, and without saveSession()'s call site needing to
+// know anything about play counts.
+type SessionQueuedListener = (session: PracticeSession) => void;
+const sessionQueuedListeners = new Set<SessionQueuedListener>();
+
+export function onSessionQueued(listener: SessionQueuedListener): () => void {
+  sessionQueuedListeners.add(listener);
+  return () => {
+    sessionQueuedListeners.delete(listener);
+  };
+}
+
 function scheduleFlush() {
   if (flushScheduled) return;
   flushScheduled = true;
@@ -71,6 +85,8 @@ async function flushQueue() {
 export function queuePracticeSessionSync(session: PracticeSession) {
   pendingQueue.push(session);
   scheduleFlush();
+  // ✅ notify listeners (e.g. useLessonPlayCount) that this session was queued
+  sessionQueuedListeners.forEach((listener) => listener(session));
 }
 
 /** Optional: fetch a user's full session history from Supabase */

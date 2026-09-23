@@ -148,7 +148,7 @@ access later.                  </p>
     <div className="bg-[#F8F6F1] flex justify-center px-4 pb-8">
       <div className="max-w-[90%] w-full">
         <h1 className="text-2xl font-bold mb-6 text-[#151517]">Favorites</h1>
-        <div className="flex flex-wrap gap-6">
+        <div className="flex flex-wrap gap-11">
   {favoriteSongs.map((song) => (
     <div key={song.id} className="w-[calc(50%-0.75rem)] sm:w-[200px]">
       <div className="overflow-hidden rounded-2xl bg-white shadow-lg">

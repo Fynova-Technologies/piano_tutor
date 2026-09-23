@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { usePathname, useRouter } from "next/navigation";
-import Image from "next/image";
 import { useState, useMemo, useEffect } from "react";
-import { ArrowUpDown, MoreVertical, Download, Printer } from "lucide-react";
+import { ArrowUpDown, MoreVertical } from "lucide-react";
 import { PracticeSession } from "@/datastore/sessionstorage";
-import {getSupabaseBrowserClient} from "@/lib/supabase/browserclient";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
+import Image from "next/image";
 
 const supabase = getSupabaseBrowserClient();
 
@@ -46,7 +47,6 @@ function isInRange(
 
 export default function SASRReportPage() {
   const pathname = usePathname();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter();
   const breadcrumbs = pathname.split("/").filter((s) => s);
 
@@ -79,7 +79,7 @@ export default function SASRReportPage() {
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mapped: PracticeSession[] = data.map((r:any) => ({
+      const mapped: PracticeSession[] = data.map((r: any) => ({
         id: r.id,
         startedAt: new Date(r.started_at).getTime(),
         endedAt: new Date(r.ended_at).getTime(),
@@ -123,15 +123,13 @@ export default function SASRReportPage() {
   // ── Statistics (over range) ──────────────────────────────────────────────
   const statistics = useMemo(() => {
     if (rangedSessions.length === 0) {
-      return { lastScore: 0, highestScore: 0, averageScore: 0, totalSessions: 0 };
+      return { lastScore: 0, highestScore: 0 };
     }
     const scores = rangedSessions.map((s) => s.performance.score);
     // rangedSessions is sorted descending by startedAt, so index 0 = most recent
     return {
       lastScore: scores[0],
       highestScore: Math.max(...scores),
-      averageScore: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
-      totalSessions: rangedSessions.length,
     };
   }, [rangedSessions]);
 
@@ -168,6 +166,37 @@ export default function SASRReportPage() {
     window.print();
   }
 
+  function downloadCSV() {
+    if (filteredSessions.length === 0) return;
+
+    const headers = ["Title", "Date", "Attempts", "Score"];
+    const escapeCell = (value: string | number) => {
+      const str = String(value ?? "");
+      return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+    };
+
+    const rows = filteredSessions.map((s) => [
+      s.lesson.title,
+      new Date(s.startedAt).toLocaleDateString(),
+      s.performance.attempts,
+      s.performance.score,
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map(escapeCell).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `sasr-report-${range}-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentItems = filteredSessions.slice(startIndex, startIndex + itemsPerPage);
   const totalPages = Math.ceil(filteredSessions.length / itemsPerPage);
@@ -183,80 +212,71 @@ export default function SASRReportPage() {
         <span className="text-lg sm:text-2xl text-[#151517] font-medium">SASR Report</span>
       </div>
 
+      {/* ── Main table card ────────────────────────────────────────── */}
       <div className="bg-[#FEFEFE] w-full rounded-2xl p-4 sm:p-6 mt-4">
-
-        {/* Statistics */}
-        <div className="flex flex-col sm:flex-row sm:justify-between gap-4 pt-4 border-b border-[#E3E3E3] pb-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8 flex-1">
+        {/* Header totals */}
+        <div className="flex flex-col sm:flex-row sm:justify-between gap-4 pt-4">
+          <div className="flex flex-col gap-4 p-4 sm:p-6 border-b border-[#E3E3E3] text-[#151517] text-[16px] sm:text-[18px] font-medium">
             {loading ? (
-              <div className="col-span-2 md:col-span-4 text-gray-400 text-sm">Loading statistics…</div>
+              <span className="text-gray-400 text-sm font-normal">Loading statistics…</span>
             ) : (
               <>
-                <div className="flex flex-col gap-2">
-                  <span className="text-[#6E6E73] text-sm font-medium">Last Score</span>
-                  <span className="text-[#151517] text-2xl sm:text-3xl font-bold">{statistics.lastScore}%</span>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <span className="text-[#6E6E73] text-sm font-medium">Highest Score</span>
-                  <span className="text-2xl sm:text-3xl font-bold text-green-600">{statistics.highestScore}%</span>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <span className="text-[#6E6E73] text-sm font-medium">Average Score</span>
-                  <span className="text-2xl sm:text-3xl font-bold text-blue-600">{statistics.averageScore}%</span>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <span className="text-[#6E6E73] text-sm font-medium">Total Sessions</span>
-                  <span className="text-2xl sm:text-3xl font-bold text-purple-600">{statistics.totalSessions}</span>
-                </div>
+                <span>Last Score : {statistics.lastScore}</span>
+                <span>Highest Score : {statistics.highestScore}</span>
               </>
             )}
           </div>
-
-          <div className="flex items-start gap-4 self-end sm:self-start">
-            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Download Data">
-              <Download className="w-5 h-5 text-[#151517]" />
-            </button>
-            <button onClick={printReport} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Print Report">
-              <Printer className="w-5 h-5 text-[#151517]" />
-            </button>
+          <div className="text-[#151517] space-x-8 px-4 sm:px-0">
+            <Image
+              src="/downloadbutton.svg"
+              alt="download"
+              width={21}
+              height={21}
+              className="inline-block cursor-pointer"
+              onClick={downloadCSV}
+            />
+            <Image
+              src="/printreport.svg"
+              alt="print"
+              width={21}
+              height={21}
+              className="inline-block cursor-pointer"
+              onClick={printReport}
+            />
           </div>
         </div>
 
-        {/* Search + Range */}
-        <div className="flex flex-col sm:flex-row sm:justify-between mt-6 gap-4">
-          <div className="relative w-full max-w-md">
+        {/* Search + Range filter */}
+        <div className="flex flex-col sm:flex-row justify-between gap-3 mt-4">
+          <div className="relative w-full max-w-md ml-0 sm:ml-4">
             <input
               type="text"
               placeholder="Quick Search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full rounded-lg border border-[#E8E8E9] bg-[#FEFEFE] px-4 py-2 pl-10 text-[#151517] placeholder-[#B9B9B9] focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full rounded-lg border border-[#E8E8E9] bg-[#FEFEFE] px-4 py-2 pl-10 text-[#151517] placeholder-[#B9B9B9]"
             />
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+            <Image src="/searchicon.svg" alt="search" width={14} height={14} className="absolute left-3 top-1/2 transform -translate-y-1/2" />
           </div>
 
           <div className="relative">
             <select
               value={range}
               onChange={(e) => setRange(e.target.value as RangeType)}
-              className="appearance-none rounded-lg border border-[#E8E8E9] bg-[#FEFEFE] px-4 py-2 pr-10 text-[#151517] text-[14px] font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 w-full sm:w-auto"
+              className="appearance-none rounded-lg border border-[#E8E8E9] bg-[#FEFEFE] px-4 py-2 pr-10 text-[#151517] text-[14px] font-medium hover:bg-gray-500/60 focus:outline-none w-full sm:w-auto"
             >
               <option value="week">Week</option>
               <option value="month">Month</option>
               <option value="3month">3 Months</option>
               <option value="custom">Custom</option>
             </select>
-            <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+            <Image src="/Icon3.svg" alt="dropdown" width={12} height={12} className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
 
         {/* Custom date range */}
         {range === "custom" && (
-          <div className="flex flex-col sm:flex-row gap-4 mt-4">
+          <div className="flex flex-col sm:flex-row gap-4 mt-4 ml-0 sm:ml-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
               <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)}
@@ -271,11 +291,11 @@ export default function SASRReportPage() {
         )}
 
         {/* Table */}
-        <div className="mt-6">
-          <div className="rounded-xl border bg-white overflow-hidden">
+        <div className="mt-6 ml-0 sm:ml-4">
+          <div className="rounded-xl border bg-white">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse min-w-[640px]">
-                <thead className="text-sm text-gray-500 border-b border-[#DEDEDE] bg-gray-50">
+                <thead className="text-sm text-gray-500 border-b border-[#DEDEDE]">
                   <tr>
                     <th className="px-6 py-4 text-left font-medium">Title</th>
                     <th className="px-6 py-4 text-left font-medium">
@@ -283,14 +303,12 @@ export default function SASRReportPage() {
                         Date <ArrowUpDown className="h-4 w-4" />
                       </button>
                     </th>
-                    <th className="px-6 py-4 text-left font-medium">Attempt</th>
+                    <th className="px-6 py-4 text-left font-medium">Attempts</th>
                     <th className="px-6 py-4 text-left font-medium">
                       <button onClick={() => handleSort("score")} className="flex items-center gap-1 hover:text-gray-700">
                         Score <ArrowUpDown className="h-4 w-4" />
                       </button>
                     </th>
-                    <th className="px-6 py-4 text-left font-medium">Mistakes</th>
-                    <th className="px-6 py-4 text-left font-medium">Status</th>
                     <th className="px-6 py-4" />
                   </tr>
                 </thead>
@@ -298,95 +316,57 @@ export default function SASRReportPage() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-8 text-center text-gray-400">Loading sessions…</td>
+                      <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                        Loading sessions…
+                      </td>
                     </tr>
                   ) : currentItems.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-6 py-8 text-center text-gray-400">No SASR sessions found</td>
+                      <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                        No SASR sessions found
+                      </td>
                     </tr>
                   ) : (
-                    currentItems.map((session) => {
-                      // mistakeEvents is stored as jsonb — count wrong_pitch mistakes
-                      const mistakeCount =
-                        (session.mistakeEvents as { kind: string }[] | undefined)
-                          ?.filter((e) => e.kind === "wrong_pitch").length ?? 
-                        session.performance.incorrectNotes ?? 0;
-
-                      const completed = session.performance.score === 100 ||
-                        (session.performance.incorrectNotes ?? 0) < 3;
-
-                      return (
-                        <tr key={session.id} className="border-b border-gray-200 text-sm last:border-none odd:bg-white even:bg-[#F7F7F7] hover:bg-gray-100 transition">
-                          <td className="px-6 py-4 font-medium text-gray-900">{session.lesson.title}</td>
-                          <td className="px-6 py-4 text-gray-700">
-                            {new Date(session.startedAt).toLocaleDateString("en-US", {
-                              month: "short", day: "numeric", year: "numeric",
-                              hour: "2-digit", minute: "2-digit",
-                            })}
-                          </td>
-                          <td className="px-6 py-4 text-gray-700">{session.performance.attempts}</td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-2">
-                              <span className={`font-bold ${
-                                session.performance.score >= 90 ? "text-green-600"
-                                : session.performance.score >= 70 ? "text-blue-600"
-                                : session.performance.score >= 50 ? "text-yellow-600"
-                                : "text-red-600"
-                              }`}>
-                                {session.performance.score}%
-                              </span>
-                              <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full ${
-                                    session.performance.score >= 90 ? "bg-green-500"
-                                    : session.performance.score >= 70 ? "bg-blue-500"
-                                    : session.performance.score >= 50 ? "bg-yellow-500"
-                                    : "bg-red-500"
-                                  }`}
-                                  style={{ width: `${session.performance.score}%` }}
-                                />
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-gray-700">{mistakeCount}</td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              completed ? "bg-blue-100 text-blue-800" : "bg-red-100 text-red-700"
-                            }`}>
-                              {completed ? "Completed" : "Stopped"}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <button className="rounded-full p-1 hover:bg-gray-200">
-                              <MoreVertical className="h-4 w-4 text-gray-600" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
+                    currentItems.map((session) => (
+                      <tr
+                        key={session.id}
+                        className="border-b border-gray-200 text-sm last:border-none odd:bg-white even:bg-[#F7F7F7] hover:bg-gray-100 transition"
+                      >
+                        <td className="px-6 py-4 font-medium text-gray-900">{session.lesson.title}</td>
+                        <td className="px-6 py-4 text-gray-700">
+                          {new Date(session.startedAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 text-gray-700">{session.performance.attempts}</td>
+                        <td className="px-6 py-4 font-medium text-gray-900">{session.performance.score}</td>
+                        <td className="px-6 py-4 text-right">
+                          <button className="rounded-full p-1 hover:bg-gray-200">
+                            <MoreVertical className="h-4 w-4 text-gray-600" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>
             </div>
 
             {/* Pagination */}
-            {!loading && filteredSessions.length > 0 && (
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 px-6 py-4 border-t border-gray-200">
-                <div className="text-sm text-gray-600">
-                  Showing {Math.min(currentItems.length, itemsPerPage)} of {filteredSessions.length} sessions
-                </div>
-                <div className="flex gap-6">
-                  <button disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}
-                    className="text-[14px] text-[#09090B] font-medium disabled:opacity-50">
-                    Previous
-                  </button>
-                  <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage((p) => p + 1)}
-                    className="text-[14px] text-[#09090B] font-medium disabled:opacity-50">
-                    Next
-                  </button>
-                </div>
-              </div>
-            )}
+            <div className="flex justify-end gap-6 px-6 py-4 mr-4 sm:mr-16">
+              <button
+                onClick={() => setCurrentPage((p) => p - 1)}
+                disabled={currentPage === 1}
+                className="disabled:opacity-50 text-[14px] text-[#09090B] font-medium"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setCurrentPage((p) => p + 1)}
+                disabled={currentPage >= totalPages}
+                className="disabled:opacity-50 text-[14px] text-[#09090B] font-medium"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -395,7 +375,6 @@ export default function SASRReportPage() {
         @media print {
           .no-print { display: none !important; }
           body { background: white !important; }
-          .bg-[#F8F6F1] { background: white !important; }
         }
       `}</style>
     </div>

@@ -16,7 +16,7 @@ import { metronomeService } from "@/lib/audio/metronomeService";
 import { countdownSoundService } from "@/lib/audio/countdownSoundService";
 import { useRecentLessons } from "@/utils/userprogress/userrecentpost"; // ← new
 import { createHandTracker, recordHandPress, finalizeHandStats } from "@/lib/practiceSessions/handstats";
-
+import { useLessonPlayCount } from "@/hooks/useplaycount";
 
 
 
@@ -101,7 +101,8 @@ const [uploadLoading, setUploadLoading] = useState(false);
   const beatStartTimeRef = useRef<number>(0);
   // const beatAdvancedRef = useRef<boolean>(false);
   const [showScorePopup, setShowScorePopup] = useState(false);
-  const [playCount, setPlayCount] = useState(0);
+  const { playCount, registerPlay } = useLessonPlayCount(lessonUid);
+
   const mistakeEventsRef = useRef<
     import("@/datastore/sessionstorage").PracticeMistakeEvent[]
   >([]);
@@ -584,7 +585,6 @@ window.addEventListener("keydown", onKey);
     clearAllTracking();
     mistakeEventsRef.current = [];
     attemptCountRef.current += 1;
-    setPlayCount((c) => c + 1);
 
     beatCursorRef.current.reset();
 
@@ -1291,6 +1291,7 @@ if (bassStaveObj && bassStaveObj.y !== trebleStaveObj?.y && osmdHT < 48) {
         playCount={playCount}
         tempo={tempo}
         onTempoChange={setTempo}
+        playCount={playCount}
       />
 
       {/* Debug panel: above footer so it never covers the title bar stats */}
