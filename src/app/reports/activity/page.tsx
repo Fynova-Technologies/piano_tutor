@@ -8,6 +8,43 @@ import { PracticeSession } from "@/datastore/sessionstorage";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
 const supabase = getSupabaseBrowserClient();
 
+type RangeType = "week" | "month" | "3month" | "custom";
+
+// ── Date range filter ──────────────────────────────────────────────
+function isInRange(
+  timestamp: number,
+  range: RangeType,
+  customFrom: string,
+  customTo: string
+): boolean {
+  const now = new Date();
+
+  if (range === "week") {
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay() + 1);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 7);
+    return timestamp >= start.getTime() && timestamp < end.getTime();
+  }
+  if (range === "month") {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    return timestamp >= start.getTime();
+  }
+  if (range === "3month") {
+    const start = new Date(now);
+    start.setMonth(now.getMonth() - 3);
+    return timestamp >= start.getTime();
+  }
+  if (range === "custom" && customFrom && customTo) {
+    // "T00:00:00" makes the date parse as local time instead of UTC
+    const start = new Date(`${customFrom}T00:00:00`).getTime();
+    const end = new Date(`${customTo}T00:00:00`).getTime() + 86_400_000; // inclusive end
+    return timestamp >= start && timestamp < end;
+  }
+  return true;
+}
+
 async function fetchAllSessionsFromSupabase(): Promise<PracticeSession[]> {
   const { data, error } = await supabase
     .from("practice_sessions")
@@ -59,8 +96,9 @@ export default function ActivitiesReportPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const startIndex = (currentPage - 1) * itemsPerPage;
 
-  type RangeType = "week" | "month" | "3month" | "custom";
   const [range, setRange] = useState<RangeType>("week");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
 
   useEffect(() => {
     fetchAllSessionsFromSupabase()
@@ -68,37 +106,21 @@ export default function ActivitiesReportPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // ── Date range filter ──────────────────────────────────────────────
-  function isInRange(timestamp: number): boolean {
-    const now = new Date();
-    if (range === "week") {
-      const start = new Date(now);
-      start.setDate(now.getDate() - now.getDay() + 1);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 7);
-      return timestamp >= start.getTime() && timestamp < end.getTime();
-    }
-    if (range === "month") {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      return timestamp >= start.getTime();
-    }
-    if (range === "3month") {
-      const start = new Date(now);
-      start.setMonth(now.getMonth() - 3);
-      return timestamp >= start.getTime();
-    }
-    return true;
-  }
-
   function formatTime(sec: number) {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
     return `${m}m ${s}s`;
   }
 
-  const rangedSessions = sessions.filter((s) => isInRange(s.startedAt));
-  const totalTime = rangedSessions.reduce((sum, s) => sum + s.durationSec, 0);
+  const rangedSessions = useMemo(
+    () => sessions.filter((s) => isInRange(s.startedAt, range, customFrom, customTo)),
+    [sessions, range, customFrom, customTo]
+  );
+
+  const totalTime = useMemo(
+    () => rangedSessions.reduce((sum, s) => sum + s.durationSec, 0),
+    [rangedSessions]
+  );
 
   const lessonStats = useMemo(() => {
     const map: Record<string, any> = {};
@@ -141,7 +163,8 @@ export default function ActivitiesReportPage() {
     );
   }, [lessonStats, query]);
 
-  useEffect(() => { setCurrentPage(1); }, [query, range]);
+  // Reset to page 1 when filters change
+  useEffect(() => { setCurrentPage(1); }, [query, range, customFrom, customTo]);
 
   const currentItems = filteredLessons.slice(startIndex, startIndex + itemsPerPage);
   const totalPages   = Math.ceil(filteredLessons.length / itemsPerPage);
@@ -193,7 +216,7 @@ export default function ActivitiesReportPage() {
       {/* Breadcrumb */}
       <div className="gap-2 p-2 flex items-center">
         <span className="text-lg sm:text-2xl text-[#6E6E73] font-medium">
-          {breadcrumbs[0][0].toUpperCase() + breadcrumbs[0].slice(1)}
+          {breadcrumbs[0]?.[0]?.toUpperCase() + breadcrumbs[0]?.slice(1) || "Dashboard"}
         </span>
         <Image src="/Vector.svg" alt="arrow" width={8} height={8} className="inline-block mx-2" />
         <span className="text-lg sm:text-2xl text-[#151517] font-medium">My Activity</span>
@@ -254,6 +277,32 @@ export default function ActivitiesReportPage() {
             <Image src="/Icon3.svg" alt="dropdown" width={12} height={12} className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
+
+        {/* Custom date range */}
+        {range === "custom" && (
+          <div className="flex flex-col sm:flex-row gap-4 mt-4 ml-0 sm:ml-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+              <input
+                type="date"
+                value={customFrom}
+                max={customTo || undefined}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="w-full sm:w-auto rounded-lg border border-[#E8E8E9] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+              <input
+                type="date"
+                value={customTo}
+                min={customFrom || undefined}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="w-full sm:w-auto rounded-lg border border-[#E8E8E9] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Table */}
         <div className="mt-6 ml-0 sm:ml-4">

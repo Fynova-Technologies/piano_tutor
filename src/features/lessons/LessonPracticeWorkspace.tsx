@@ -101,7 +101,7 @@ const [uploadLoading, setUploadLoading] = useState(false);
   const beatStartTimeRef = useRef<number>(0);
   // const beatAdvancedRef = useRef<boolean>(false);
   const [showScorePopup, setShowScorePopup] = useState(false);
-  const { playCount, registerPlay } = useLessonPlayCount(lessonUid);
+  const { playCount } = useLessonPlayCount(lessonUid);
 
   const mistakeEventsRef = useRef<
     import("@/datastore/sessionstorage").PracticeMistakeEvent[]
@@ -1291,7 +1291,6 @@ if (bassStaveObj && bassStaveObj.y !== trebleStaveObj?.y && osmdHT < 48) {
         playCount={playCount}
         tempo={tempo}
         onTempoChange={setTempo}
-        playCount={playCount}
       />
 
       {/* Debug panel: above footer so it never covers the title bar stats */}
