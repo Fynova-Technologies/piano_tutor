@@ -1,6 +1,8 @@
 import type { PracticeSession } from "@/datastore/sessionstorage";
 import type { AnalyticsSnapshot } from "./types";
 import { aggregateHandInsights } from "@/lib/practiceSessions/handinsights";
+import { buildWeakAreas } from "@/lib/practiceSessions/weakAreas";
+import { buildSheetGuidance } from "@/lib/practiceSessions/sheetguidance";
 
 function startOfDay(ts: number) {
   const d = new Date(ts);
@@ -79,6 +81,27 @@ export function buildAnalyticsSnapshot(sessions: PracticeSession[]): AnalyticsSn
         )
       : overallAvgScore;
 
+  const handInsights = aggregateHandInsights(sorted);
+  const weakAreas = buildWeakAreas(sorted, handInsights);
+  const sheetGuidance = buildSheetGuidance(weakAreas, sessionCount);
+
+  // Real session count within the last calendar week — distinct from "last7"
+  // above, which is the 7 most recent sessions regardless of date and exists
+  // only to compute recentAvgScore.
+  const sevenDaysAgoMs = Date.now() - 7 * 86400000;
+  const sessionsLast7Days = sorted.filter((s) => s.endedAt >= sevenDaysAgoMs).length;
+
+  // Average session length, not total — "totalPracticeMinutes" above is the
+  // lifetime sum and isn't meant for a week-over-week comparison.
+  const recentAvgPracticeMinutes =
+    last7.length > 0
+      ? Math.round(last7.reduce((a, s) => a + s.durationSec, 0) / last7.length / 60)
+      : 0;
+  const previousAvgPracticeMinutes =
+    prior.length > 0
+      ? Math.round(prior.reduce((a, s) => a + s.durationSec, 0) / prior.length / 60)
+      : null;
+
   return {
     generatedAt: new Date().toISOString(),
     sessionCount,
@@ -90,6 +113,11 @@ export function buildAnalyticsSnapshot(sessions: PracticeSession[]): AnalyticsSn
     totalPracticeMinutes,
     lastSessionAt,
     previousPeriodAvgScore: prevAvg,
-    handInsights: aggregateHandInsights(sessions),
+    handInsights,
+    weakAreas,
+    sheetGuidance,
+    sessionsLast7Days,
+    recentAvgPracticeMinutes,
+    previousAvgPracticeMinutes,
   };
 }

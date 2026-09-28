@@ -10,6 +10,7 @@ import { AiReviewCharts } from "./AiReviewCharts";
 import { MiniSheetMusicPreview } from "./MiniSheetMusicPreview";
 import { MistakeRecoverySection } from "@/features/recovery/MistakeRecoverySection";
 import { HandBalanceCard } from "./handbalancecard";
+import { formatDelta } from "./formatDelta";
 
 import {
   // analysisAccentGradient,
@@ -120,8 +121,10 @@ const CHART_COLORS = {
   LOW:      { c1: "#86efac", c2: "#22c55e" },
 };
 
-function WeakAreaCard({ rank, name, percent, mistakes, issues = [], priority = "MEDIUM" }: { rank: number; name: string; percent?: number; mistakes?: number; issues?: string[]; priority?: "PRIORITY" | "MEDIUM" | "LOW" }) {
-  const ps = PRIORITY_STYLES[priority] ?? PRIORITY_STYLES.MEDIUM;
+function WeakAreaCard({ rank, name, percent, mistakes, issues = [], priority = "MEDIUM", trend = [] }: {
+  rank: number; name: string; percent?: number; mistakes?: number; issues?: string[];
+  priority?: "PRIORITY" | "MEDIUM" | "LOW"; trend?: number[];
+}) {  const ps = PRIORITY_STYLES[priority] ?? PRIORITY_STYLES.MEDIUM;
   const cc = CHART_COLORS[priority] ?? CHART_COLORS.MEDIUM;
   return (
     <div className="rounded-xl border border-black/[0.06] bg-white p-4 flex items-center gap-4">
@@ -140,9 +143,15 @@ function WeakAreaCard({ rank, name, percent, mistakes, issues = [], priority = "
           <p key={i} className="text-[11.5px] text-neutral-500 leading-snug">{issue}</p>
         ))}
       </div>
-      <div className="flex-shrink-0">
-        <MiniBarChart color1={cc.c1} color2={cc.c2} />
-      </div>
+      {trend.length >= 2 ? (
+  <div className="flex-shrink-0" title="Miss rate per session, oldest to newest">
+    <MiniBarChart
+      color1={cc.c1}
+      color2={cc.c2}
+      levels={trend.map((v) => Math.max(0.12, v / 100))}
+    />
+  </div>
+) : null}
     </div>
   );
 }
@@ -309,6 +318,12 @@ export default function AiReviewRecoveryCenter() {
     );
   }
 
+  const accuracyDelta = formatDelta(snapshot.recentAvgScore, snapshot.previousPeriodAvgScore);
+const practiceDelta = formatDelta(
+  snapshot.recentAvgPracticeMinutes,
+  snapshot.previousAvgPracticeMinutes
+);
+
   return (
     <section className="relative pb-16 pt-10 md:pt-12 bg-[#F8F6F1] min-h-screen">
       <div className="relative mx-auto max-w-[min(1040px,100%-32px)] px-4 md:px-6">
@@ -358,7 +373,7 @@ export default function AiReviewRecoveryCenter() {
           transition={{ duration: 0.4, delay: 0.06 }}
           className="bg-white rounded-2xl border border-black/[0.06] shadow-[0_4px_24px_rgba(0,0,0,0.055)] mb-5 overflow-hidden"
         >
-          <div className="grid grid-cols-5">
+                    <div className="grid grid-cols-5">
             {/* Overall ring */}
             <div className="flex flex-col items-center justify-center py-5 px-4">
               <OverallScoreRing score={snapshot.recentAvgScore ?? 82} />
@@ -366,36 +381,35 @@ export default function AiReviewRecoveryCenter() {
             <StatCell
               icon="/assets/note.png"
               iconBg="bg-purple-50"
-              value={snapshot.sessionCount ?? 12}
+              value={snapshot.sessionCount}
               label="Sessions Analyzed"
-              delta="This week"
+              delta={`${snapshot.sessionsLast7Days} in the last 7 days`}
               deltaDir="neutral"
-              
             />
             <StatCell
               icon="/assets/target.png"
               iconBg="bg-[#DCFCE7]"
-              value={`${report?.accuracyScore ?? 68}%`}
+              value={`${report?.accuracyScore ?? snapshot.recentAvgScore}%`}
               label="Accuracy"
-              delta="12% from last week"
-              deltaDir="up"
+              delta={accuracyDelta.text}
+              deltaDir={accuracyDelta.dir}
             />
             <StatCell
               icon="/assets/music.png"
               iconBg="bg-amber-50"
-              value={snapshot.totalPracticeMinutes ?? 24}
+              value={snapshot.recentAvgPracticeMinutes}
               unit="min"
               label="Avg. Practice Time"
-              delta="8% from last week"
-              deltaDir="down"
+              delta={practiceDelta.text}
+              deltaDir={practiceDelta.dir}
             />
             <StatCell
               icon="/assets/sound.png"
               iconBg="bg-pink-50"
-              value={report?.weakestSkills?.length ?? 3}
+              value={snapshot.weakAreas.areas.length}
               label="Weak Areas"
-              delta="Need attention"
-              deltaDir="neutral"
+              delta={snapshot.weakAreas.isEmpty ? "All clear" : "Need attention"}
+              deltaDir={snapshot.weakAreas.isEmpty ? "up" : "neutral"}
             />
           </div>
         </motion.div>
@@ -552,42 +566,33 @@ export default function AiReviewRecoveryCenter() {
                 <div className="p-7 bg-[#fafaf9]">
                   <div className="flex items-start justify-between mb-6">
                     <h3 className="text-[1.2rem] font-bold text-black">Areas for growth</h3>
-                    <span className="rounded border border-black/[0.08] bg-neutral-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
-                      Medium
-                    </span>
+                    {snapshot.weakAreas.areas[0] ? (
+  <span className="rounded border border-black/[0.08] bg-neutral-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+    {snapshot.weakAreas.areas[0].priority}
+  </span>
+) : null}
                   </div>
 
                   <div className="flex flex-col gap-3">
-                    {report.weakestSkills.slice(0, 3).map((skill, i) => {
-                      const priorities: Array<"PRIORITY" | "MEDIUM" | "LOW"> = ["PRIORITY", "MEDIUM", "LOW"];
-                      const percents = [42, 16, 10];
-                      const mistakeCounts = [18, 7, 4];
-                      const issueMap = [
-                        report.rhythmTimingAnalysis ? [report.rhythmTimingAnalysis] : ["Inconsistent timing in fast passages", "Rushed notes in scale exercises"],
-                        ["Uneven hand transitions", "Breakdown in arpeggio patterns"],
-                        [report.speedConsistencyReview ?? "Inconsistent volume changes"],
-                      ];
-                      return (
-                        <WeakAreaCard
-                          key={skill}
-                          rank={i + 1}
-                          name={skill}
-                          priority={priorities[i] ?? "LOW"}
-                          percent={percents[i] ?? 10}
-                          mistakes={mistakeCounts[i] ?? 4}
-                          issues={issueMap[i] ?? []}
-                        />
-                      );
-                    })}
+                    {snapshot.weakAreas.areas.map((area, i) => (
+  <WeakAreaCard
+  key={area.id}
+  rank={i + 1}
+  name={area.name}
+  priority={area.priority}
+  percent={area.percent}
+  mistakes={area.mistakes}
+  issues={area.issues}
+  trend={area.trend}
+/>
+))}
 
-                    {/* Fallback if weakestSkills is empty */}
-                    {report.weakestSkills.length === 0 && (
-                      <>
-                        <WeakAreaCard rank={1} name="Timing & Rhythm"    priority="PRIORITY" percent={42} mistakes={18} issues={["Inconsistent timing in fast passages", "Rushed notes in scale exercises"]} />
-                        <WeakAreaCard rank={2} name="Hand Coordination"  priority="MEDIUM"   percent={16} mistakes={7}  issues={["Uneven hand transitions", "Breakdown in arpeggio patterns"]} />
-                        <WeakAreaCard rank={3} name="Dynamics Control"   priority="LOW"      percent={10} mistakes={4}  issues={["Inconsistent volume changes", "Less contrast in musical phrases"]} />
-                      </>
-                    )}
+{snapshot.weakAreas.isEmpty && (
+  <p className="py-6 text-center text-sm text-neutral-500">
+    Nothing stands out yet — keep practicing and this will fill in
+    once there&aposs enough data to rank.
+  </p>
+)}
                   </div>
 
                   <button
@@ -606,8 +611,7 @@ export default function AiReviewRecoveryCenter() {
             <AiReviewCharts snapshot={snapshot} />
 
             {/* Score sketch / highlights + Personalized next steps */}
-            <MiniSheetMusicPreview report={report} />
-          </motion.div>
+<MiniSheetMusicPreview guidance={snapshot.sheetGuidance} />          </motion.div>
         ) : null}
 
       </div>

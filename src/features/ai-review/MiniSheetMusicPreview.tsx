@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import type { AiReviewReport } from "./types";
+import type { SheetGuidance } from "@/lib/practiceSessions/sheetguidance";
 import {
   ANALYSIS_PLUM,
   premiumAnalysisCard,
@@ -9,13 +9,13 @@ import {
 } from "./PianoAnalysisChrome";
 
 type Props = {
-  report: AiReviewReport;
+  guidance: SheetGuidance;
 };
 
 /** Visual stand-in until MusicXML/OSMD pipeline is wired to `/api/ai-review/sheet`. */
-export function MiniSheetMusicPreview({ report }: Props) {
+export function MiniSheetMusicPreview({ guidance }: Props) {
   const gradId = useId().replace(/:/g, "");
-  const highlights = report.sheetMusicGuidance.sectionsToHighlight.slice(0, 4);
+  const highlights = guidance.sectionsToHighlight.slice(0, 4);
   const w = 440;
   const h = 120;
   const linesTreble = [28, 40, 52, 64, 76];
@@ -27,9 +27,7 @@ export function MiniSheetMusicPreview({ report }: Props) {
       <div className="relative z-[1] flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className={`${analysisLabelPlum} tracking-[0.14em]`}>Score sketch · highlights</p>
-          <p className="mt-1 max-w-md text-sm text-neutral-600">
-            {report.mistakeReviewPlan.dynamicSheetMusicSummary}
-          </p>
+          <p className="mt-1 max-w-md text-sm text-neutral-600">{guidance.summary}</p>
         </div>
         <div className="rounded-full border border-black/[0.08] bg-[#F5F4EF] px-3 py-1 text-[10px] font-medium text-neutral-600">
           Preview
@@ -104,25 +102,29 @@ export function MiniSheetMusicPreview({ report }: Props) {
         </svg>
       </div>
 
-      <div className="relative z-[1] mt-4 grid gap-3 sm:grid-cols-2">
-        {highlights.map((hItem) => (
-          <div
-            key={hItem.label}
-            className="rounded-lg border border-black/[0.06] bg-[#faf9f7] px-3 py-2 text-xs leading-relaxed text-neutral-600"
-          >
-            <p className="font-semibold text-[#6e4d7d]">{hItem.label}</p>
-            <p className="mt-0.5">{hItem.reason}</p>
-          </div>
-        ))}
-      </div>
+      {highlights.length > 0 ? (
+        <div className="relative z-[1] mt-4 grid gap-3 sm:grid-cols-2">
+          {highlights.map((hItem) => (
+            <div
+              key={hItem.label}
+              className="rounded-lg border border-black/[0.06] bg-[#faf9f7] px-3 py-2 text-xs leading-relaxed text-neutral-600"
+            >
+              <p className="font-semibold text-[#6e4d7d]">{hItem.label}</p>
+              <p className="mt-0.5">{hItem.reason}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
-      <ul className="relative z-[1] mt-3 list-disc space-y-1 pl-5 text-xs text-neutral-600">
-        {report.sheetMusicGuidance.annotations.slice(0, 6).map((a) => (
-          <li key={a}>{a}</li>
-        ))}
-      </ul>
+      {guidance.annotations.length > 0 ? (
+        <ul className="relative z-[1] mt-3 list-disc space-y-1 pl-5 text-xs text-neutral-600">
+          {guidance.annotations.slice(0, 6).map((a) => (
+            <li key={a}>{a}</li>
+          ))}
+        </ul>
+      ) : null}
       <p className="relative z-[1] mt-3 text-[11px] text-[#6e4d7d] opacity-[0.85]">
-        Difficulty: {report.sheetMusicGuidance.difficultyAdjustment}
+        Difficulty: {guidance.difficultyAdjustment}
       </p>
     </div>
   );

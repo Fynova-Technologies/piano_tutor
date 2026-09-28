@@ -87,15 +87,15 @@ export default function OptionPopup({ openDialogue, setOpenDialogue }: OptionPop
 >
   <div className="min-h-full flex items-start md:items-center justify-center p-1 py-6 md:py-1">
     <div
-      className="bg-gradient-to-r from-[rgba(255,255,255,0.9)] via-[#D8D8D8] to-[#FFFFFF80] w-[95%] sm:max-w-[80%] md:max-w-[50%] rounded-2xl p-1 flex"
-      onClick={(e) => e.stopPropagation()}
-    >
+  className="bg-gradient-to-r from-[rgba(255,255,255,0.9)] via-[#D8D8D8] to-[#FFFFFF80] w-[95%] max-w-md sm:max-w-lg md:max-w-xl rounded-2xl p-1 flex"
+  onClick={(e) => e.stopPropagation()}
+>
       <div className="w-full rounded-2xl p-3 md:p-4 bg-[#D1D1D1]">
         <div className="bg-gradient-to-r from-[#FFFFFFB2] to-[#FFFFFFB2] border-4 border-l-[#FFFFFFE5] border-r-[#D8D8D8] border-t-[#FFFFFFE5] border-b-[#D8D8D800] w-full rounded-2xl p-3 md:p-6">
           <h2 className="w-full text-center text-black font-bold text-lg md:text-xl mb-3 md:mb-6">
             Practice Selection
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-6">
+          <div className="grid grid-cols-1 gap-3 md:gap-6">
             {pairedSettings.map(({ optKey, soundKey, icon, volume }) => (
               <React.Fragment key={optKey}>
                 {/* <div className="flex flex-col justify-between bg-gradient-to-r from-[#F2F2F2] to-[#EAEAEA] rounded-2xl p-3 md:p-4">

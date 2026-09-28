@@ -332,7 +332,7 @@ export default function CursorControls (props: CursorControlsProps) {
         <button
           type="button"
           className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#0A0A0B] bg-white hover:bg-zinc-100 cursor-pointer shadow-md"
-          onClick={() => { /* your existing handler */ }}
+          onClick={() => {onPlay()}}
           aria-label="Play"
         >
           <FontAwesomeIcon icon={faPlay} size="lg" color="#0A0A0B" />

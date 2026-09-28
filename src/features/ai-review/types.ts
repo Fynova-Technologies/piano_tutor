@@ -1,5 +1,7 @@
 /** Shared contract between client, API route, and future OpenAI JSON output. */
 import type { HandInsights } from "@/lib/practiceSessions/handinsights";
+import type { WeakAreasResult } from "@/lib/practiceSessions/weakAreas";
+import type { SheetGuidance } from "@/lib/practiceSessions/sheetguidance";
 
 export type AnalyticsSnapshot = {
   generatedAt: string;
@@ -15,6 +17,15 @@ export type AnalyticsSnapshot = {
   lastSessionAt: string | null;
   previousPeriodAvgScore: number | null;
     handInsights?: HandInsights;
+  weakAreas: WeakAreasResult;
+  /** Sessions with endedAt in the last 7 days (calendar-based, not count-based). */
+  sessionsLast7Days: number;
+  /** Avg session length in minutes, over the same "last 7 sessions" window recentAvgScore uses. */
+  recentAvgPracticeMinutes: number;
+  /** Avg session length in minutes, over the sessions before that window. null if none. */
+  previousAvgPracticeMinutes: number | null;
+    sheetGuidance: SheetGuidance;
+
 };
 
 export type MistakeReviewPlan = {

@@ -35,7 +35,7 @@ export type HandInsights = {
 
 const zero = (): HandCounts => ({ expected: 0, hit: 0, missed: 0, wrong: 0, extra: 0 });
 
-function isHandStats(v: unknown): v is HandStats {
+export function isHandStats(v: unknown): v is HandStats {
   if (!v || typeof v !== "object") return false;
   const o = v as Partial<HandStats>;
   return o.version === 1 && typeof o.twoStaff === "boolean" && !!o.left && !!o.right;

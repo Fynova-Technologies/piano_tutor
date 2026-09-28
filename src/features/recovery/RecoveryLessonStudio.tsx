@@ -26,7 +26,7 @@ type RecoveryRow = {
   source_lesson_source: string;
   title: string;
   created_at: string;
-  meta: unknown;
+  meta?: { handReason?: string };
 };
 
 /**
@@ -47,7 +47,11 @@ export default function RecoveryLessonStudio() {
   const [contextError, setContextError] = useState<string | null>(null);
 
   const [selectedUid, setSelectedUid] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [tempo, setTempo] = useState(72);
+  const [handFocus, setHandFocus] = useState<"auto" | "left" | "right" | "both">("auto");
+const [handNote, setHandNote] = useState<string | null>(null);
+  
 
   const [musicXml, setMusicXml] = useState<string | null>(null);
   const [xmlRenderKey, setXmlRenderKey] = useState(0);
@@ -129,6 +133,7 @@ export default function RecoveryLessonStudio() {
     setActiveDisplayFile("recovery.mxl");
     setLastMxlBase64(null);
     setIsFullscreen(false);
+    setHandNote(null);   // NEW, add alongside the other resets
   }
 
   async function generateDrill() {
@@ -151,34 +156,37 @@ export default function RecoveryLessonStudio() {
           baseFileName: null,
           tempoBpm: tempo,
           currentSessionMistakes: [],
+            handFocus,                      // NEW
         }),
       });
+      
+
       const data = (await res.json()) as {
-        ok?: boolean;
-        message?: string;
-        code?: string;
-        musicXml?: string;
-        mxlBase64?: string;
-        fileName?: string;
-        recoveryLessonId?: string | null;
-      };
+  ok?: boolean; message?: string; code?: string;
+  musicXml?: string; mxlBase64?: string; fileName?: string;
+  recoveryLessonId?: string | null;
+  title?: string;                                   // NEW
+  handFocus?: "left" | "right" | "both";            // NEW
+  handReason?: string;                              // NEW
+};
       if (!res.ok || !data.ok || !data.musicXml) {
         throw new Error(data.message || `Request failed (${res.status})`);
       }
 
       setMusicXml(data.musicXml);
+      setHandNote(data.handReason ?? null);
       setXmlRenderKey((k) => k + 1);
       setIsFullscreen(false); // start each new drill in the compact view; play triggers fullscreen
       if (data.mxlBase64) setLastMxlBase64(data.mxlBase64);
 
       if (data.recoveryLessonId) {
         setActiveRecoveryId(data.recoveryLessonId);
-        setActiveTitle(`Recovery · ${opt?.lessonTitle || selectedUid}`);
+        setActiveTitle(data.title ?? `Recovery · ${opt?.lessonTitle || selectedUid}`);
         setActiveSource(opt?.lessonSource ?? "Practice");
         setActiveDisplayFile(data.fileName ?? "recovery.mxl");
       } else {
         setActiveRecoveryId(null);
-        setActiveTitle(`Recovery (unsaved) · ${opt?.lessonTitle || selectedUid}`);
+        setActiveTitle(`${data.title ?? `Recovery · ${opt?.lessonTitle || selectedUid}`} (unsaved)`);
         setActiveSource(opt?.lessonSource ?? "Practice");
         setActiveDisplayFile(data.fileName ?? "recovery.mxl");
       }
@@ -204,12 +212,15 @@ export default function RecoveryLessonStudio() {
         ok?: boolean;
         message?: string;
         lesson?: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          meta: any;
           id: string;
           title: string;
           sourceLessonUid: string;
           musicXml: string;
           downloadFileName?: string;
           mxlBase64?: string;
+          
         };
       };
       if (!res.ok || !data.ok || !data.lesson?.musicXml) {
@@ -225,6 +236,7 @@ export default function RecoveryLessonStudio() {
       setActiveDisplayFile(L.downloadFileName ?? `recovery-${L.id.slice(0, 8)}.mxl`);
       setLastMxlBase64(L.mxlBase64 ?? null);
       setSelectedUid(L.sourceLessonUid);
+      setHandNote(L.meta?.handReason ?? null);
     } catch (e) {
       setGenError(e instanceof Error ? e.message : "Failed to open saved drill");
     } finally {
@@ -347,16 +359,18 @@ export default function RecoveryLessonStudio() {
               </select>
             )}
             <label className={`mt-3 block ${analysisLabelPlum}`}>
-              Target tempo (BPM)
-              <input
-                type="number"
-                min={40}
-                max={200}
-                value={tempo}
-                onChange={(e) => setTempo(Number(e.target.value) || 72)}
-                className="mt-1 w-full rounded-xl border border-black/10 bg-[#fafaf9] px-3 py-2 text-sm text-[#151517]"
-              />
-            </label>
+  Hand focus
+  <select
+    value={handFocus}
+    onChange={(e) => setHandFocus(e.target.value as typeof handFocus)}
+    className="mt-1 w-full rounded-xl border border-black/10 bg-[#fafaf9] px-3 py-2 text-sm text-[#151517]"
+  >
+    <option value="auto">Auto (weaker hand on this lesson)</option>
+    <option value="left">Left hand only</option>
+    <option value="right">Right hand only</option>
+    <option value="both">Both hands together</option>
+  </select>
+</label>
             <button
               type="button"
               disabled={genLoading || !selectedUid}
@@ -412,6 +426,11 @@ export default function RecoveryLessonStudio() {
         </aside>
 
         <section className="min-w-0">
+          {handNote ? (
+  <p className="border-b border-black/[0.06] bg-[#f3eef5] px-4 py-2 text-xs text-[#6e4d7d]">
+    {handNote}
+  </p>
+) : null}
           {!musicXml ? (
             <div className="rounded-2xl border border-dashed border-black/[0.12] bg-white p-10 text-center text-sm text-neutral-600 shadow-inner">
               Generate a drill or open one from history to load the score workspace.
