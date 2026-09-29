@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import playCursor from "../playback/playcursor";
 import pauseCursor from "../playback/pausecursor";
 import clearHighlight from "../notes/clearhighlight";
 import { OpenSheetMusicDisplay } from "opensheetmusicdisplay";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlay, faPause } from '@fortawesome/free-solid-svg-icons';
+import { faPlay, faPause, faBook } from '@fortawesome/free-solid-svg-icons';
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
@@ -65,6 +65,23 @@ export default function CursorControls (props: CursorControlsProps) {
         const searchParams = useSearchParams();
         const router = useRouter();
         const [openDialogue, setOpenDialogue] = useState(false);
+        const [showTempoPopup, setShowTempoPopup] = useState(false);
+        const tempoWrapRef = useRef<HTMLDivElement | null>(null);
+        
+        // Close when tapping outside, or when playback starts
+        useEffect(() => {
+          if (!showTempoPopup) return;
+          const handler = (e: PointerEvent) => {
+            if (tempoWrapRef.current && !tempoWrapRef.current.contains(e.target as Node)) {
+              setShowTempoPopup(false);
+            }
+          };
+          document.addEventListener("pointerdown", handler);
+          return () => document.removeEventListener("pointerdown", handler);
+        }, [showTempoPopup]);
+ 
+
+
 
         const {
             isPlaying,
@@ -109,6 +126,9 @@ export default function CursorControls (props: CursorControlsProps) {
           isCountingIn: countdown !== null,
           tempo,
         });
+        useEffect(() => {
+  if (isPlaying) setShowTempoPopup(false);
+}, [isPlaying]);
 
         const [unitlessonsData, setUnitLessonsData] = useState<UnitLesson[]>([]);
         const unitId = searchParams.get("id");      
@@ -262,7 +282,9 @@ export default function CursorControls (props: CursorControlsProps) {
           {/* ✅ Footer: stacks into rows on mobile instead of crushing 8 controls into one h-20 row.
               Each child gets w-full so its existing justify-start/center/end still aligns
               content left/center/right within its own full-width row when stacked. */}
-          <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0B] border-t border-white/10 px-3 md:px-6 h-20 flex items-center grid grid-cols-[1fr_auto_1fr]">
+          <div
+  className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0B] border-t border-white/10 px-3 md:px-6 grid grid-cols-[1fr_auto_1fr] items-center gap-2 h-[calc(5rem+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)]"
+>
   {isPlaying ? (
     <>
       <div /> {/* left spacer */}
@@ -279,96 +301,153 @@ export default function CursorControls (props: CursorControlsProps) {
       <div className="flex justify-end items-center gap-2">
         <button
           type="button"
-          className="p-2 rounded-lg hover:bg-white/10"
+          className="p-1.5 md:p-2 rounded-lg hover:bg-white/10"
           onClick={() => setOpenDialogue(!openDialogue)}
           aria-label="Settings"
         >
-          <Image src="/settings.svg" width={36} height={36} alt="" className="cursor-pointer" />
+          <Image src="/settings.svg" width={36} height={36} alt="" className="h-8 w-8 md:h-9 md:w-9 cursor-pointer" />
         </button>
       </div>
     </>
   ) : (
     <>
-      {/* Left — Tempo controls */}
-      <div className="flex items-center gap-1.5 min-w-0">
-        {onTempoChange && (
-          <>
-            <button
-              type="button"
-              disabled={isPlaying}
-              className="h-9 w-9 shrink-0 rounded-lg border border-white/25 text-white text-lg font-medium hover:bg-white/10 disabled:opacity-40"
-              onClick={() => onTempoChange(Math.max(40, tempo - 5))}
-              aria-label="Decrease tempo"
-            >
-              −
-            </button>
-            <div className="rounded-lg bg-white px-2 py-2 text-sm font-semibold text-[#0A0A0B] tabular-nums min-w-[4.5rem] text-center">
-              {tempo} BPM
+      {/* Left — Tempo: slider on mobile, − / BPM / + on md+ */}
+      <div className="flex items-center min-w-0">
+  {onTempoChange && (
+    <>
+      {/* Mobile: BPM button + popup slider above it */}
+      <div ref={tempoWrapRef} className="relative md:hidden">
+        {showTempoPopup && (
+          <div
+            className="absolute bottom-full left-0 mb-3 rounded-xl bg-[#0A0A0B] border border-white/15 shadow-lg p-3"
+            style={{ width: "min(14rem, calc(100vw - 1.5rem))" }}
+          >
+            <div className="flex items-baseline justify-between mb-1">
+              <span className="text-white/60 text-xs font-medium">Tempo</span>
+              <span className="text-white text-sm font-semibold tabular-nums">{tempo} BPM</span>
             </div>
-            <button
-              type="button"
-              disabled={isPlaying}
-              className="h-9 w-9 shrink-0 rounded-lg border border-white/25 text-white text-lg font-medium hover:bg-white/10 disabled:opacity-40"
-              onClick={() => onTempoChange(Math.min(200, tempo + 5))}
-              aria-label="Increase tempo"
-            >
-              +
-            </button>
-          </>
+            <input
+              type="range"
+              min={40}
+              max={200}
+              step={5}
+              value={tempo}
+              onChange={(e) => onTempoChange(Number(e.target.value))}
+              aria-label="Tempo in BPM"
+              className="w-full h-8 cursor-pointer accent-[#D4AF37]"
+            />
+            <div className="flex justify-between text-[10px] text-white/50 tabular-nums">
+              <span>40</span>
+              <span>200</span>
+            </div>
+            {/* little arrow pointing at the button */}
+            <div className="absolute -bottom-1.5 left-6 h-3 w-3 rotate-45 bg-[#0A0A0B] border-r border-b border-white/15" />
+          </div>
         )}
-      </div>
-
-      {/* Center — Prev / Play / Next */}
-      <div className="flex justify-center items-center gap-3 md:gap-5">
+ 
         <button
           type="button"
-          className="bg-transparent p-0 border-0 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={() => setShowTempoPopup((v) => !v)}
+          aria-haspopup="true"
+          aria-expanded={showTempoPopup}
+          aria-label={`Tempo ${tempo} BPM, tap to adjust`}
+          className="h-10 rounded-lg bg-white px-2.5 text-[#0A0A0B] tabular-nums leading-tight text-center"
+        >
+          <span className="block text-sm font-semibold">{tempo}</span>
+          <span className="block text-[10px] font-medium">BPM</span>
+        </button>
+      </div>
+ 
+      {/* Desktop / tablet buttons (unchanged) */}
+      <div className="hidden md:flex items-center gap-1.5">
+        <button
+          type="button"
+          className="h-9 w-9 shrink-0 rounded-lg border border-white/25 text-white text-lg font-medium hover:bg-white/10"
+          onClick={() => onTempoChange(Math.max(40, tempo - 5))}
+          aria-label="Decrease tempo"
+        >
+          −
+        </button>
+        <div className="rounded-lg bg-white px-2 py-2 text-sm font-semibold text-[#0A0A0B] tabular-nums min-w-[4.5rem] text-center">
+          {tempo} BPM
+        </div>
+        <button
+          type="button"
+          className="h-9 w-9 shrink-0 rounded-lg border border-white/25 text-white text-lg font-medium hover:bg-white/10"
+          onClick={() => onTempoChange(Math.min(200, tempo + 5))}
+          aria-label="Increase tempo"
+        >
+          +
+        </button>
+      </div>
+    </>
+  )}
+</div>
+
+ 
+      {/* Center — Prev / Play / Next */}
+      <div className="flex justify-center items-center gap-1 sm:gap-3 md:gap-5">
+        <button
+          type="button"
+          className="bg-transparent p-2 border-0 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={() => hasPrevious && !isPlaying && goToLesson(unitlessonsData[currentIndex - 1])}
           disabled={!hasPrevious || isPlaying}
           aria-label="Previous lesson"
         >
-          <Image src="/skip_previous_filled.svg" alt="" width={32} height={32} />
+          <Image src="/skip_previous_filled.svg" alt="" width={32} height={32} className="h-7 w-7 md:h-8 md:w-8" />
         </button>
         <button
           type="button"
           className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#0A0A0B] bg-white hover:bg-zinc-100 cursor-pointer shadow-md"
-          onClick={() => {onPlay()}}
+          onClick={() => { onPlay(); }}
           aria-label="Play"
         >
           <FontAwesomeIcon icon={faPlay} size="lg" color="#0A0A0B" />
         </button>
         <button
           type="button"
-          className="bg-transparent p-0 border-0 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-transparent p-2 border-0 outline-none appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={!hasNext || isPlaying}
           onClick={() => hasNext && !isPlaying && goToLesson(unitlessonsData[currentIndex + 1])}
           aria-label="Next lesson"
         >
-          <Image src="/skip_next_filled.png" width={32} height={32} alt="" />
+          <Image src="/skip_next_filled.png" width={32} height={32} alt="" className="h-7 w-7 md:h-8 md:w-8" />
         </button>
       </div>
-
+ 
       {/* Right — Learn + Settings */}
-      <div className="flex justify-end items-center gap-2">
+      <div className="flex justify-end items-center gap-1 md:gap-2">
+        {/* Mobile: circular book button */}
         <button
           type="button"
-          className="bg-[#D4AF37] h-10 px-3 rounded-2xl border border-[#b8922c] flex gap-1.5 primary-color-text items-center justify-center text-sm font-medium shrink-0"
+          aria-label="Learn"
+          className="md:hidden bg-[#D4AF37] h-10 w-10 rounded-full border border-[#b8922c] flex items-center justify-center shrink-0"
+        >
+          <FontAwesomeIcon icon={faBook} color="#0A0A0B" />
+        </button>
+ 
+        {/* md+: original pill button */}
+        <button
+          type="button"
+          className="hidden md:flex bg-[#D4AF37] h-10 px-3 rounded-2xl border border-[#b8922c] gap-1.5 primary-color-text items-center justify-center text-sm font-medium shrink-0"
         >
           <Image src="/icon.svg" width={15} height={10} alt="" />
           Learn
         </button>
+ 
         <button
           type="button"
-          className="p-2 rounded-lg hover:bg-white/10 shrink-0"
+          className="p-1.5 md:p-2 rounded-lg hover:bg-white/10 shrink-0"
           onClick={() => setOpenDialogue(!openDialogue)}
           aria-label="Settings"
         >
-          <Image src="/settings.svg" width={36} height={36} alt="" className="cursor-pointer" />
+          <Image src="/settings.svg" width={36} height={36} alt="" className="h-8 w-8 md:h-9 md:w-9 cursor-pointer" />
         </button>
       </div>
     </>
   )}
-</div>   
+</div>
+ 
       
       {countdown !== null && (
   <div
