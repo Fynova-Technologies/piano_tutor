@@ -51,11 +51,10 @@ export default function Navbar() {
   }, []);
 
   return (
-    <nav className="bg-[#0A0A0B] border-b border-white/10 shadow-sm px-4 py-3 sm:px-6 relative">
-      <div className="w-full mx-auto flex items-center justify-between">
+<nav className="bg-[#0A0A0B] border-b border-white/10 shadow-sm px-4 py-3 sm:px-6 relative w-full max-w-full">      <div className="w-full mx-auto flex items-center justify-between">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 no-underline">
+<Link href="/" className="flex items-center gap-2 no-underline shrink-0">
           <div className="flex items-center gap-2">
             <Image src="/assets/Mask group.svg" alt="Logo" width={36} height={36} className="rounded-full" />
           
@@ -65,32 +64,32 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex space-x-1">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <a
-                key={item.name}
-                href={item.href}
-                className={`font-medium px-4 py-2 rounded-full transition-all duration-200 no-underline text-sm
-                  ${isActive ? 'bg-[#D4AF37] text-[#0a0a0a]' : 'text-white hover:text-[#D4AF37]'}
-                `}
-              >
-                {item.name}
-              </a>
-            );
-          })}
-        </div>
+        <div className="hidden lg:flex items-center gap-1 min-w-0">
+  {navItems.map((item) => {
+    const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+    return (
+      <a
+        key={item.name}
+        href={item.href}
+        className={`font-medium px-3 xl:px-4 py-2 rounded-full transition-all duration-200 no-underline text-sm whitespace-nowrap
+          ${isActive ? 'bg-[#D4AF37] text-[#0a0a0a]' : 'text-white hover:text-[#D4AF37]'}
+        `}
+      >
+        {item.name}
+      </a>
+    );
+  })}
+</div>
 
         {/* Right Side */}
-        <div className="flex items-center gap-3">
-          {/* Contact US */}
-          <Link
-            href="/contact-us"
-            className="hidden md:inline-block text-sm font-medium px-4 py-2 rounded-full transition-colors bg-[#D4AF37] text-[#0a0a0a] hover:bg-[#c9a84c]"
-          >
-            Contact Us
-          </Link>
+        <div className="flex items-center gap-3 shrink-0">
+ <Link
+  href="/contact-us"
+  onClick={() => setMenuOpen(false)}
+  className="text-sm font-medium px-4 py-2.5 rounded-full bg-[#D4AF37] text-[#0a0a0a] no-underline text-center mt-1"
+>
+  Contact Us
+</Link>
 
           {/* Notification */}
           <button className="relative text-gray-400 hover:text-[#D4AF37] bg-transparent border-none transition-colors">
@@ -141,7 +140,7 @@ export default function Navbar() {
 
           {/* Mobile Menu Toggle */}
           <button
-            className="md:hidden text-white hover:text-[#D4AF37] transition-colors"
+  className="lg:hidden text-white hover:text-[#D4AF37] transition-colors"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Toggle menu"
           >
@@ -152,7 +151,7 @@ export default function Navbar() {
 
       {/* Mobile Menu — on-theme dark dropdown */}
       {menuOpen && (
-        <div className="md:hidden mt-3 border-t border-white/10 pt-4 pb-2 flex flex-col gap-1">
+  <div className="lg:hidden mt-3 border-t border-white/10 pt-4 pb-2 flex flex-col gap-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (

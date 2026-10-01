@@ -15,6 +15,7 @@ import { sasrDataStore } from "../../datastore/sasrdatastore";
 import { usePlaybackAudioSync } from "@/hooks/audio/usePlaybackAudioSync";
 import { useInstrumentSamplerVolume } from "@/hooks/audio/useInstrumentSamplerVolume";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browserclient";
+import { useLessonPlayCount } from "@/hooks/useplaycount";
 
 
 interface PlayedNote {
@@ -35,6 +36,10 @@ function SasrLesson() {
   const courseTitle = searchparams.get("title") || "Lesson";
   const fileName = searchparams.get("file") || "Wholenotes.mxl";
   const source = searchparams.get("source") || "Method-1A";
+  const lessonId = searchparams.get("lessonid") || "0";
+  const lessonLevel = searchparams.get("level") || "";
+  const lessonUID = `SASR-${lessonLevel}-${lessonId}`;
+  const { playCount } = useLessonPlayCount(lessonUID);
   const hasInitializedOSMD = useRef(false);
   const scoreableNotesRef = useRef(0);
   // Session timing
@@ -81,6 +86,7 @@ function SasrLesson() {
   // ===== SASR LEVEL PROGRESS (Supabase) =====
   const supabase = getSupabaseBrowserClient();
   const userIdRef = useRef<string | null>(null);
+
 
   usePlaybackAudioSync({
     isPlaying,
@@ -406,6 +412,15 @@ function SasrLesson() {
 
   // ========== PLAYBACK CONTROL ==========
   const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+function clearCountdown() {
+  if (countdownIntervalRef.current) {
+    clearInterval(countdownIntervalRef.current);
+    countdownIntervalRef.current = null;
+  }
+  setCountdown(null);
+}
 
 function startPlayback() {
   if (!beatCursorRef.current) {
@@ -454,21 +469,19 @@ function startPlayback() {
   currentStepNotesRef.current = expectedMIDI;
   sessionStartRef.current = Date.now();
 
-  
-  setCountdown(3);
+    setCountdown(3);
   let countdownValue = 3;
-  const countdownInterval = setInterval(() => {
+  countdownIntervalRef.current = setInterval(() => {
     countdownValue--;
     setCountdown(countdownValue);
-    
+
     if (countdownValue <= 0) {
-      clearInterval(countdownInterval);
-      setCountdown(null);
-      
+      clearCountdown();
+
       if (beatCursorRef.current) {
         beatCursorRef.current.startPlayback();
       }
-      
+
       startAutomaticPlayback();
     }
   }, 1000);
@@ -479,7 +492,7 @@ function startPlayback() {
       clearInterval(playbackIntervalRef.current);
     }
     
-    const beatDuration = (60 / tempo) * 1000;
+    const beatDuration = (60 / tempoRef.current) * 1000;
     console.log(`🎵 Starting automatic playback at ${tempo} BPM (${beatDuration}ms per beat)`);
     
     playbackIntervalRef.current = setInterval(() => {
@@ -520,6 +533,7 @@ function startPlayback() {
   }
 
   function pausePlayback() {
+    clearCountdown();
     setIsPlaying(false);
     playModeRef.current = false;
     
@@ -591,9 +605,9 @@ function startPlayback() {
       ? Math.round((correctStepsRef.current / scoreableNotesRef.current) * 100)
       : 0;
 
-    const lessonId = searchparams.get("lessonid") || "0";
-    const lessonUID = `SASR-${lessonId}`;
-    const lessonLevel = searchparams.get("level") || "";
+    // const lessonId = searchparams.get("lessonid") || "0";
+    // const lessonUID = `SASR-${lessonId}`;
+    // const lessonLevel = searchparams.get("level") || "";
 
     const session = {
       id: crypto.randomUUID(),
@@ -601,7 +615,7 @@ function startPlayback() {
       endedAt: endTime,
       durationSec,
       sessionCategory: "sasr" as const,
-      tempoBpm: tempo,
+      tempoBpm: tempoRef.current,
       lesson: {
         uid: lessonUID,
         id: lessonId,
@@ -628,7 +642,7 @@ function startPlayback() {
     mistakeCount: totalMistakesRef.current,
     mistakes: [], // populate from mistakeEventsRef if you want detail
     completedFully: totalMistakesRef.current < MAX_MISTAKES,
-    tempo,
+    tempo: tempoRef.current,
   });
 
     // ===== SASR LEVEL PROGRESS: record high score + check unlock =====
@@ -679,12 +693,11 @@ async function handleEndOfPiece() {
 }
 
   useEffect(() => {
-    return () => {
-      if (playbackIntervalRef.current) {
-        clearInterval(playbackIntervalRef.current);
-      }
-    };
-  }, []);
+  return () => {
+    if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+  };
+}, []);
 
   // ========== NOTE TRACKING ==========
   function trackAndHighlightNote(midi: number) {
@@ -1115,6 +1128,14 @@ function clearAllTracking() {
         courseTitle={courseTitle}
         mistakeCount={mistakeCountState}
         maxMistakes={MAX_MISTAKES}
+        playCount={playCount}
+  tempo={tempo}
+  onPlay={startPlayback}
+  onPause={pausePlayback}
+  onTempoChange={(bpm) => {
+    setTempo(bpm);
+    tempoRef.current = bpm;
+  }}
       />
       
       {/* ✅ NEW: Score Popup */}
@@ -1239,84 +1260,6 @@ function clearAllTracking() {
           </div>
         </div>
       )}
-      
-      {/* Enhanced Debug Panel */}
-      <div style={{
-        position: 'fixed',
-        top: '10px',
-        right: '10px',
-        background: 'rgba(0,0,0,0.8)',
-        color: 'white',
-        padding: '10px',
-        borderRadius: '6px',
-        fontSize: '12px',
-        fontFamily: 'monospace',
-        zIndex: 10000,
-        maxWidth: '280px'
-        
-      }} className="hidden md:block">
-        {(() => {
-          const info = getCurrentBeatInfo();
-          const currentScore = scoreableNotesRef.current > 0 
-            ? Math.round((correctStepsRef.current / scoreableNotesRef.current) * 100) 
-            : 0;
-          const penalty = incorrectNotesRef.current * 5;
-          const projectedScore = Math.max(0, currentScore - penalty);
-          
-          return info ? (
-            <>
-              <div style={{fontWeight: 'bold', marginBottom: '8px', borderBottom: '1px solid #444', paddingBottom: '4px'}}>
-                🎵 Current Position
-              </div>
-              <div>Beat: {info.beatIndex + 1}/{totalSteps}</div>
-              <div>Measure: {info.measure}, Beat: {info.beatInMeasure}</div>
-              <div>Expected: {info.expectedNotes || 'Rest'}</div>
-              
-              <div style={{marginTop: '10px', fontWeight: 'bold', borderTop: '1px solid #444', paddingTop: '8px', borderBottom: '1px solid #444', paddingBottom: '4px'}}>
-                📊 Scoring
-              </div>
-              <div>Scoreable Notes: {scoreableNotesRef.current}</div>
-              <div style={{color: '#4caf50'}}>✓ Correct: {correctStepsRef.current}</div>
-              <div style={{color: '#f44336'}}>✗ Incorrect: {incorrectNotesRef.current}</div>
-              <div style={{
-                color: totalMistakesRef.current >= 2 ? '#ff9800' : '#fff',
-                fontWeight: totalMistakesRef.current >= 2 ? 'bold' : 'normal'
-              }}>
-                🚫 Total Mistakes: {totalMistakesRef.current}/{MAX_MISTAKES}
-              </div>
-              <div style={{marginTop: '4px', paddingTop: '4px', borderTop: '1px solid #333'}}>
-                Base Score: {currentScore}%
-              </div>
-              <div>Penalty: -{penalty}%</div>
-              <div style={{fontWeight: 'bold', color: projectedScore >= 80 ? '#4caf50' : projectedScore >= 60 ? '#ff9800' : '#f44336'}}>
-                Score: {projectedScore}%
-              </div>
-              
-              <div style={{marginTop: '10px', borderTop: '1px solid #444', paddingTop: '8px'}}>
-                <div style={{fontSize: '11px'}}>
-                  <div style={{color: '#ffd700'}}>🏆 High: {highScore !== null ? `${highScore}%` : 'None'}</div>
-                  <div style={{color: '#90caf9', marginTop: '2px'}}>📝 Last: {lastScore !== null ? `${lastScore}%` : 'None'}</div>
-                </div>
-              </div>
-              
-              <div style={{marginTop: '10px', borderTop: '1px solid #444', paddingTop: '8px'}}>
-                <label style={{display: 'block', marginBottom: '4px'}}>Tempo: {tempo} BPM</label>
-                <input 
-                  type="range" 
-                  min="40" 
-                  max="200" 
-                  value={tempo} 
-                  onChange={(e) => setTempo(Number(e.target.value))}
-                  style={{width: '100%'}}
-                  disabled={isPlaying}
-                />
-              </div>
-            </>
-          ) : (
-            <div>Initializing...</div>
-          );
-        })()}
-      </div>
     </>
   );
 }
