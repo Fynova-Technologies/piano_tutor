@@ -38,7 +38,9 @@ export type PracticeSessionCategory =
   | "sasr"
   | "recovery_drill"
   | "technique_lesson"
-  | "unspecified";
+  | "unspecified" 
+  | "user_sheet";  
+
 
 /** Per-event mistakes for Supabase + AI recovery drills (lesson flow). */
 export type PracticeMistakeEvent = {

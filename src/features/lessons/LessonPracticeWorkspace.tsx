@@ -39,8 +39,8 @@ export type LessonPracticeWorkspaceProps = {
   lessonId: string;
   displayFileName: string;
   lessonUid: string;
-  sessionCategory: "method_lesson" | "recovery_drill" | "technique_lesson";
-  onPerfectScore?: (lessonId: string, fkid?: string) => void | Promise<void>;
+sessionCategory: "method_lesson" | "recovery_drill" | "technique_lesson" | "user_sheet";  
+onPerfectScore?: (lessonId: string, fkid?: string) => void | Promise<void>;
   fkid: string;
     onPlaybackStart?: () => void;
 };
@@ -821,7 +821,7 @@ async function handleEndOfPiece() {
   saveSession(session);
   // lessons?id=1&title=Finding+Middle+C&file=1A%2FWholenotes.mxl&unitId=1&source=&lessonid=1&fkid=1&category=method_lesson
 
-  saveRecentLesson({
+  if (sessionCategory !== "user_sheet") { saveRecentLesson({
     lesson_id: lessonId,
     lesson_title: courseTitle,
     file: fileName,
@@ -833,7 +833,7 @@ async function handleEndOfPiece() {
     category: "method_lesson",
     progress: finalScore,
     isCompleted: false,
-  })
+  })}
 }
 
   useEffect(() => {

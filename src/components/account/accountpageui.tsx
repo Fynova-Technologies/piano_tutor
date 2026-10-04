@@ -3,6 +3,9 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import UploadSheetButton from "@/features/components/uploadmusicsheet";
+
 
 type Invoice = {
   date: string;
@@ -11,7 +14,16 @@ type Invoice = {
   status: string;
 };
 
+function formatBytes(n?: number | null) {
+  if (!n) return null;
+  return n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
 
+function formatDate(iso?: string) {
+  if (!iso) return null;
+  // fixed locale + UTC so server and client render the same text
+  return new Date(iso).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+}
 
 
 export default function AccountPageUI({
@@ -27,6 +39,8 @@ export default function AccountPageUI({
   musicSheets?: any[];
   invoices?: Invoice[];
 }) {
+  const router = useRouter();
+
   const [activeTab, setActiveTab] = useState("account");
   const [isEditingPersonal, setIsEditingPersonal] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -38,6 +52,7 @@ export default function AccountPageUI({
 
   const [firstName, setFirstName] = useState(profile?.first_name || initialFirst || "");
   const [lastName, setLastName] = useState(profile?.last_name || initialLast || "");
+  // inside AccountPageUI:
 
   async function handleSavePersonal() {
     setSaving(true);
@@ -367,58 +382,84 @@ const isTopTier = currentTierValue >= TIER.concerto; // adjust if you add a high
               <>
 
                 <SectionCard title="" activeTab={activeTab}>
-                  {musicSheets.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {musicSheets.map((sheet, index) => (
-                        <div
-                          key={index}
-                          className="border border-[#ECECEC] rounded-2xl p-5 hover:shadow-md transition"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h3 className="text-lg font-medium text-[#151517]">
-                                {sheet.title}
-                              </h3>
+  {musicSheets.length > 0 ? (
+    <>
+      {/* toolbar only shows once they have sheets */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+        <p className="text-[16px] font-medium text-[#1C1C1E]">
+          Your uploads ({musicSheets.length})
+        </p>
+        <UploadSheetButton />
+      </div>
 
-                              <p className="text-sm text-[#6E6E73] mt-1">
-                                Composer: {sheet.composer}
-                              </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {musicSheets.map((sheet) => {
+          const chips = [
+            sheet.measures ? `${sheet.measures} measures` : null,
+            sheet.time_signature,
+            sheet.tempo_bpm ? `♩ = ${sheet.tempo_bpm}` : null,
+            formatBytes(sheet.file_size),
+          ].filter(Boolean) as string[];
 
-                              <p className="text-sm text-[#6E6E73] mt-1">
-                                Difficulty: {sheet.level}
-                              </p>
-                            </div>
-
-                            <Image
-                              src="/music-sheet.svg"
-                              alt="sheet"
-                              width={32}
-                              height={32}
-                            />
-                          </div>
-
-                          <button className="mt-5 w-full bg-[#581845] text-white py-3 rounded-xl hover:opacity-90 transition">
-                            Open Sheet
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-14">
-                      <Image
-                        src="/amico.png"
-                        width={100}
-                        height={100}
-                        alt="empty"
-                        className="mx-auto"
-                      />
-
-                      <p className="mt-4 text-[16px] font-medium text-black">
-                        You don`t have any sheet music yet. <br></br> Start browsing the library to add some.
-                      </p>
-                    </div>
+          return (
+            <div
+              key={sheet.id}
+              className="border border-[#ECECEC] rounded-2xl p-5 hover:shadow-md transition"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-lg font-medium text-[#151517] truncate">{sheet.title}</h3>
+                  <p className="text-sm text-[#6E6E73] mt-1 truncate">
+                    Composer: {sheet.composer || "Unknown"}
+                  </p>
+                  {sheet.level && (
+                    <p className="text-sm text-[#6E6E73] mt-1">Difficulty: {sheet.level}</p>
                   )}
-                </SectionCard>
+                </div>
+                <Image src="/music-sheet.svg" alt="sheet" width={32} height={32} className="shrink-0" />
+              </div>
+
+              {chips.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {chips.map((c) => (
+                    <span key={c} className="bg-[#faf8f2] text-[#6E6E73] text-xs px-3 py-1 rounded-full">
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <p className="text-xs text-[#6E6E73] mt-3 truncate">
+                {sheet.file_name}
+                {formatDate(sheet.created_at) && ` · Uploaded ${formatDate(sheet.created_at)}`}
+              </p>
+
+              <button
+                onClick={() => router.push(`/my-sheets/${sheet.id}`)}
+                className="mt-5 w-full bg-[#581845] text-white py-3 rounded-xl hover:opacity-90 transition"
+              >
+                Open Sheet
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  ) : (
+    /* your original empty state, with the upload button added under the text */
+    <div className="text-center py-14">
+      <Image src="/amico.png" width={100} height={100} alt="empty" className="mx-auto" />
+
+      <p className="mt-4 text-[16px] font-medium text-black">
+        You don`t have any sheet music yet. <br></br> Upload your own .mxl file or start browsing the library to add some.
+      </p>
+
+      <div className="mt-6 flex justify-center">
+        <UploadSheetButton />
+      </div>
+    </div>
+  )}
+</SectionCard>
               </>
             )}
           </div>
