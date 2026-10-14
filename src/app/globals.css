@@ -50,6 +50,14 @@ body {
   font-family: var(--font-playfair);
 }
 
+.font-newsreader {
+  font-family: var(--font-newsreader);
+}
+
+.font-plus-jakarta-sans {
+  font-family: var(--font-plus-jakarta-sans);
+}
+
 .font-dm-mono {
   font-family: var(--font-dm-mono);
 }

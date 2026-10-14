@@ -14,6 +14,7 @@ import Pricesection from "@/features/home/pricesection";
 import TestimonialSection from "@/features/home/testimonial";
 import MusicLibrarySlider from "@/features/home/musiclibrararyslider";
 import FeaturesShowcase from "@/features/home/featureshowcase";
+import ContactPage from "@/features/home/contactus";
 
 export default function Home() {
   
@@ -37,6 +38,7 @@ export default function Home() {
                 
                 <FAQSection />
                 <CTASection /> */}
+                <ContactPage/>
                 
                 <Footer />
 

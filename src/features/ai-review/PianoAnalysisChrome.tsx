@@ -58,7 +58,7 @@ export const analysisNavActive = `rounded-full px-4 py-1.5 text-xs ${analysisAcc
 
 /** Uppercase labels for data / slips */
 export const analysisLabelPlum =
-  "text-xs font-semibold uppercase tracking-wide text-[#6e4d7d]";
+  "text-[11px] font-bold uppercase tracking-[1.54px] text-[#B87333]";
 
 /** Inline code / tinted panels */
 export const analysisMutedSurface = "bg-[#ede9e4]";

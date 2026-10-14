@@ -7,7 +7,10 @@ import { usePathname } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browserclient';
 import UserPopup from '@/features/components/userpopup';
 import NotificationPopup from '@/features/components/notification';
-import Link from 'next/link'; 
+import Link from 'next/link';
+import { getUnreadCount } from '@/utils/notification';
+import { useNotificationEngine } from '@/hooks/usenotificationsengine';
+ 
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard' },
@@ -49,6 +52,14 @@ export default function Navbar() {
     };
     getSession();
   }, []);
+  useNotificationEngine();
+
+  useEffect(() => {
+    const checkNotifications = () => setHasNotifications(getUnreadCount() > 0);
+    checkNotifications();
+    const interval = setInterval(checkNotifications, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
 <nav className="bg-[#0A0A0B] border-b border-white/10 shadow-sm px-4 py-3 sm:px-6 relative w-full max-w-full">      <div className="w-full mx-auto flex items-center justify-between">
@@ -83,13 +94,13 @@ export default function Navbar() {
 
         {/* Right Side */}
         <div className="flex items-center gap-3 shrink-0">
- <Link
+ {/* <Link
   href="/contact-us"
   onClick={() => setMenuOpen(false)}
   className="text-sm font-medium px-4 py-2.5 rounded-full bg-[#D4AF37] text-[#0a0a0a] no-underline text-center mt-1"
 >
   Contact Us
-</Link>
+</Link> */}
 
           {/* Notification */}
           <button className="relative text-gray-400 hover:text-[#D4AF37] bg-transparent border-none transition-colors">

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Poppins, Playfair_Display, DM_Mono } from "next/font/google";
+import { Inter, Poppins, Playfair_Display, DM_Mono, Newsreader, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 // import Navbar from "@/components/navbar";
 import { AuthProvider } from "@/utils/Authsegment";
@@ -19,11 +19,26 @@ const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
 });
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-plus-jakarta-sans",
+});
+
+
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "700"],
   variable: "--font-poppins",
 });
+
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-newsreader",
+});
+
 export const playfair = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-playfair",
@@ -147,7 +162,7 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${dmMono.variable} ${poppins.variable} ${playfair.variable} flex flex-col min-h-dvh`}>
+      <body className={`${inter.variable} ${dmMono.variable} ${poppins.variable} ${playfair.variable} ${newsreader.variable} ${plusJakartaSans.variable} flex flex-col min-h-dvh`}>
         {/* AuthProvider now wraps NavbarSwitcher too — previously it only
             wrapped <main>, so anything inside NavbarSwitcher (like
             UserPopup) called useAuth() with no provider above it and
