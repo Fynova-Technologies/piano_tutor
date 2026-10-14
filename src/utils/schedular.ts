@@ -13,7 +13,15 @@ let hourlyIntervalId: ReturnType<typeof setInterval> | null = null;
 
 const triggerNotification = () => {
   const msg = PIANO_MESSAGES[Math.floor(Math.random() * PIANO_MESSAGES.length)];
-  addNotification(msg);
+  addNotification(
+    {
+      kind: "lesson",
+      message: msg,
+      href: "/lessons", // adjust to your actual route
+      // no dedupeKey, so hourly reminders aren't blocked
+    },
+    0 // cooldown irrelevant without a dedupeKey, but explicit is fine
+  );
 
   if (Notification.permission === "granted") {
     new Notification("Piano Practice 🎹", { body: msg });
