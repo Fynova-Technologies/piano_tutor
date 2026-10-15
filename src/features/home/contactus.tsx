@@ -93,15 +93,15 @@ export default function ContactPage() {
           {/* ---------- Contact ---------- */}
           <div className="grid grid-cols-1 items-stretch gap-12 lg:grid-cols-2 lg:gap-10">
             {/* Left column */}
-            <div className="flex flex-col">
+            <div className="flex flex-col text-start">
               <div className="mb-8 flex items-center gap-3">
-                <div className="h-px w-8 bg-[#D4A343]" />
-                <span className="text-[10px] font-medium uppercase tracking-[0.3em] text-[#D4A343]">
+                <div className="h-px w-8 bg-[#C49A3C]" />
+                <span className="text-[11px] font-normal uppercase tracking-[3.2px] text-[#C49A3C]">
                   Contact us
                 </span>
               </div>
 
-              <h1 className="text-5xl font-bold leading-[1.05] tracking-tight text-white md:text-6xl">
+              <h1 className="text-[56px] font-bold leading-[1.05] tracking-tight text-white md:text-6xl">
                 We&apos;d love to
                 <br />
                 <em className="font-semibold italic text-[#D4A343]">
@@ -109,12 +109,12 @@ export default function ContactPage() {
                 </em>
               </h1>
 
-              <p className="mt-8 max-w-sm text-sm leading-relaxed text-[#9A948B]">
+              <p className="mt-8 max-w-sm text-sm leading-relaxed text-[#B9B9B9]">
                 Questions about lessons, plans or your account? Send us a note
                 and a real person will reply.
               </p>
 
-              <ul className="mt-10 border-t border-white/[0.06]">
+              <ul className="mt-10 border-t border-white/[0.06] p-0">
                 {contactPoints.map((point) => (
                   <li
                     key={point.title}
@@ -141,8 +141,8 @@ export default function ContactPage() {
             </div>
 
             {/* Right column — form card */}
-            <div className="rounded-2xl border border-white/[0.06] bg-[#11100E] p-8 md:p-10">
-              <h2 className="text-xl font-bold text-white">Send us a message</h2>
+            <div className="rounded-2xl border text-start border-white/[0.06] bg-[#11100E] p-8 md:p-10">
+              <h2 className="text-xl font-bold text-[#F2EFE9]">Send us a message</h2>
               <p className="mt-2 text-xs text-[#7A746C]">
                 Fill in the form and we&apos;ll get back to you by email.
               </p>

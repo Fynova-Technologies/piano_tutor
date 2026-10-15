@@ -24,12 +24,6 @@ export default function Home() {
             <div className="flex  justify-center bg-[#F8F6F1]">
               <div className=" w-full text-center">
                 <Hero />
-                <MusicLibrarySlider />
-                <FeaturesShowcase />
-                <TestimonialSection />
-                <Pricesection />
-                <FAQSection />
-                <CTASection />
                 {/* <PianoKeys /> */}
                 {/* <Stats />
                 <ProcessSection />
@@ -38,6 +32,28 @@ export default function Home() {
                 
                 <FAQSection />
                 <CTASection /> */}
+
+<section id="how-it-works" className="scroll-mt-20">
+  <MusicLibrarySlider />
+</section>
+
+<section id="features" className="scroll-mt-20">
+  <FeaturesShowcase />
+</section>
+
+<TestimonialSection />
+
+<section id="pricing" className="scroll-mt-20">
+  <Pricesection />
+</section>
+
+<section id="faqs" className="scroll-mt-20">
+  <FAQSection />
+</section>
+
+<CTASection />
+
+
                 <ContactPage/>
                 
                 <Footer />

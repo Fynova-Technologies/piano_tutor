@@ -50,6 +50,14 @@ body {
   font-family: var(--font-playfair);
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+.font-source-serif-4 {
+  font-family: var(--font-source-serif-4);
+}
+
 .font-newsreader {
   font-family: var(--font-newsreader);
 }

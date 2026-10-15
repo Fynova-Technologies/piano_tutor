@@ -36,6 +36,7 @@ function LibraryPlayerContent() {
   const difficulty  = searchparams.get("difficulty") || "";
 
   const xml = fileName;
+  const scoreKey = fileName || courseTitle; // one set of stats per song
 
   // ── Refs & State ────────────────────────────────────────────────────────────
   const containerRef         = useRef<HTMLDivElement | null>(null);
@@ -77,6 +78,8 @@ function LibraryPlayerContent() {
   const [currentBeatIndex, setCurrentBeatIndex] = useState<number>(0);
   const [tempo, setTempo]                       = useState(100);
   const [segmentLabel, setSegmentLabel]         = useState<string>("");
+  const [playCount, setPlayCount] = useState<number>(0);
+  const [showScorePopup, setShowScorePopup] = useState(false);
 
   // ── Section selector ────────────────────────────────────────────────────────
   const {
@@ -91,11 +94,16 @@ function LibraryPlayerContent() {
 
   // ── Persist high/last score ─────────────────────────────────────────────────
   useEffect(() => {
-    const hsStr = localStorage.getItem("highScore");
-    const lsStr = localStorage.getItem("lastScore");
-    if (hsStr !== null) { const hs = Number(hsStr); if (!Number.isNaN(hs)) setHighScore(hs); }
-    if (lsStr !== null) { const ls = Number(lsStr); if (!Number.isNaN(ls)) setLastScore(ls); }
-  }, []);
+  const read = (prefix: string): number | null => {
+    const v = localStorage.getItem(`${prefix}:${scoreKey}`);
+    if (v === null) return null;
+    const n = Number(v);
+    return Number.isNaN(n) ? null : n;
+  };
+  setHighScore(read("highScore"));
+  setLastScore(read("lastScore"));
+  setPlayCount(read("playCount") ?? 0);
+}, [scoreKey]);
 
   // ── Inject highlight CSS ────────────────────────────────────────────────────
   useEffect(() => {
@@ -316,6 +324,10 @@ function LibraryPlayerContent() {
   function startPlayback() {
     if (!beatCursorRef.current) return;
 
+
+  setShowScorePopup(false);
+  setScore(null);
+
     clearAllTracking();
     attemptCountRef.current += 1;
 
@@ -383,7 +395,6 @@ function LibraryPlayerContent() {
       const beatDuration = (60 / tempoRef.current) * 1000;
       const elapsed      = now - beatStartTimeRef.current;
 
-      beatCursorRef.current.setInterpolatedPosition(elapsed / beatDuration);
 
       const MOVE_FRACTION = 0.7;
       if (elapsed >= beatDuration * MOVE_FRACTION && !beatAdvancedRef.current) {
@@ -460,13 +471,22 @@ function LibraryPlayerContent() {
     }
 
     setScore(finalScore);
-    setLastScore(finalScore);
-    localStorage.setItem("lastScore", finalScore.toString());
+setLastScore(finalScore);
+setShowScorePopup(true);
+localStorage.setItem(`lastScore:${scoreKey}`, finalScore.toString());
 
-    if (highScore === null || finalScore > highScore) {
-      setHighScore(finalScore);
-      localStorage.setItem("highScore", finalScore.toString());
-    }
+// Read from storage, not state, so a stale closure can't clobber the best score
+const storedBest = localStorage.getItem(`highScore:${scoreKey}`);
+const prevBest   = storedBest === null ? null : Number(storedBest);
+if (prevBest === null || Number.isNaN(prevBest) || finalScore > prevBest) {
+  setHighScore(finalScore);
+  localStorage.setItem(`highScore:${scoreKey}`, finalScore.toString());
+}
+
+const storedCount = Number(localStorage.getItem(`playCount:${scoreKey}`) ?? 0) || 0;
+const newCount    = storedCount + 1;
+setPlayCount(newCount);
+localStorage.setItem(`playCount:${scoreKey}`, newCount.toString());
 
     const endTime     = Date.now();
     const startTime   = sessionStartRef.current ?? endTime;
@@ -831,12 +851,16 @@ function LibraryPlayerContent() {
         } }
         containerRef={containerRef}
         countdown={countdown}
-        progressPercent={progressPercent}
-        courseTitle={courseTitle} onPlay={function (): void {
-          throw new Error("Function not implemented.");
-        } } incorrectNotesRef={incorrectNotesRef} showScorePopup={false} setShowScorePopup={function (v: boolean): void {
-          throw new Error("Function not implemented.");
-        } }      />
+        progressPercent={progressPercent}    
+        courseTitle={courseTitle}
+        onPlay={startPlayback}
+        incorrectNotesRef={incorrectNotesRef}
+        showScorePopup={showScorePopup}
+        setShowScorePopup={setShowScorePopup}
+        tempo={tempo}
+        onTempoChange={setTempo}
+        playCount={playCount}
+        />
 
       {/* Section selector — placed near CursorControls */}
       <SectionSelector
@@ -866,88 +890,7 @@ function LibraryPlayerContent() {
         }}
       />
 
-      {/* Debug Panel */}
-      <div style={{
-        position: "fixed", top: "10px", right: "10px",
-        background: "rgba(0,0,0,0.8)", color: "white",
-        padding: "10px", borderRadius: "6px",
-        fontSize: "12px", fontFamily: "monospace",
-        zIndex: 10000, maxWidth: "280px",
-      }}>
-        {(() => {
-          const info           = getCurrentBeatInfo();
-          const currentScore   = scoreableNotesRef.current > 0
-            ? Math.round((correctStepsRef.current / scoreableNotesRef.current) * 100)
-            : 0;
-          const penalty        = incorrectNotesRef.current * 5;
-          const projectedScore = Math.max(0, currentScore - penalty);
-
-          return info ? (
-            <>
-              <div style={{ fontWeight: "bold", marginBottom: "8px", borderBottom: "1px solid #444", paddingBottom: "4px" }}>
-                🎵 Current Position
-              </div>
-              <div>Beat: {info.beatIndex + 1}/{totalSteps}</div>
-              <div>Measure: {info.measure}, Beat: {info.beatInMeasure}</div>
-              <div>Expected: {info.expectedNotes || "Rest"}</div>
-
-              {/* Active section info */}
-              <div style={{ marginTop: "6px", fontSize: "10px", color: "#38bdf8", fontFamily: "monospace" }}>
-                Section: b{section.startBeat + 1}–b{section.endBeat}
-              </div>
-
-              <div style={{ marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <span style={{
-                  background: segmentColor, color: "#fff",
-                  padding: "1px 8px", borderRadius: "10px",
-                  fontSize: "10px", fontWeight: 700,
-                }}>
-                  {segmentLabel || "Full Piece"}
-                </span>
-                {cursorType !== "whole" && (
-                  <span style={{ fontSize: "10px", color: "#94a3b8" }}>{difficulty}</span>
-                )}
-              </div>
-
-              <div style={{ marginTop: "10px", fontWeight: "bold", borderTop: "1px solid #444", paddingTop: "8px", borderBottom: "1px solid #444", paddingBottom: "4px" }}>
-                📊 Scoring
-              </div>
-              <div>Scoreable Notes: {scoreableNotesRef.current}</div>
-              <div style={{ color: "#4caf50" }}>✓ Correct: {correctStepsRef.current}</div>
-              <div style={{ color: "#f44336" }}>✗ Incorrect: {incorrectNotesRef.current}</div>
-              <div style={{ marginTop: "4px", paddingTop: "4px", borderTop: "1px solid #333" }}>
-                Base Score: {currentScore}%
-              </div>
-              <div>Penalty: -{penalty}%</div>
-              <div style={{ fontWeight: "bold", color: projectedScore >= 80 ? "#4caf50" : projectedScore >= 60 ? "#ff9800" : "#f44336" }}>
-                Score: {projectedScore}%
-              </div>
-
-              <div style={{ marginTop: "10px", borderTop: "1px solid #444", paddingTop: "8px" }}>
-                <div style={{ fontSize: "11px" }}>
-                  <div style={{ color: "#ffd700" }}>🏆 High: {highScore !== null ? `${highScore}%` : "None"}</div>
-                  <div style={{ color: "#90caf9", marginTop: "2px" }}>📝 Last: {lastScore !== null ? `${lastScore}%` : "None"}</div>
-                </div>
-              </div>
-
-              <div style={{ marginTop: "10px", borderTop: "1px solid #444", paddingTop: "8px" }}>
-                <label style={{ display: "block", marginBottom: "4px" }}>Tempo: {tempo} BPM</label>
-                <input
-                  type="range" min="40" max="200" value={tempo}
-                  onChange={(e) => setTempo(Number(e.target.value))}
-                  style={{ width: "100%" }}
-                  disabled={isPlaying}
-                />
-              </div>
-
-              <div style={{ marginTop: "10px", borderTop: "1px solid #444", paddingTop: "8px", fontSize: "10px", color: "#64748b", wordBreak: "break-all" }}>
-                📄 {fileName.split("/").pop()}
-              </div>
-            </>
-          ) : (
-            <div>{xml ? "Loading score…" : "⚠️ No file specified"}</div>
-          );
-        })()}
+      <div>
       </div>
     </>
   );

@@ -67,6 +67,9 @@ export default function CursorControls (props: CursorControlsProps) {
         const [openDialogue, setOpenDialogue] = useState(false);
         const [showTempoPopup, setShowTempoPopup] = useState(false);
         const tempoWrapRef = useRef<HTMLDivElement | null>(null);
+        const source = searchParams.get("source");
+        const backHref  = source === "method" ? "/method" : "/library";
+        const backLabel = source === "method" ? "Go to method" : "Go to library";
         
         // Close when tapping outside, or when playback starts
         useEffect(() => {
@@ -468,11 +471,11 @@ export default function CursorControls (props: CursorControlsProps) {
   </div>
 )}
 
-{props.score > 0 && !isPlaying && (
+{props.showScorePopup && !isPlaying && (
   <div style={{
     position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
-    display: "flex", alignItems: "center", justifyContent: "center", zIndex: 99998,
-    padding: "16px",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    zIndex: 99998, padding: "16px",
   }}>
     <div style={{
       background: "white", borderRadius: "16px", padding: "24px 20px",
@@ -488,8 +491,8 @@ export default function CursorControls (props: CursorControlsProps) {
             <circle cx="12" cy="12" r="9" stroke="#3B6D11" strokeWidth="2"/>
           </svg>
         </div>
-        <p style={{ fontSize: "clamp(18px, 5vw, 24px)", color: "#0A0A0B", marginBottom: 4, fontWeight: 400 }}>{courseTitle}</p>
-        <p style={{ fontSize: 18, color:"#0A0A0B" }}>Song complete</p>
+        <p style={{ fontSize: "clamp(18px, 5vw, 24px)", color: "#0A0A0B", marginBottom: 4 }}>{courseTitle}</p>
+        <p style={{ fontSize: 18, color: "#0A0A0B" }}>Song complete</p>
       </div>
 
       {/* Score cards */}
@@ -500,8 +503,8 @@ export default function CursorControls (props: CursorControlsProps) {
           { label: "Last score", value: `${lastScore ?? 0}%` },
         ].map(({ label, value }) => (
           <div key={label} style={{ background: "#f5f5f5", borderRadius: 8, padding: "10px 6px", textAlign: "center" }}>
-            <p style={{ fontSize: 12, color: "#0A0A0B" , fontWeight: 500  }}>{label}</p>
-            <p style={{ fontSize: "clamp(18px, 5vw, 24px)",color: "#808080", fontWeight: 500 }}>{value}</p>
+            <p style={{ fontSize: 12, color: "#0A0A0B", fontWeight: 500 }}>{label}</p>
+            <p style={{ fontSize: "clamp(18px, 5vw, 24px)", color: "#808080", fontWeight: 500 }}>{value}</p>
           </div>
         ))}
       </div>
@@ -522,41 +525,19 @@ export default function CursorControls (props: CursorControlsProps) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <button
           style={{ padding: 12, borderRadius: 8, border: "0.5px solid #ddd", background: "white", fontSize: 14, fontWeight: 500, cursor: "pointer" }}
-          onClick={() => { props.setScore(null); props.onPlay(); }}>
+          onClick={() => {
+            props.setShowScorePopup(false);
+            props.setScore(null);
+            props.onPlay();
+          }}>
           Retry
         </button>
         <button
           style={{ padding: 12, borderRadius: 8, border: "none", background: "#D4AF37", fontSize: 14, fontWeight: 500, color: "#412402", cursor: "pointer" }}
-          onClick={() => router.push("/library")}>
-          Go to library
+          onClick={() => router.push(backHref)}>
+          {backLabel}
         </button>
       </div>
-    </div>
-  </div>
-)}
-
-{props.showScorePopup && !isPlaying && (
-  <div style={{
-    position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
-    display: "flex", alignItems: "center", justifyContent: "center", zIndex: 99998,
-    padding: "16px",
-  }}>
-    {/* ... same popup content ... */}
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-      <button
-        style={{ padding: 12, borderRadius: 8, border: "0.5px solid #ddd", background: "white", fontSize: 14, fontWeight: 500, cursor: "pointer" }}
-        onClick={() => { 
-          props.setShowScorePopup(false);  // ← close popup first
-          props.setScore(null); 
-          props.onPlay(); 
-        }}>
-        Retry
-      </button>
-      <button
-        style={{ padding: 12, borderRadius: 8, border: "none", background: "#D4AF37", fontSize: 14, fontWeight: 500, color: "#412402", cursor: "pointer" }}
-        onClick={() => router.push("/method")}>
-        Go to method
-      </button>
     </div>
   </div>
 )}
