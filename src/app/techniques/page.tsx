@@ -25,6 +25,9 @@ type UnitLesson2 = {
   unitlessons: RawLesson[];
 };
 
+const pillBase =
+  "rounded-full px-4 py-1 text-[12px] font-medium whitespace-nowrap border";
+
 // Completion map: fkid → lessonId → boolean
 type ProgressMap = Record<string, Record<string, boolean>>;
 
@@ -194,12 +197,11 @@ useEffect(() => {
   const UnitLesson: React.FC<{ classId: string; methodName: string }> = ({
     classId,
   }) => {
-    const [activeLesson, setActiveLesson] = useState<string | null>(null);
     const unit = unitLessonsData2.find((u) => u.fkid === classId);
 
-    useEffect(() => {
-      if (unit?.unitlessons.length) setActiveLesson(unit.unitlessons[0].id);
-    }, [unit]);
+    const currentLessonId = unit?.unitlessons.find(
+      (l) => !isCompleted(unit.fkid, l.id)
+    )?.id;
 
     if (!unit) return null;
 
@@ -226,84 +228,71 @@ useEffect(() => {
               Loading progress…
             </div>
           ) : (
-            <ul className="mt-5">
-              {unit.unitlessons.map((lesson) => {
-                const isActive = activeLesson === lesson.id;
-                const completed = isCompleted(unit.fkid, lesson.id);
+<ul className="mt-5 list-none">
+  {unit.unitlessons.map((lesson) => {
+    const isDone = isCompleted(unit.fkid, lesson.id);
+    const isCurrent = !isDone && lesson.id === currentLessonId;
 
-                return (
-                  <li
-                    key={lesson.id}
-                    onClick={() => {
-                      setActiveLesson(lesson.id);
-                      const params = new URLSearchParams({
-                        fkid: classId,
-                        title: lesson.lessontitle,
-                        file: lesson.file ?? "",
-                        unitId: lesson.id ?? "",
-                        source: lesson.source ?? "",
-                        lessonid: lesson.id ?? "",
-                        category: "technique_lesson",
-                      });
-                      router.push(`${lesson.link}?${params.toString()}`);
-                    }}
-                    className={`group cursor-pointer flex px-4 py-1 items-center ${
-                      completed
-                        ? "flex"
-                        : "hover:rounded-2xl hover:bg-[#D4AF37]"
-                    } ${
-                      isActive && !completed
-                        ? "bg-[#D4AF37] mb-1 border-b-0 rounded-2xl"
-                        : ""
-                    }`}
-                  >
-                    {/* Icon */}
-                    <div>
-                      <Image
-                        src="/Layer_1.png"
-                        width={56}
-                        height={56}
-                        alt="icon"
-                        className={`${isActive ? "visible" : "invisible"} group-hover:visible group-active:visible ${completed ? "hidden" : "flex"}`}
-                      />
-                      <Image
-                        src="/star-3.svg"
-                        width={65}
-                        height={65}
-                        alt="star"
-                        className={completed ? "flex" : "hidden"}
-                      />
-                    </div>
+    return (
+      <li
+        key={lesson.id}
+        onClick={() => {
+          const params = new URLSearchParams({
+            fkid: classId,
+            title: lesson.lessontitle,
+            file: lesson.file ?? "",
+            unitId: lesson.id ?? "",
+            source: lesson.source ?? "",
+            lessonid: lesson.id ?? "",
+            category: "technique_lesson",
+          });
+          router.push(`${lesson.link}?${params.toString()}`);
+        }}
+        className="cursor-pointer"
+      >
+        <div
+          className={`flex items-center w-full px-2 md:px-4 py-1 rounded-2xl transition-colors ${
+            isCurrent ? "bg-[#D4AF37]" : "hover:bg-[#D4AF37]/15"
+          }`}
+        >
+          {/* Left icon slot */}
+          <div className="w-[44px] md:w-[56px] flex-shrink-0 flex items-center justify-center">
+            {isDone ? (
+              <Image src="/star-3.svg" width={50} height={50} alt="completed lesson" />
+            ) : isCurrent ? (
+              <Image src="/Layer_1.png" width={40} height={40} alt="current lesson" />
+            ) : null}
+          </div>
 
-                    {/* Lesson info + toggle button */}
-                    <div className={`${isMobile
-                      ? "flex flex-col w-full hover:border-0 border-[#0a0a0a] py-1"
-                      : "flex items-center justify-between w-full hover:border-0 border-[#0a0a0a] py-1"
-                    } ${isActive ? "border-0" : "border-b-1"}`}>
-                      <span className="text-[16px] primary-color-text font-medium">
-                        {lesson.id}. {lesson.lessontitle}
-                      </span>
+          {/* Title + status pill */}
+          <div
+            className={`flex items-center justify-between w-full py-3 ml-2 ${
+              isCurrent ? "" : "border-b border-[#0a0a0a]/20"
+            }`}
+          >
+            <span className="text-[16px] primary-color-text font-medium">
+              {lesson.id}. {lesson.lessontitle}
+            </span>
 
-                      <span
-                        // onClick={(e) => {
-                        //   // Prevent li click (navigation) when toggling
-                        //   e.stopPropagation();
-                        //   toggleLesson(unit.fkid, lesson.id, completed);
-                        // }}
-                        className={`${isMobile
-                          ? `rounded-2xl py-1 border-none mt-2 text-center ${completed ? "bg-[#84FF10]" : "bg-[#0a0a0a]"}`
-                          : `rounded-2xl py-2 px-6 border-none h-[36px] ${completed ? "bg-[#84FF10]" : "bg-[#0a0a0a]"}`
-                        }`}
-                      >
-                        <span className={`${completed ? "text-[#151517]" : "text-white"} font-medium text-sm`}>
-                          {completed ? "Completed" : "Incomplete"}
-                        </span>
-                      </span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            {isDone ? (
+              <span className={`${pillBase} px-6 py-2 bg-[#2ECC71] border-[#2ECC71] text-[#151517]`}>
+                Completed
+              </span>
+            ) : isCurrent ? (
+              <span className={`${pillBase} px-6 py-2 bg-[#151517] border-[#151517] text-[#FEFEFE]`}>
+                In Progress
+              </span>
+            ) : (
+              <span className={`${pillBase} px-6 py-2 bg-[#FEFEFE] border-[#151517] text-[#0a0a0a]`}>
+                Incomplete
+              </span>
+            )}
+          </div>
+        </div>
+      </li>
+    );
+  })}
+</ul>
           )}
         </div>
       </div>
@@ -337,25 +326,30 @@ useEffect(() => {
                   // Find matching unit to check if all lessons are complete
                   const matchingUnit = unitLessonsData2.find((u) => u.fkid === lesson.id);
                   const allComplete = matchingUnit ? isUnitComplete(matchingUnit) : false;
-
+                  const isSelected = classId === lesson.id;
                   return (
                     <div key={index} className="relative">
                       <motion.div
-                        initial={{ backgroundColor: "#fefefe" }}
-                        whileHover={{ backgroundColor: ["#f1f1f1", "#e9e9ea", "#d2d2d4"] }}
-                        transition={{ duration: 0.9, times: [0, 0.3, 0.5], ease: "easeInOut" }}
-                        onClick={() => {
-                          const isUnlocked = unitProgress[lesson.id]?.unlocked ?? index === 0;
-                          if (!isUnlocked) return; // locked — do nothing (or show a toast)
-                          if (userId) unlockTechniqueUnit(userId, lesson.id); // no-op if already unlocked
-                          handleClick(lesson.id);
-                          setMethodName(lesson.title);
-                        }}
-                        className={`${isMobile
-                          ? "relative p-4 flex items-center justify-between cursor-pointer transition-colors duration-300 ease-out w-full min-w-[120px] h-[250px] bg-[#FEFEFE] shadow-[inset_0px_-2px_5px_#b9b9b9] hover:rounded-r-2xl"
-                          : "relative cursor-pointer w-full flex flex-row-reverse p-4 transition-color duration-300 ease-out transform bg-[#FEFEFE] hover:rounded-r-2xl shadow-[inset_0px_-2px_5px_#b9b9b9]"
-                        }`}
-                      >
+  initial={false}
+  animate={{ backgroundColor: isSelected ? "#f5f0e0" : "#fefefe" }}
+  whileHover={
+    isSelected
+      ? undefined
+      : { backgroundColor: ["#f1f1f1", "#e9e9ea", "#d2d2d4"] }
+  }
+  transition={{ duration: 0.9, times: [0, 0.3, 0.5], ease: "easeInOut" }}
+  onClick={() => {
+    const isUnlocked = unitProgress[lesson.id]?.unlocked ?? index === 0;
+    if (!isUnlocked) return;
+    if (userId) unlockTechniqueUnit(userId, lesson.id);
+    handleClick(lesson.id);
+    setMethodName(lesson.title);
+  }}
+  className={`${isMobile
+    ? "relative p-4 flex items-center justify-between cursor-pointer w-full min-w-[120px] h-[250px] shadow-[inset_0px_-2px_5px_#b9b9b9] hover:rounded-r-2xl"
+    : "relative cursor-pointer w-full flex flex-row-reverse p-4 hover:rounded-r-2xl shadow-[inset_0px_-2px_5px_#b9b9b9]"
+  }`}
+>
                         {showBlackKey && (
                           <div className={`${isMobile
                             ? "absolute left-0 top-0 z-10 w-[40px] h-[150px] bg-black rounded-b-lg"
@@ -367,9 +361,13 @@ useEffect(() => {
                           <Image src="/lock-icon.svg" width={24} height={24} alt="locked" className="absolute z-20 ..." />
                         )}
 
-                        <span className={`mt-auto bg-[#e9e9ea] shadow-[inset_0px_0px_4px_#0A254059] primary-color-text font-bold rounded ${
-                          allComplete ? "w-[86px] h-[36px]" : "w-[49px] h-[36px]"
-                        } text-center flex text-[20px] justify-center items-center text-sm`}>
+                        <span
+    className={`shadow-[inset_0px_0px_4px_#0A254059] font-bold rounded w-[49px] h-[36px] flex justify-center items-center text-sm transition-colors ${
+      isSelected
+        ? "bg-[#D4AF37] text-[#0a0a0a]"
+        : "bg-[#e9e9ea] primary-color-text"
+    }`}
+  >
                           <Image
                             src="/star-3.svg"
                             height={40}
