@@ -11,6 +11,10 @@ import { createServerSupabase } from "@/lib/supabase/server";
 // import Navbar from "@/components/navbar";
 // import UnauthUserNavbar from "@/components/navbar2";
 import NavbarSwitcher from "@/components/navswitcher";
+import { VideoModalProvider } from "@/features/components/videomodalprovider";
+
+// inside <body>:
+
 
 
 
@@ -160,7 +164,6 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const supabase = await createServerSupabase();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     data: { session },
@@ -178,7 +181,7 @@ export default async function RootLayout({
           <NavbarSwitcher />
           <main className="flex w-full flex-1 flex-col">
             <AudioProvider>
-              <LessonsProvider><TechniquesProvider>{children}</TechniquesProvider></LessonsProvider>
+              <LessonsProvider><TechniquesProvider> <VideoModalProvider>{children}</VideoModalProvider></TechniquesProvider></LessonsProvider>
             </AudioProvider>
           </main>
         </AuthProvider>

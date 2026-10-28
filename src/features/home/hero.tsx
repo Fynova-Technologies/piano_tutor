@@ -1,8 +1,13 @@
 "use client";
 import Image from "next/image";
 import Link from 'next/link'
+import { useVideoModal } from "@/features/components/videomodalprovider";
+
+
 
 export default function Hero() {
+  const { openVideo } = useVideoModal();
+
   return (
     <section className="relative min-h-[100dvh] flex flex-col items-center justify-center text-center overflow-hidden px-4">
       {/* ── Piano keyboard background ── */}
@@ -59,13 +64,14 @@ export default function Hero() {
           >
             Get Started
           </Link>
-          <Link
-            href="/demo"
-            className="w-full sm:w-auto border no-underline border-white/45 text-white text-[13px] sm:text-[14px] tracking-[2.89px] uppercase font-medium rounded-full px-8 py-3.5 hover:bg-white/8 hover:border-white/70 transition-colors duration-200 flex items-center justify-center gap-2"
-          >
-            <span className="text-[9px]">▶</span>
-            Watch Demo
-          </Link>
+          <button
+  type="button"
+  onClick={() => openVideo("demo")}
+  className="w-full sm:w-auto border no-underline border-white/45 text-white text-[13px] sm:text-[14px] tracking-[2.89px] uppercase font-medium rounded-full px-8 py-3.5 hover:bg-white/8 hover:border-white/70 transition-colors duration-200 flex items-center justify-center gap-2"
+>
+  <span className="text-[9px]">▶</span>
+  Watch Demo
+</button>
         </div>
       </div>
     </section>

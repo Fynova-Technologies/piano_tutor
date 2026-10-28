@@ -11,7 +11,7 @@ import {
 } from "./progressService";
 
 // ✅ Your real CDN base — no trailing slash
-const CDN_BASE = "https://cdn-dataforpiano.netlify.app";
+const CDN_BASE = process.env.NEXT_PUBLIC_CDN_URL ?? "";
 
 type User = { id: string };
 type Lesson = { id: string; completed?: boolean; [key: string]: any };
