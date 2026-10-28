@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import Image from "next/image";
 
 const NAV_LINKS = [
   { label: "How it works", href: "/#how-it-works" },
@@ -17,9 +18,7 @@ export default function UnauthUserNavbar() {
       {/* Logo (left) */}
       <div className="flex-1">
         <Link href="/" className="no-underline">
-          <span className="text-white font-bold text-xl tracking-wide font-serif">
-            Learn<span className="text-[#C9A84C]">keys</span>
-          </span>
+          <Image src="/logo/Complete_Logo_no_bg.svg" alt="Logo" width={150} height={150} className="rounded-full" />
         </Link>
       </div>
 
