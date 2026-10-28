@@ -67,9 +67,9 @@ export default function Navbar() {
         {/* Logo */}
 <Link href="/" className="flex items-center gap-2 no-underline shrink-0">
           <div className="flex items-center gap-2">
-            <Image src="/assets/Mask group.svg" alt="Logo" width={36} height={36} className="rounded-full" />
+            <Image src="/logo/Complete_Logo_no_bg.svg" alt="Logo" width={100} height={100} className="rounded-full" />
           
-          <span className="text-xl font-bold text-white">Logo</span>
+          {/* <span className="text-xl font-bold text-white">Logo</span> */}
           
         </div>
         </Link>

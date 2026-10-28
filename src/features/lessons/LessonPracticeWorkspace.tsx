@@ -764,6 +764,7 @@ async function handleEndOfPiece() {
 
   setScore(finalScore);
   setLastScore(finalScore);
+  setShowScorePopup(true);            // ← add this
   localStorage.setItem("lastScore", finalScore.toString());
 
   if (highScore === null || finalScore > highScore) {

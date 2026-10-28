@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 
 const links = {
   Product: [{linkName: "How it Works", link:"/how-it-works"}, {linkName: "Features", link:"/features"}, {linkName: "Pricing", link:"/pricing"}, {linkName: "Masterclasses", link:"/masterclasses"}, {linkName: "Mobile App", link:"/mobile-app"}],
@@ -42,12 +43,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-7 h-7 bg-[#C9A84C] rounded-md flex items-center justify-center">
-                <span className="text-[#1A1A1A] text-[10px] font-black tracking-tight">LK</span>
-              </div>
-              <span className="text-[#F2ECE0] font-playfair font-extrabold text-[22px] tracking-wide">
-                Learnkeys
-              </span>
+              <Image src="/logo/Complete_Logo_no_bg.svg" alt="Logo" width={200} height={200} className="rounded-full" />
             </div>
             <p className="text-[#B9B9B9] text-[15px] font-light leading-relaxed max-w-[240px]">
               The more thoughtfully designed piano learning platform for the modern era.
